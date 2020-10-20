@@ -11,7 +11,7 @@ import (
 func startServer() {
 	http.HandleFunc("/callback", spotifyclient.CallbackHandler)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		logger.Logger.Infof("Got request for:", r.URL.String())
+		logger.Logger.Infof("Got request for %s", r.URL.String())
 	})
 	err := http.ListenAndServe(":8080", nil)
 
@@ -29,9 +29,9 @@ func main() {
 	clientSecret := os.Getenv("CLIENT_SECRET_KEY")
 	user := spotifyclient.Authenticate(clientId, clientSecret)
 
-	logger.Logger.Infof("user is: %+v\n", user.Infos.DisplayName)
+	logger.Logger.Infof("user is: %s\n", user.Infos.DisplayName)
 
-	songs, err := user.GetSongs()
+	songs, err := user.GetAllSongs()
 
 	if err != nil {
 		logger.Logger.Fatal("Could not retrieve songs for user", err)
@@ -39,8 +39,8 @@ func main() {
 
 	fmt.Printf("Found %d songs for user %s\n", len(*songs), user.Infos.DisplayName)
 
-	for _, song := range *songs {
-		fmt.Println(song.Name, " | ", song.Artists[0].Name)
+	for i, song := range *songs {
+		artists := song.Artists
+		fmt.Printf("%d - %s | %s\n", i, song.Name, artists[0].Name)
 	}
-
 }

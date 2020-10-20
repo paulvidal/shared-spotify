@@ -20,6 +20,7 @@ var auth = spotify.NewAuthenticator(
 	redirectURL,
 	spotify.ScopeUserReadPrivate,
 	spotify.ScopePlaylistReadPrivate,
+	spotify.ScopePlaylistReadCollaborative,
 	spotify.ScopeUserLibraryRead)
 
 type User struct {
@@ -46,7 +47,7 @@ func Authenticate(clientId string, clientSecret string) User {
 		logger.Logger.Fatal(err)
 	}
 
-	logger.Logger.Infof("You are logged in as:", user.ID)
+	logger.Logger.Infof("You are logged in as %s", user.ID)
 
 	return User{
 		Infos:   *user,
