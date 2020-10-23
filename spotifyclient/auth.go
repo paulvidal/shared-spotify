@@ -3,6 +3,8 @@ package spotifyclient
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"github.com/shared-spotify/httputils"
 	"golang.org/x/oauth2"
 	"net/http"
 	"os"
@@ -31,49 +33,86 @@ var auth = spotify.NewAuthenticator(
 	spotify.ScopePlaylistReadCollaborative,
 	spotify.ScopeUserLibraryRead)
 
+type UserInfos struct {
+	Id       string `json:"id"`
+	Name     string `json:"name"`
+	ImageUrl string `json:"image"`
+}
+
 type User struct {
-	Infos  spotify.PrivateUser
-	Client *spotify.Client
+	Infos  UserInfos        `json:"user_infos"`
+	Client *spotify.Client  `json:"-"` // we ignore this field
 }
 
-type AuthenticatedUser struct {
-	Name string `json:"name"`
-}
-
-func GetUser(w http.ResponseWriter, r *http.Request) {
+func CreateUserFromRequest(r *http.Request) (*User, error) {
 	tokenCookie, err := r.Cookie(tokenCookieName)
 
 	if err == http.ErrNoCookie {
-		http.Error(w, "No user found", http.StatusBadRequest)
-		return
+		return nil, errors.New("no token cookie found")
 	}
 
 	token, err := decryptToken(tokenCookie)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, errors.New("failed to decrypt token")
 	}
 
+	user, err := createUserFromToken(token)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func createUserFromToken(token *oauth2.Token) (*User, error) {
 	client := auth.NewClient(token)
-	user, err := client.CurrentUser()
+	privateUser, err := client.CurrentUser()
 
 	if err != nil {
-		http.Error(w, "Failed to get current user", http.StatusInternalServerError)
+		return nil, err
+	}
+
+	userInfos := toUserInfos(privateUser)
+
+	return &User{userInfos, &client}, nil
+}
+
+func toUserInfos(user *spotify.PrivateUser) UserInfos {
+	displayName := user.DisplayName
+	var image string
+
+	if user.Images != nil && len(user.Images) > 0 {
+		image = user.Images[0].URL
+	}
+
+	return UserInfos{user.ID, displayName, image}
+}
+
+func (user *User) ToJson() ([]byte, error) {
+	jsonUserInfos, err := json.Marshal(user.Infos)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonUserInfos, nil
+}
+
+func (user *User) IsEqual(otherUser *User) bool {
+	return otherUser.Infos.Id == user.Infos.Id
+}
+
+func GetUser(w http.ResponseWriter, r *http.Request) {
+	user, err := CreateUserFromRequest(r)
+
+	if err != nil {
+		http.Error(w, "Failed to get current user: " + err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	authenticatedUser := AuthenticatedUser{user.DisplayName}
-
-	json, err := json.Marshal(authenticatedUser)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(json)
+	httputils.SendJson(w, user)
 }
 
 func Authenticate(w http.ResponseWriter, r *http.Request) {

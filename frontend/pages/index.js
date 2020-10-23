@@ -1,40 +1,28 @@
-import { useState, useEffect } from 'react';
+import {useState} from 'react';
 import axios from 'axios';
 import Head from 'next/head'
 import {Button} from 'react-bootstrap';
+import Link from 'next/link'
 import styles from '../styles/Home.module.scss'
-
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import useDeepCompareEffect from "use-deep-compare-effect";
+import _ from "lodash"
 
 export default function Home() {
   const axiosClient = axios.create({
     withCredentials: true
   })
 
-  const [user, setUser] = useState(null);
+  const [userInfos, setUserInfos] = useState({});
 
-  useEffect(() => {
+  useDeepCompareEffect(() => {
     axiosClient.get('http://localhost:8080/user')
-      .then(resp => setUser(resp.data.name))
-      .catch(error => {
-        let msg = error.response ? error.response.data.message : error;
-
-        toast.error('An error occured: ' + msg, {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
-      })
-  }, [user])
+      .then(resp => setUserInfos(resp.data.user_infos))
+      .catch(error => {})
+  }, [userInfos])
 
   let greetings;
 
-  if (user) {
+  if (!_.isEmpty(userInfos)) {
     greetings = (
       <main className={styles.main}>
         <h1 className={styles.title}>
@@ -42,12 +30,14 @@ export default function Home() {
         </h1>
 
         <h1 className={styles.name_title}>
-          {user}
+          {userInfos.name}
         </h1>
 
-        <Button variant="outline-success" size="lg" className="mt-5">
-          Start sharing music ➡️
-        </Button>
+        <Link href="/rooms">
+          <Button variant="outline-success" size="lg" className="mt-5">
+            Start sharing music ➡️
+          </Button>
+        </Link>
       </main>
     )
 
@@ -68,8 +58,8 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
+        <title>Shared Spotify</title>
+        <link rel="icon" href="/spotify.svg" />
       </Head>
 
       {greetings}
@@ -78,8 +68,6 @@ export default function Home() {
         Powered by{' '}
         <img src="/spotify.svg" alt="Spotify Logo" className={styles.logo} />
       </footer>
-
-      <ToastContainer />
     </div>
   )
 }

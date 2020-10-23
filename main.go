@@ -1,27 +1,34 @@
 package main
 
 import (
+	"github.com/gorilla/mux"
 	"github.com/rs/cors"
+	"github.com/shared-spotify/app"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/spotifyclient"
 	"net/http"
 )
 
 func startServer() {
-	mux := http.NewServeMux()
+	r := mux.NewRouter()
 
-	mux.HandleFunc("/user", spotifyclient.GetUser)
-	mux.HandleFunc("/login", spotifyclient.Authenticate)
-	mux.HandleFunc("/callback", spotifyclient.CallbackHandler)
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/user", spotifyclient.GetUser)
+	r.HandleFunc("/login", spotifyclient.Authenticate)
+	r.HandleFunc("/callback", spotifyclient.CallbackHandler)
+
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		logger.Logger.Infof("Got request for %s", r.URL.String())
 	})
+	r.HandleFunc("/rooms", app.RoomsHandler)
+	r.HandleFunc("/rooms/{roomId:[0-9]+}", app.RoomHandler)
+	r.HandleFunc("/rooms/{roomId:[0-9]+}/users", app.RoomUsersHandler)
+	r.HandleFunc("/rooms/{roomId:[0-9]+}/musics", app.RoomMusicHandler)
 
 	// Setup cors policies
 	handler := cors.New(cors.Options{
 		AllowedOrigins: []string{"http://localhost:8080", "http://localhost:3000"},
 		AllowCredentials: true,
-	}).Handler(mux)
+	}).Handler(r)
 
 	// Launch the server
 	err := http.ListenAndServe(":8080", handler)

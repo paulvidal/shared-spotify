@@ -1,0 +1,17 @@
+@import "../common";
+
+.profile_pic {
+  height: 50px;
+  width: 50px;
+}
+
+.profile_pic_container {
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .profile_pic {
+    height: 70px;
+    width: 70px;
+  }
+}
