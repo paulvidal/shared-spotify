@@ -1,10 +1,9 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import axios from 'axios';
 import Head from 'next/head'
 import {Button} from 'react-bootstrap';
 import Link from 'next/link'
 import styles from '../styles/Home.module.scss'
-import useDeepCompareEffect from "use-deep-compare-effect";
 import _ from "lodash"
 
 export default function Home() {
@@ -14,11 +13,13 @@ export default function Home() {
 
   const [userInfos, setUserInfos] = useState({});
 
-  useDeepCompareEffect(() => {
+  const refresh = () => {
     axiosClient.get('http://localhost:8080/user')
       .then(resp => setUserInfos(resp.data.user_infos))
       .catch(error => {})
-  }, [userInfos])
+  }
+
+  useEffect(refresh, [])
 
   let greetings;
 

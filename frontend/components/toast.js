@@ -29,6 +29,24 @@ function showSuccessToast(msg) {
   });
 }
 
+function showErrorToastWithError(msg, error) {
+  let errorMsg;
+
+  if (error.response) {
+    errorMsg = error.response.data;
+
+  } else {
+    errorMsg = error.message;
+  }
+
+  showErrorToast(
+    <div>
+      <strong>{msg}</strong>
+      <br/>Error: {errorMsg}
+    </div>
+  )
+}
+
 function showErrorToast(msg) {
   toast.error(msg, {
     position: "top-right",
@@ -44,5 +62,6 @@ function showErrorToast(msg) {
 export {
   Toast,
   showSuccessToast,
-  showErrorToast
+  showErrorToast,
+  showErrorToastWithError
 }

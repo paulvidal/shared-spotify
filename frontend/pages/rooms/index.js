@@ -1,12 +1,11 @@
 import styles from "../../styles/rooms/Rooms.module.scss";
 import Head from "next/head";
-import {useState} from "react";
-import useDeepCompareEffect from 'use-deep-compare-effect'
+import {useEffect, useState} from "react";
 import axios from "axios";
 import RoomListElem from "./roomListElem";
-import { Button } from 'react-bootstrap';
+import {Button} from 'react-bootstrap';
 
-import {Toast, showSuccessToast, showErrorToast} from "../../components/toast";
+import {showErrorToastWithError, showSuccessToast, Toast} from "../../components/toast";
 
 export default function Rooms() {
   const axiosClient = axios.create({
@@ -19,7 +18,7 @@ export default function Rooms() {
     axiosClient.get('http://localhost:8080/rooms')
       .then(resp => setRooms(Object.values(resp.data.rooms)))
       .catch(error => {
-        showErrorToast("Failed to get rooms info")
+        showErrorToastWithError("Failed to get all rooms info", error)
       })
   }
 
@@ -30,11 +29,11 @@ export default function Rooms() {
         refresh()
       })
       .catch(error => {
-        showErrorToast("Room failed to create ! Please try again")
+        showErrorToastWithError("Room failed to create ! Please try again", error)
       })
   }
 
-  useDeepCompareEffect(refresh, [rooms])
+  useEffect(refresh, [])
 
   let roomsList;
 

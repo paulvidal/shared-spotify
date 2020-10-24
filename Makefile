@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 run:
-	source env.sh && go run main.go
+	source env.sh && rm -rf app.log && go run main.go
 
 front:
 	yarn --cwd frontend dev

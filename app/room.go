@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/gorilla/mux"
 	"github.com/shared-spotify/httputils"
+	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/spotifyclient"
 	"math/rand"
 	"net/http"
@@ -15,6 +16,8 @@ const maxNumberRooms = 100
 var roomDoesNotExistError = errors.New("room does not exists")
 var roomIsNotAccessibleError = errors.New("room is not accessible to user")
 var authenticationError = errors.New("failed to authenticate user")
+var roomLockedError = errors.New("room is locked and not accepting new members")
+var processingInProgressError = errors.New("processing of music is already in progress")
 
 // An in memory representation of all the rooms, would be better if it was persistent but for now this is fine
 var allRooms = AllRooms{make(map[string]*Room, 0)}
@@ -24,9 +27,10 @@ type AllRooms struct {
 }
 
 type Room struct {
-	Id       string                 `json:"id"`
-	Users    []*spotifyclient.User  `json:"users"`
-	Locked   bool                   `json:"locked"`
+	Id            string                 `json:"id"`
+	Users         []*spotifyclient.User  `json:"users"`
+	Locked        *bool                  `json:"locked"`
+	MusicLibrary  *SharedMusicLibrary    `json:"shared_music_library"`
 }
 
 func createRoom() *Room {
@@ -41,7 +45,8 @@ func createRoom() *Room {
 		}
 	}
 
-	room := &Room{randomId, make([]*spotifyclient.User, 0), false}
+	locked := false
+	room := &Room{randomId, make([]*spotifyclient.User, 0), &locked, nil}
 
 	// Add the rooms
 	allRooms.Rooms[randomId] = room
@@ -66,6 +71,14 @@ func (room *Room) isUserInRoom(user *spotifyclient.User) bool {
 	}
 
 	return false
+}
+
+func (room *Room) getUserIds() []string {
+	userNames := make([]string, 0)
+	for _, user := range room.Users {
+		userNames = append(userNames, user.Infos.Id)
+	}
+	return userNames
 }
 
 func getRoom(roomId string) (*Room, error) {
@@ -107,6 +120,12 @@ func handleError(err error, w http.ResponseWriter) {
 
 	} else if err == authenticationError {
 		httputils.AuthenticationError(w)
+
+	} else if err == roomLockedError {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+
+	} else if err == processingInProgressError {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 
 	} else {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -222,6 +241,11 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if *room.Locked {
+		handleError(roomLockedError, w)
+		return
+	}
+
 	room.addUser(user)
 
 	httputils.SendOk(w)
@@ -244,7 +268,17 @@ func RoomMusicHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetMusicsForRoom(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	roomId := vars["roomId"]
 
+	room, err := getRoomAndCheckUser(roomId, r)
+
+	if err != nil {
+		handleError(err, w)
+		return
+	}
+
+	httputils.SendJson(w, room.MusicLibrary)
 }
 
 // Here, we launch the process of finding the musics for the users in the room
@@ -252,12 +286,27 @@ func FindMusicsForRoom(w http.ResponseWriter, r *http.Request)  {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 
-	_, err := getRoomAndCheckUser(roomId, r)
+	room, err := getRoomAndCheckUser(roomId, r)
 
 	if err != nil {
 		handleError(err, w)
 		return
 	}
 
-	handleError(err, w)
+	if room.MusicLibrary != nil && !room.MusicLibrary.hasProcessingFailed() {
+		handleError(processingInProgressError, w)
+		return
+	}
+
+	// we lock the room, so no one should be able to enter it now
+	*room.Locked = true
+
+	// we create the music library
+	room.MusicLibrary = CreateSharedMusicLibrary(len(room.Users))
+
+	// we now process the library of the users (all this is done async)
+	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.getUserIds())
+	room.MusicLibrary.Process(room.Users)
+
+	httputils.SendOk(w)
 }

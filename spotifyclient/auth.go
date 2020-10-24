@@ -44,6 +44,10 @@ type User struct {
 	Client *spotify.Client  `json:"-"` // we ignore this field
 }
 
+func (user *User) GetUserId() string {
+	return user.Infos.Name
+}
+
 func CreateUserFromRequest(r *http.Request) (*User, error) {
 	tokenCookie, err := r.Cookie(tokenCookieName)
 

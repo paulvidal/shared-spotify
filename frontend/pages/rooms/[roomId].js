@@ -1,8 +1,7 @@
-import { useRouter } from 'next/router'
+import {useRouter} from 'next/router'
 import styles from "../../styles/rooms/Rooms.module.scss";
 import Head from "next/head";
-import {showErrorToast, Toast} from "../../components/toast";
-import useDeepCompareEffect from "use-deep-compare-effect";
+import {showErrorToastWithError, showSuccessToast, Toast} from "../../components/toast";
 import axios from "axios";
 import {useEffect, useState} from "react";
 import UserRoomListElem from "./userRoomListElem";
@@ -18,7 +17,8 @@ export default function Room() {
 
   const [room, setRoom] = useState({
     roomId: roomId,
-    users: []
+    users: [],
+    lock: false
   });
 
   const refresh = () => {
@@ -30,11 +30,22 @@ export default function Room() {
     axiosClient.get('http://localhost:8080/rooms/' + roomId)
       .then(resp => setRoom(resp.data))
       .catch(error => {
-        showErrorToast("Failed to get room info")
+        showErrorToastWithError("Failed to get room info", error)
       })
   }
 
-  useDeepCompareEffect(refresh, [room, roomId])
+  const fetchMusics = () => {
+    axiosClient.post('http://localhost:8080/rooms/' + roomId + '/musics')
+      .then(resp => {
+        refresh()
+        showSuccessToast("Music are currently getting fetched")
+      })
+      .catch(error => {
+        showErrorToastWithError("Failed to find common musics", error)
+      })
+  }
+
+  useEffect(refresh, [roomId])
 
   // Do not render anything if no room id exists
   if (!roomId) {
@@ -49,7 +60,7 @@ export default function Room() {
 
   let lock;
 
-  if (room.lock) {
+  if (room.locked) {
     lock = (
       <p>🔒 Locked</p>
     )
@@ -72,7 +83,7 @@ export default function Room() {
 
         {lock}
 
-        <Button variant="outline-success" size="lg" className="mt-2 mb-2">
+        <Button variant="outline-success" size="lg" className="mt-2 mb-2" onClick={fetchMusics}>
           Find common musics 🎵
         </Button>
 
