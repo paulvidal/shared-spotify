@@ -1,6 +1,6 @@
-import { Card, Button } from 'react-bootstrap';
+import {Button, Card} from 'react-bootstrap';
 import axios from "axios";
-import {showErrorToast} from "../../components/toast";
+import {showErrorToastWithError} from "../../components/toast";
 import {useRouter} from "next/router";
 
 export default function RoomListElem(props) {
@@ -16,7 +16,7 @@ export default function RoomListElem(props) {
         router.push('/rooms/' + props.room.id)
       })
       .catch(error => {
-        showErrorToast("Failed to join the room")
+        showErrorToastWithError("Failed to join the room", error)
       })
   }
 

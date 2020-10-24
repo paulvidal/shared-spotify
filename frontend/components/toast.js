@@ -30,13 +30,10 @@ function showSuccessToast(msg) {
 }
 
 function showErrorToastWithError(msg, error) {
-  let errorMsg;
+  let errorMsg = error.message;
 
-  if (error.response) {
+  if (error.response && error.response.data) {
     errorMsg = error.response.data;
-
-  } else {
-    errorMsg = error.message;
   }
 
   showErrorToast(
