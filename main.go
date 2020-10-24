@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"github.com/shared-spotify/app"
@@ -29,6 +30,9 @@ func startServer() {
 		AllowedOrigins: []string{"http://localhost:8080", "http://localhost:3000"},
 		AllowCredentials: true,
 	}).Handler(r)
+
+	handler = handlers.LoggingHandler(logger.Logger.Out, handler)
+	handler = handlers.RecoveryHandler()(handler)
 
 	// Launch the server
 	err := http.ListenAndServe(":8080", handler)
