@@ -5,7 +5,7 @@ import {showErrorToastWithError, showSuccessToast, Toast} from "../../components
 import axios from "axios";
 import {useEffect, useState} from "react";
 import UserRoomListElem from "./userRoomListElem";
-import {Button} from "react-bootstrap";
+import {Button, Spinner} from "react-bootstrap";
 
 export default function Room() {
   const router = useRouter()
@@ -18,7 +18,8 @@ export default function Room() {
   const [room, setRoom] = useState({
     roomId: roomId,
     users: [],
-    lock: false
+    lock: false,
+    shared_music_library: null
   });
 
   const refresh = () => {
@@ -52,6 +53,11 @@ export default function Room() {
     return null;
   }
 
+  // Force a refresh of the page while we are processing the musics
+  if (room.shared_music_library != null && room.shared_music_library.processing_status.success == null) {
+    setTimeout(refresh, 1000)
+  }
+
   let userList = room.users.map(user => {
     return (
       <UserRoomListElem key={user.user_infos.id} user={user} />
@@ -71,6 +77,40 @@ export default function Room() {
     )
   }
 
+  let button;
+
+  if (room.shared_music_library == null) {
+    button = (
+      <Button variant="outline-success" size="lg" className="mt-2 mb-2" onClick={fetchMusics}>
+        Find common musics 🎵
+      </Button>
+    )
+
+  } else if (room.shared_music_library.processing_status.success == null) {
+    let current = room.shared_music_library.processing_status.already_processed
+    let total = room.shared_music_library.processing_status.total_to_process
+
+    button = (
+      <Button variant="warning" size="lg" className="mt-2 mb-2" disabled>
+        <Spinner animation="border" className="mr-2"/> Searching common musics ({current}/{total})
+      </Button>
+    )
+
+  } else if (!room.shared_music_library.processing_status.success) {
+    button = (
+      <Button variant="success" size="lg" className="mt-2 mb-2">
+        See common musics ➡️
+      </Button>
+    )
+
+  } else if (room.shared_music_library.processing_status.success) {
+    button = (
+      <Button variant="danger" size="lg" className="mt-2 mb-2" onClick={fetchMusics}>
+        ⚰️ An error occurred, try again !
+      </Button>
+    )
+  }
+
   return (
     <div className={styles.container}>
       <Head>
@@ -83,9 +123,7 @@ export default function Room() {
 
         {lock}
 
-        <Button variant="outline-success" size="lg" className="mt-2 mb-2" onClick={fetchMusics}>
-          Find common musics 🎵
-        </Button>
+        {button}
 
         {userList}
       </main>
