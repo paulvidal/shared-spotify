@@ -126,13 +126,13 @@ export default function Playlist() {
   if (playlists.tracks_in_common) {
     info = (
       <p className="font-weight-bold">
-        {playlists.tracks_in_common.length} songs in common
+        {playlists.tracks_in_common.length} songs in common 🎉
       </p>
     )
 
     if (playlists.creating_playlist) {
       addButton = (
-        <Button variant="warning" className="mb-3" disabled>
+        <Button variant="warning" size="lg" className="mb-3" disabled>
           <Spinner animation="border" className="mr-2"/> Creating playlist
         </Button>
       )
@@ -146,7 +146,7 @@ export default function Playlist() {
 
       addButton = (
         (
-          <Button variant="success" className="mb-3" target="_blank" href={url}>
+          <Button variant="success" size="lg" className="mb-3" target="_blank" href={url}>
             Go to my new playlist ➡️
           </Button>
         )
@@ -164,7 +164,7 @@ export default function Playlist() {
               </Tooltip>
             }
           >
-            <Button variant="outline-success" className="mb-3" onClick={addPlaylist}>
+            <Button variant="outline-success" size="lg" className="mb-3" onClick={addPlaylist}>
               Add to my playlists
             </Button>
           </OverlayTrigger>
