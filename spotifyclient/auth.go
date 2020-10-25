@@ -14,20 +14,20 @@ import (
 	"github.com/zmb3/spotify"
 )
 
-const redirectURL = "http://localhost:8080/callback"
-
 // TODO: generate different one per user
 const state = "state"
 
 const tokenCookieName = "token"
 
+var HostURL = os.Getenv("HOST_URL")
+var RedirectURL = os.Getenv("REDIRECT_URL")
 var clientId = os.Getenv("CLIENT_ID")
 var clientSecret = os.Getenv("CLIENT_SECRET_KEY")
 
 // the redirect URL must be an exact match of a URL you've registered for your application
 // scopes determine which permissions the user is prompted to authorize
 var auth = spotify.NewAuthenticator(
-	redirectURL,
+	RedirectURL,
 	spotify.ScopeUserReadPrivate,
 	spotify.ScopePlaylistReadPrivate,
 	spotify.ScopePlaylistReadCollaborative,
@@ -114,7 +114,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := CreateUserFromRequest(r)
 
 	if err != nil {
-		http.Error(w, "Failed to get current user: " + err.Error(), http.StatusInternalServerError)
+		httputils.AuthenticationError(w, r)
 		return
 	}
 
@@ -128,12 +128,12 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	// get the user to this URL - how you do that is up to you
 	// you should specify a unique state string to identify the session
-	url := auth.AuthURL(state)
+	authUrl := auth.AuthURL(state)
 
-	logger.Logger.Info("Url to login is: ", url)
+	logger.Logger.Info("Url to login is: ", authUrl)
 
 	// We redirect to the correct url
-	http.Redirect(w, r, url, http.StatusFound)
+	http.Redirect(w, r, authUrl, http.StatusFound)
 }
 
 // the user will eventually be redirected back to your redirect URL
@@ -161,7 +161,6 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 
-	// Send the client to the channel
 	http.Redirect(w, r, "http://localhost:3000", http.StatusFound)
 }
 

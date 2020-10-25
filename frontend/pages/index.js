@@ -5,6 +5,7 @@ import {Button} from 'react-bootstrap';
 import Link from 'next/link'
 import styles from '../styles/Home.module.scss'
 import _ from "lodash"
+import {getUrl} from "../utils/urlUtils";
 
 export default function Home() {
   const axiosClient = axios.create({
@@ -14,7 +15,7 @@ export default function Home() {
   const [userInfos, setUserInfos] = useState({});
 
   const refresh = () => {
-    axiosClient.get('http://localhost:8080/user')
+    axiosClient.get(getUrl('/api/user'))
       .then(resp => setUserInfos(resp.data.user_infos))
       .catch(error => {})
   }
@@ -49,7 +50,7 @@ export default function Home() {
           Welcome to <strong className="text-success">Shared Spotify</strong>
         </h1>
 
-        <Button href="http://localhost:8080/login" variant="outline-success" size="lg" className="mt-5">
+        <Button href={getUrl('/login')} variant="outline-success" size="lg" className="mt-5">
           Connect spotify account
         </Button>
       </main>

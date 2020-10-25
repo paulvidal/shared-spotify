@@ -117,7 +117,7 @@ func getRoomAndCheckUser(roomId string, r *http.Request) (*Room, error) {
 	return room, nil
 }
 
-func handleError(err error, w http.ResponseWriter) {
+func handleError(err error, w http.ResponseWriter, r *http.Request) {
 	if err == roomDoesNotExistError {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 
@@ -125,7 +125,7 @@ func handleError(err error, w http.ResponseWriter) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 
 	} else if err == authenticationError {
-		httputils.AuthenticationError(w)
+		httputils.AuthenticationError(w, r)
 
 	} else if err == roomLockedError {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -161,7 +161,7 @@ func CreateRoom(w http.ResponseWriter, r *http.Request)  {
 	user, err := spotifyclient.CreateUserFromRequest(r)
 
 	if err != nil {
-		httputils.AuthenticationError(w)
+		httputils.AuthenticationError(w, r)
 		return
 	}
 
@@ -192,7 +192,7 @@ func GetRoom(w http.ResponseWriter, r *http.Request) {
 	room, err := getRoomAndCheckUser(roomId, r)
 
 	if err != nil {
-		handleError(err, w)
+		handleError(err, w, r)
 		return
 	}
 
@@ -217,7 +217,7 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 	user, err := spotifyclient.CreateUserFromRequest(r)
 
 	if err != nil {
-		httputils.AuthenticationError(w)
+		httputils.AuthenticationError(w, r)
 		return
 	}
 
@@ -227,7 +227,7 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 	room, err := getRoom(roomId)
 
 	if err != nil {
-		handleError(err, w)
+		handleError(err, w, r)
 		return
 	}
 
@@ -237,7 +237,7 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if *room.Locked {
-		handleError(roomLockedError, w)
+		handleError(roomLockedError, w, r)
 		return
 	}
 
@@ -269,25 +269,25 @@ func GetPlaylistForRoom(w http.ResponseWriter, r *http.Request) {
 	room, err := getRoomAndCheckUser(roomId, r)
 
 	if err != nil {
-		handleError(err, w)
+		handleError(err, w, r)
 		return
 	}
 
 	musicLibrary := room.MusicLibrary
 
 	if musicLibrary == nil {
-		handleError(processingNotStartedError, w)
+		handleError(processingNotStartedError, w, r)
 		return
 	}
 
 	// check the processing is over and it did not fail
 	if !musicLibrary.hasProcessingFinished() {
-		handleError(processingInProgressError, w)
+		handleError(processingInProgressError, w, r)
 		return
 	}
 
 	if musicLibrary.hasProcessingFailed() {
-		handleError(processingFailedError, w)
+		handleError(processingFailedError, w, r)
 		return
 	}
 
@@ -302,12 +302,12 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request)  {
 	room, err := getRoomAndCheckUser(roomId, r)
 
 	if err != nil {
-		handleError(err, w)
+		handleError(err, w, r)
 		return
 	}
 
 	if room.MusicLibrary != nil && !room.MusicLibrary.hasProcessingFailed() {
-		handleError(processingInProgressError, w)
+		handleError(processingInProgressError, w, r)
 		return
 	}
 
@@ -342,7 +342,7 @@ func AddPlaylistsForUser(w http.ResponseWriter, r *http.Request)  {
 	user, err := spotifyclient.CreateUserFromRequest(r)
 
 	if err != nil {
-		httputils.AuthenticationError(w)
+		httputils.AuthenticationError(w, r)
 		return
 	}
 
@@ -352,25 +352,25 @@ func AddPlaylistsForUser(w http.ResponseWriter, r *http.Request)  {
 	room, err := getRoomAndCheckUser(roomId, r)
 
 	if err != nil {
-		handleError(err, w)
+		handleError(err, w, r)
 		return
 	}
 
 	musicLibrary := room.MusicLibrary
 
 	if musicLibrary == nil {
-		handleError(processingNotStartedError, w)
+		handleError(processingNotStartedError, w, r)
 		return
 	}
 
 	// check the processing is over and it did not fail
 	if !musicLibrary.hasProcessingFinished() {
-		handleError(processingInProgressError, w)
+		handleError(processingInProgressError, w, r)
 		return
 	}
 
 	if musicLibrary.hasProcessingFailed() {
-		handleError(processingFailedError, w)
+		handleError(processingFailedError, w, r)
 		return
 	}
 
@@ -385,7 +385,7 @@ func AddPlaylistsForUser(w http.ResponseWriter, r *http.Request)  {
 	}
 
 	if err != nil {
-		handleError(failedToCreatePlaylistError, w)
+		handleError(failedToCreatePlaylistError, w, r)
 		return
 	}
 

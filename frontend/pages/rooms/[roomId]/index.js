@@ -4,9 +4,10 @@ import Head from "next/head";
 import {showErrorToastWithError, showSuccessToast, Toast} from "../../../components/toast";
 import axios from "axios";
 import {useEffect, useState} from "react";
-import UserRoomListElem from "../userRoomListElem";
+import UserRoomListElem from "./userRoomListElem";
 import {Button, Spinner} from "react-bootstrap";
 import Link from "next/link";
+import {getUrl} from "../../../utils/urlUtils";
 
 const REFRESH_TIMEOUT = 2000;  // 2s
 
@@ -31,7 +32,7 @@ export default function Room() {
       return null;
     }
 
-    axiosClient.get('http://localhost:8080/rooms/' + roomId)
+    axiosClient.get(getUrl('/api/rooms/' + roomId))
       .then(resp => setRoom(resp.data))
       .catch(error => {
         showErrorToastWithError("Failed to get room info", error)
@@ -39,7 +40,7 @@ export default function Room() {
   }
 
   const fetchMusics = () => {
-    axiosClient.post('http://localhost:8080/rooms/' + roomId + '/playlists')
+    axiosClient.post(getUrl('/api/rooms/' + roomId + '/playlists'))
       .then(resp => {
         refresh()
         showSuccessToast("Music are currently getting fetched")

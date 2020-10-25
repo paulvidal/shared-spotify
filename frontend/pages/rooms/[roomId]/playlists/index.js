@@ -9,6 +9,7 @@ import ReactAudioPlayer from "react-audio-player";
 import {Button, Tooltip, OverlayTrigger, Spinner} from "react-bootstrap";
 import {getArtistsFromTrack} from "../../../../utils/trackUtils";
 import { isEmpty } from "lodash"
+import {getUrl} from "../../../../utils/urlUtils";
 
 export default function Playlist() {
   const router = useRouter()
@@ -31,7 +32,7 @@ export default function Playlist() {
       return null;
     }
 
-    axiosClient.get('http://localhost:8080/rooms/' + roomId + '/playlists')
+    axiosClient.get(getUrl('/api/rooms/' + roomId + '/playlists'))
       .then(resp => {
         setPlaylists(prevState => {
           return {
@@ -60,7 +61,7 @@ export default function Playlist() {
       }
     })
 
-    axiosClient.post('http://localhost:8080/rooms/' + roomId + '/playlists/add')
+    axiosClient.post(getUrl('/api/rooms/' + roomId + '/playlists/add'))
       .then(resp => {
         const playlistName = resp.data.name
 

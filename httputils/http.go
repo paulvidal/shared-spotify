@@ -30,6 +30,6 @@ func UnhandledError(w http.ResponseWriter)  {
 	http.Error(w, "", http.StatusInternalServerError)
 }
 
-func AuthenticationError(w http.ResponseWriter)  {
+func AuthenticationError(w http.ResponseWriter, r *http.Request)  {
 	http.Error(w, "You need to be login to perform this action", http.StatusUnauthorized)
 }

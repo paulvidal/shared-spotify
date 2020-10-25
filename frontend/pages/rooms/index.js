@@ -6,6 +6,7 @@ import RoomListElem from "./roomListElem";
 import {Button} from 'react-bootstrap';
 
 import {showErrorToastWithError, showSuccessToast, Toast} from "../../components/toast";
+import {getUrl} from "../../utils/urlUtils";
 
 export default function Rooms() {
   const axiosClient = axios.create({
@@ -15,7 +16,7 @@ export default function Rooms() {
   const [rooms, setRooms] = useState([]);
 
   const refresh = () => {
-    axiosClient.get('http://localhost:8080/rooms')
+    axiosClient.get(getUrl('/api/rooms'))
       .then(resp => setRooms(Object.values(resp.data.rooms)))
       .catch(error => {
         showErrorToastWithError("Failed to get all rooms info", error)
@@ -23,7 +24,7 @@ export default function Rooms() {
   }
 
   const createRoom = () => {
-    axiosClient.post('http://localhost:8080/rooms')
+    axiosClient.post(getUrl('/api/rooms'))
       .then(resp => {
         showSuccessToast("Room successfully created !")
         refresh()
