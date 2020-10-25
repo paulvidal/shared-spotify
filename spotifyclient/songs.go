@@ -3,6 +3,7 @@ package spotifyclient
 import (
 	"github.com/shared-spotify/logger"
 	"github.com/zmb3/spotify"
+	"time"
 )
 
 var maxPage = 50
@@ -56,6 +57,8 @@ func (user *User) GetSavedSongs() ([]*spotify.FullTrack, error) {
 			allTracks = append(allTracks, &fullTrack)
 		}
 
+		time.Sleep(200 * time.Millisecond)
+
 		// Go to next page
 		err = client.NextPage(savedTrackPage)
 
@@ -108,6 +111,8 @@ func (user *User) GetAllPlaylistSongs() ([]*spotify.FullTrack, error) {
 			allTracks = append(allTracks, tracks...)
 		}
 
+		time.Sleep(200 * time.Millisecond)
+
 		// Go to next page
 		err = client.NextPage(simplePlaylistPage)
 
@@ -150,6 +155,9 @@ func (user *User) getSongsForPlaylist(playlistId string) ([]*spotify.FullTrack, 
 			fullTrack := playlistTrack.Track
 			allTracks = append(allTracks, &fullTrack)
 		}
+
+		// TODO: remove this, we need rate limit in another way
+		time.Sleep(200 * time.Millisecond)
 
 		// Go to next page
 		err = client.NextPage(playlistTrackPage)

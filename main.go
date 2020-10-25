@@ -23,7 +23,7 @@ func startServer() {
 	r.HandleFunc("/rooms", app.RoomsHandler)
 	r.HandleFunc("/rooms/{roomId:[0-9]+}", app.RoomHandler)
 	r.HandleFunc("/rooms/{roomId:[0-9]+}/users", app.RoomUsersHandler)
-	r.HandleFunc("/rooms/{roomId:[0-9]+}/musics", app.RoomMusicHandler)
+	r.HandleFunc("/rooms/{roomId:[0-9]+}/playlists", app.RoomPlaylistsHandler)
 
 	// Setup cors policies
 	handler := cors.New(cors.Options{
@@ -31,7 +31,10 @@ func startServer() {
 		AllowCredentials: true,
 	}).Handler(r)
 
+	// Setup request logging
 	handler = handlers.LoggingHandler(logger.Logger.Out, handler)
+
+	// Setup recovery in case of panic
 	handler = handlers.RecoveryHandler()(handler)
 
 	// Launch the server
@@ -42,25 +45,5 @@ func startServer() {
 }
 
 func main() {
-	// Launch the server
 	startServer()
-
-	// Initiate an auth flow
-
-	//user := spotifyclient.Authenticate(clientId, clientSecret)
-	//
-	//logger.Logger.Infof("user is: %s\n", user.Infos.DisplayName)
-
-	//songs, err := user.GetAllSongs()
-	//
-	//if err != nil {
-	//	logger.Logger.Fatal("Could not retrieve songs for user", err)
-	//}
-	//
-	//fmt.Printf("Found %d songs for user %s\n", len(*songs), user.Infos.DisplayName)
-	//
-	//for i, song := range *songs {
-	//	artists := song.Artists
-	//	fmt.Printf("%d - %s | %s\n", i, song.Name, artists[0].Name)
-	//}
 }

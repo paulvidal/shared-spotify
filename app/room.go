@@ -200,27 +200,11 @@ func GetRoom(w http.ResponseWriter, r *http.Request) {
 func RoomUsersHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 
-	case http.MethodGet:
-		GetRoomUsers(w, r)
 	case http.MethodPost:
 		AddRoomUser(w, r)
 	default:
 		http.Error(w, "", http.StatusMethodNotAllowed)
 	}
-}
-
-func GetRoomUsers(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	roomId := vars["roomId"]
-
-	room, err := getRoomAndCheckUser(roomId, r)
-
-	if err != nil {
-		handleError(err, w)
-		return
-	}
-
-	httputils.SendJson(w, room.Users)
 }
 
 func AddRoomUser(w http.ResponseWriter, r *http.Request) {
@@ -241,6 +225,11 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if room.isUserInRoom(user) {
+		// if user is already in room, just send ok
+		httputils.SendOk(w)
+	}
+
 	if *room.Locked {
 		handleError(roomLockedError, w)
 		return
@@ -255,19 +244,19 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
   Room music handler
 */
 
-func RoomMusicHandler(w http.ResponseWriter, r *http.Request) {
+func RoomPlaylistsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 
 	case http.MethodGet:
-		GetMusicsForRoom(w, r)
+		GetPlaylistForRoom(w, r)
 	case http.MethodPost:
-		FindMusicsForRoom(w, r)
+		FindPlaylistsForRoom(w, r)
 	default:
 		http.Error(w, "", http.StatusMethodNotAllowed)
 	}
 }
 
-func GetMusicsForRoom(w http.ResponseWriter, r *http.Request) {
+func GetPlaylistForRoom(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 
@@ -282,7 +271,7 @@ func GetMusicsForRoom(w http.ResponseWriter, r *http.Request) {
 }
 
 // Here, we launch the process of finding the musics for the users in the room
-func FindMusicsForRoom(w http.ResponseWriter, r *http.Request)  {
+func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request)  {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 

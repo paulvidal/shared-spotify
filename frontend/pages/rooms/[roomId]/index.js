@@ -1,11 +1,14 @@
 import {useRouter} from 'next/router'
-import styles from "../../styles/rooms/Rooms.module.scss";
+import styles from "../../../styles/rooms/Rooms.module.scss";
 import Head from "next/head";
-import {showErrorToastWithError, showSuccessToast, Toast} from "../../components/toast";
+import {showErrorToastWithError, showSuccessToast, Toast} from "../../../components/toast";
 import axios from "axios";
 import {useEffect, useState} from "react";
-import UserRoomListElem from "./userRoomListElem";
+import UserRoomListElem from "../userRoomListElem";
 import {Button, Spinner} from "react-bootstrap";
+import Link from "next/link";
+
+const REFRESH_TIMEOUT = 2000;  // 2s
 
 export default function Room() {
   const router = useRouter()
@@ -36,7 +39,7 @@ export default function Room() {
   }
 
   const fetchMusics = () => {
-    axiosClient.post('http://localhost:8080/rooms/' + roomId + '/musics')
+    axiosClient.post('http://localhost:8080/rooms/' + roomId + '/playlists')
       .then(resp => {
         refresh()
         showSuccessToast("Music are currently getting fetched")
@@ -55,7 +58,7 @@ export default function Room() {
 
   // Force a refresh of the page while we are processing the musics
   if (room.shared_music_library != null && room.shared_music_library.processing_status.success == null) {
-    setTimeout(refresh, 1000)
+    setTimeout(refresh, REFRESH_TIMEOUT)
   }
 
   let userList = room.users.map(user => {
@@ -96,14 +99,16 @@ export default function Room() {
       </Button>
     )
 
-  } else if (!room.shared_music_library.processing_status.success) {
+  } else if (room.shared_music_library.processing_status.success) {
     button = (
-      <Button variant="success" size="lg" className="mt-2 mb-2">
-        See common musics ➡️
-      </Button>
+      <Link href={'/rooms/' + roomId + '/playlists'}>
+        <Button variant="success" size="lg" className="mt-2 mb-2">
+          See common musics ➡️
+        </Button>
+      </Link>
     )
 
-  } else if (room.shared_music_library.processing_status.success) {
+  } else if (!room.shared_music_library.processing_status.success) {
     button = (
       <Button variant="danger" size="lg" className="mt-2 mb-2" onClick={fetchMusics}>
         ⚰️ An error occurred, try again !

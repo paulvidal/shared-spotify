@@ -12,10 +12,8 @@ import (
 type SharedMusicLibrary struct {
 	TotalUsers             int                               `json:"total_users"`
 	ProcessingStatus       *ProcessingStatus                 `json:"processing_status"`
-	TracksInCommon         []*spotify.FullTrack              `json:"tracks_in_common"`
-	SharedTracksRank       map[string]*int                   `json:"-"`
-	SharedTracks           map[string]*spotify.FullTrack     `json:"-"`
 	MusicProcessingChannel chan MusicProcessingResult        `json:"-"`
+	CommonPlaylists         *CommonPlaylists                 `json:"common_playlists"`
 }
 
 type ProcessingStatus struct {
@@ -39,65 +37,9 @@ func CreateSharedMusicLibrary(totalUsers int) *SharedMusicLibrary {
 	return &SharedMusicLibrary{
 		totalUsers,
 		&ProcessingStatus{totalUsers, 0, false, nil},
-		nil,
-		make(map[string]*int),
-		make(map[string]*spotify.FullTrack),
 		make(chan MusicProcessingResult, totalUsers), // Channel needs to be only as big as the number of users
+		nil,
 	}
-}
-
-func (musicLibrary *SharedMusicLibrary) addTracks(tracks []*spotify.FullTrack) {
-	// a list of tracks from a user can contain multiple times the same track, so we de-duplicate per user
-	trackAlreadyInserted := make(map[string]bool)
-
-	for _, track := range tracks {
-		trackId := string(track.URI)
-
-		_, ok := trackAlreadyInserted[trackId]
-
-		if ok {
-			// if the track has already been inserted for this user, we skip it to prevent adding duplicate songs
-			continue
-		}
-
-		var newTrackCount int
-		trackCount, ok := musicLibrary.SharedTracksRank[trackId]
-
-		if !ok {
-			newTrackCount = 1
-		} else {
-			newTrackCount = *trackCount + 1
-		}
-
-		musicLibrary.SharedTracksRank[trackId] = &newTrackCount
-		musicLibrary.SharedTracks[trackId] = track
-		trackAlreadyInserted[trackId] = true
-	}
-}
-
-func (musicLibrary *SharedMusicLibrary) findMostCommonTracks() {
-	totalUsers := musicLibrary.TotalUsers
-
-	logger.Logger.Infof("Finding most common tracks for %d users across %d differents tracks",
-		totalUsers, len(musicLibrary.SharedTracksRank))
-
-	inCommon := make([]*spotify.FullTrack, 0)
-
-	for trackId, trackCount := range musicLibrary.SharedTracksRank {
-		if *trackCount == totalUsers {
-			track := musicLibrary.SharedTracks[trackId]
-			inCommon = append(inCommon, track)
-
-			logger.Logger.Infof("Common track found: %s", track.Name)
-		}
-
-		track := musicLibrary.SharedTracks[trackId]
-		logger.Logger.Infof("Analysed track %s", track.Name)
-	}
-
-	logger.Logger.Infof("Found %d tracks in common", len(inCommon))
-
-	musicLibrary.TracksInCommon = inCommon
 }
 
 /*
@@ -110,6 +52,9 @@ func (musicLibrary *SharedMusicLibrary) Process(users []*spotifyclient.User) {
 	
 	// We mark the processing status as started
 	musicLibrary.ProcessingStatus.Started = true
+
+	// We create the common playlists
+	musicLibrary.CommonPlaylists = CreateCommonPlaylists()
 
 	for _, user := range users {
 		// launch one routine per user to fetch all the songs
@@ -190,7 +135,7 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 				len(musicProcessingResult.Tracks))
 
 			// we add the tracks as all went fine
-			musicLibrary.addTracks(musicProcessingResult.Tracks)
+			musicLibrary.CommonPlaylists.addTracks(musicProcessingResult.User, musicProcessingResult.Tracks)
 		}
 
 		// Mark one user's music as processed
@@ -200,8 +145,8 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 	logger.Logger.Infof("All music processing results received - success=%t", success)
 
 	if success {
-		// if everything went well, we now find the most common tracks
-		musicLibrary.findMostCommonTracks()
+		// if everything went well, we now generate the common playlist for the users in the room
+		musicLibrary.CommonPlaylists.GenerateCommonPlaylists()
 	}
 
 	musicLibrary.ProcessingStatus.Success = &success
