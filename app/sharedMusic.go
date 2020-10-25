@@ -27,6 +27,10 @@ func (musicLibrary *SharedMusicLibrary) hasProcessingFailed() bool {
 	return musicLibrary.ProcessingStatus.Success != nil && !(*musicLibrary.ProcessingStatus.Success)
 }
 
+func (musicLibrary *SharedMusicLibrary) hasProcessingFinished() bool {
+	return musicLibrary.ProcessingStatus.Success != nil
+}
+
 type MusicProcessingResult struct {
 	User   *spotifyclient.User
 	Tracks []*spotify.FullTrack

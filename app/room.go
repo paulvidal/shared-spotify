@@ -18,6 +18,9 @@ var roomIsNotAccessibleError = errors.New("room is not accessible to user")
 var authenticationError = errors.New("failed to authenticate user")
 var roomLockedError = errors.New("room is locked and not accepting new members")
 var processingInProgressError = errors.New("processing of music is already in progress")
+var processingNotStartedError = errors.New("processing of music has not been done, cannot get playlists")
+var processingFailedError = errors.New("processing of music failed, cannot get playlists")
+
 
 // An in memory representation of all the rooms, would be better if it was persistent but for now this is fine
 var allRooms = AllRooms{make(map[string]*Room, 0)}
@@ -124,7 +127,7 @@ func handleError(err error, w http.ResponseWriter) {
 	} else if err == roomLockedError {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 
-	} else if err == processingInProgressError {
+	} else if err == processingInProgressError || err == processingFailedError || err == processingNotStartedError {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 
 	} else {
@@ -267,7 +270,25 @@ func GetPlaylistForRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputils.SendJson(w, room.MusicLibrary)
+	musicLibrary := room.MusicLibrary
+
+	if musicLibrary == nil {
+		handleError(processingNotStartedError, w)
+		return
+	}
+
+	// check the processing is over and it did not fail
+	if !musicLibrary.hasProcessingFinished() {
+		handleError(processingInProgressError, w)
+		return
+	}
+
+	if musicLibrary.hasProcessingFailed() {
+		handleError(processingFailedError, w)
+		return
+	}
+
+	httputils.SendJson(w, room.MusicLibrary.CommonPlaylists)
 }
 
 // Here, we launch the process of finding the musics for the users in the room
