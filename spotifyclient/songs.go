@@ -8,6 +8,8 @@ import (
 
 var maxPage = 50
 
+const maxWaitBetweenCalls = 100 * time.Millisecond
+
 func (user *User) GetAllSongs() ([]*spotify.FullTrack, error) {
 	// Get the liked songs
 	savedTracks, err := user.GetSavedSongs()
@@ -57,7 +59,7 @@ func (user *User) GetSavedSongs() ([]*spotify.FullTrack, error) {
 			allTracks = append(allTracks, &fullTrack)
 		}
 
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(maxWaitBetweenCalls)
 
 		// Go to next page
 		err = client.NextPage(savedTrackPage)
@@ -98,6 +100,12 @@ func (user *User) GetAllPlaylistSongs() ([]*spotify.FullTrack, error) {
 
 		// For each playlist, get the associated tracks
 		for _, simplePlaylist := range simplePlaylistPage.Playlists {
+
+			// If the playlist is owned by someone else and was just "liked" by the user, do not include it
+			if simplePlaylist.Owner.ID != user.Infos.Id {
+				continue
+			}
+
 			playlistId := simplePlaylist.ID.String()
 			tracks, err := user.getSongsForPlaylist(playlistId)
 
@@ -111,7 +119,7 @@ func (user *User) GetAllPlaylistSongs() ([]*spotify.FullTrack, error) {
 			allTracks = append(allTracks, tracks...)
 		}
 
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(maxWaitBetweenCalls)
 
 		// Go to next page
 		err = client.NextPage(simplePlaylistPage)
@@ -157,7 +165,7 @@ func (user *User) getSongsForPlaylist(playlistId string) ([]*spotify.FullTrack, 
 		}
 
 		// TODO: remove this, we need rate limit in another way
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(maxWaitBetweenCalls)
 
 		// Go to next page
 		err = client.NextPage(playlistTrackPage)
