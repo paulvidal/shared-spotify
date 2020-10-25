@@ -1,0 +1,37 @@
+@import "../../../common";
+
+.album_pic {
+  height: 40px;
+  width: 40px;
+}
+
+.album_pic_container {
+  text-align: center;
+}
+
+.track_name {
+  margin-bottom: 0;
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.artist_name {
+  margin-bottom: 0;
+  font-size: 0.8em;
+}
+
+@media (min-width: 768px) {
+  .album_pic {
+    height: 65px;
+    width: 65px;
+    padding: 0.25rem
+  }
+
+  .track_name {
+    font-size: 1.3em;
+  }
+
+  .artist_name {
+    font-size: 1em;
+  }
+}
