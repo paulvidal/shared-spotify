@@ -31,6 +31,8 @@ var auth = spotify.NewAuthenticator(
 	spotify.ScopeUserReadPrivate,
 	spotify.ScopePlaylistReadPrivate,
 	spotify.ScopePlaylistReadCollaborative,
+	spotify.ScopePlaylistModifyPrivate,
+	spotify.ScopePlaylistModifyPublic,
 	spotify.ScopeUserLibraryRead)
 
 type UserInfos struct {

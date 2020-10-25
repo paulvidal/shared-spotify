@@ -31,6 +31,10 @@ func (musicLibrary *SharedMusicLibrary) hasProcessingFinished() bool {
 	return musicLibrary.ProcessingStatus.Success != nil
 }
 
+func (musicLibrary *SharedMusicLibrary) GetPlaylist() []*spotify.FullTrack {
+	return musicLibrary.CommonPlaylists.TracksInCommon
+}
+
 type MusicProcessingResult struct {
 	User   *spotifyclient.User
 	Tracks []*spotify.FullTrack

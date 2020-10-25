@@ -1,12 +1,14 @@
 import {useRouter} from 'next/router'
 import styles from "../../../../styles/rooms/Rooms.module.scss";
 import Head from "next/head";
-import {showErrorToastWithError, Toast} from "../../../../components/toast";
+import {showErrorToastWithError, showSuccessToast, Toast} from "../../../../components/toast";
 import axios from "axios";
 import {useEffect, useState} from "react";
 import PlaylistElem from "./playlistElem";
 import ReactAudioPlayer from "react-audio-player";
-import {Button, Tooltip, OverlayTrigger} from "react-bootstrap";
+import {Button, Tooltip, OverlayTrigger, Spinner} from "react-bootstrap";
+import {getArtistsFromTrack} from "../../../../utils/trackUtils";
+import { isEmpty } from "lodash"
 
 export default function Playlist() {
   const router = useRouter()
@@ -18,7 +20,9 @@ export default function Playlist() {
 
   const [playlists, setPlaylists] = useState({
     tracks_in_common: [],
-    song_playing: ''
+    song_playing: '',
+    creating_playlist: false,
+    new_playlist: {}
   });
 
   const refresh = () => {
@@ -48,6 +52,40 @@ export default function Playlist() {
     return null;
   }
 
+  const addPlaylist = () => {
+    setPlaylists(prevState => {
+      return {
+        ...prevState,
+        creating_playlist: true,
+      }
+    })
+
+    axiosClient.post('http://localhost:8080/rooms/' + roomId + '/playlists/add')
+      .then(resp => {
+        const playlistName = resp.data.name
+
+        setPlaylists(prevState => {
+          return {
+            ...prevState,
+            creating_playlist: false,
+            new_playlist: resp.data
+          }
+        })
+        showSuccessToast(`Successfully created in spotify playlist "${playlistName}"`)
+      })
+      .catch(error => {
+        showErrorToastWithError("Failed to create playlists in spotify", error)
+      })
+      .finally(() => {
+        setPlaylists(prevState => {
+          return {
+            ...prevState,
+            creating_playlist: false,
+          }
+        })
+    })
+  }
+
   const updateSongCallback = (song) => {
     setPlaylists(prevState => {
       return {
@@ -63,7 +101,7 @@ export default function Playlist() {
 
   if (playlists.tracks_in_common) {
     music = playlists.tracks_in_common.sort((track1, track2) => {
-      return track1.artists[0].name.localeCompare(track2.artists[0].name)
+      return getArtistsFromTrack(track1).localeCompare(getArtistsFromTrack(track2))
     }).map(track => {
       return (
         <PlaylistElem
@@ -82,33 +120,57 @@ export default function Playlist() {
     />
   )
 
-  const playlistName = `Shared spotify - Room #${roomId}"`
-
   let info;
+  let addButton;
 
   if (playlists.tracks_in_common) {
-    info = [
-      (
-        <p className="font-weight-bold">
-          {playlists.tracks_in_common.length} songs in common
-        </p>
-      ),
-      (
-        <OverlayTrigger
-          key="top"
-          placement="top"
-          overlay={
-            <Tooltip id={`tooltip-top`}>
-              Created playlist will be called "{playlistName}"
-            </Tooltip>
-          }
-        >
-          <Button variant="outline-success" className="mb-3">
-            Add to my playlists
-          </Button>
-        </OverlayTrigger>
+    info = (
+      <p className="font-weight-bold">
+        {playlists.tracks_in_common.length} songs in common
+      </p>
+    )
+
+    if (playlists.creating_playlist) {
+      addButton = (
+        <Button variant="warning" className="mb-3" disabled>
+          <Spinner animation="border" className="mr-2"/> Creating playlist
+        </Button>
       )
-    ]
+
+    } else if (!isEmpty(playlists.new_playlist)) {
+      let url = "#"
+
+      if (playlists.new_playlist.spotify_url) {
+        url = playlists.new_playlist.spotify_url
+      }
+
+      addButton = (
+        (
+          <Button variant="success" className="mb-3" target="_blank" href={url}>
+            Go to my new playlist ➡️
+          </Button>
+        )
+      )
+
+    } else {
+      addButton = (
+        (
+          <OverlayTrigger
+            key="top"
+            placement="top"
+            overlay={
+              <Tooltip id={`tooltip-top`}>
+                Playlist will be created in spotify and added to your playlists
+              </Tooltip>
+            }
+          >
+            <Button variant="outline-success" className="mb-3" onClick={addPlaylist}>
+              Add to my playlists
+            </Button>
+          </OverlayTrigger>
+        )
+      )
+    }
   }
 
   return (
@@ -122,6 +184,7 @@ export default function Playlist() {
         <h1>Playlists</h1>
         <p>Room #{roomId}</p>
         {info}
+        {addButton}
         {music}
         {player}
       </main>

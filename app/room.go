@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
@@ -20,6 +21,7 @@ var roomLockedError = errors.New("room is locked and not accepting new members")
 var processingInProgressError = errors.New("processing of music is already in progress")
 var processingNotStartedError = errors.New("processing of music has not been done, cannot get playlists")
 var processingFailedError = errors.New("processing of music failed, cannot get playlists")
+var failedToCreatePlaylistError = errors.New("an error occurred while creating the playlist")
 
 
 // An in memory representation of all the rooms, would be better if it was persistent but for now this is fine
@@ -34,6 +36,7 @@ type Room struct {
 	Users         []*spotifyclient.User  `json:"users"`
 	Locked        *bool                  `json:"locked"`
 	MusicLibrary  *SharedMusicLibrary    `json:"shared_music_library"`
+
 }
 
 func createRoom() *Room {
@@ -244,7 +247,7 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 }
 
 /*
-  Room music handler
+  Room playlist handler
 */
 
 func RoomPlaylistsHandler(w http.ResponseWriter, r *http.Request) {
@@ -319,4 +322,82 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request)  {
 	room.MusicLibrary.Process(room.Users)
 
 	httputils.SendOk(w)
+}
+
+/*
+  Room ADD playlist handler
+*/
+
+func RoomAddPlaylistsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+
+	case http.MethodPost:
+		AddPlaylistsForUser(w, r)
+	default:
+		http.Error(w, "", http.StatusMethodNotAllowed)
+	}
+}
+
+func AddPlaylistsForUser(w http.ResponseWriter, r *http.Request)  {
+	user, err := spotifyclient.CreateUserFromRequest(r)
+
+	if err != nil {
+		httputils.AuthenticationError(w)
+		return
+	}
+
+	vars := mux.Vars(r)
+	roomId := vars["roomId"]
+
+	room, err := getRoomAndCheckUser(roomId, r)
+
+	if err != nil {
+		handleError(err, w)
+		return
+	}
+
+	musicLibrary := room.MusicLibrary
+
+	if musicLibrary == nil {
+		handleError(processingNotStartedError, w)
+		return
+	}
+
+	// check the processing is over and it did not fail
+	if !musicLibrary.hasProcessingFinished() {
+		handleError(processingInProgressError, w)
+		return
+	}
+
+	if musicLibrary.hasProcessingFailed() {
+		handleError(processingFailedError, w)
+		return
+	}
+
+	// we add the playlist
+	newPlaylist := CreateNewPlaylist(roomId)
+	tracks := room.MusicLibrary.GetPlaylist()
+
+	spotifyUrl, err := user.CreatePlaylist(newPlaylist.Name, tracks)
+
+	if spotifyUrl != nil {
+		newPlaylist.SpotifyUrl = *spotifyUrl
+	}
+
+	if err != nil {
+		handleError(failedToCreatePlaylistError, w)
+		return
+	}
+
+	httputils.SendJson(w, newPlaylist)
+}
+
+type NewPlaylist struct {
+	Name        string `json:"name"`
+	SpotifyUrl  string `json:"spotify_url"`
+}
+
+func CreateNewPlaylist(roomId string) *NewPlaylist {
+	playlistName := fmt.Sprintf("Shared Spotify - Room #%s", roomId)
+	return &NewPlaylist{playlistName, ""}
 }

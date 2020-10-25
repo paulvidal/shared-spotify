@@ -24,6 +24,7 @@ func startServer() {
 	r.HandleFunc("/rooms/{roomId:[0-9]+}", app.RoomHandler)
 	r.HandleFunc("/rooms/{roomId:[0-9]+}/users", app.RoomUsersHandler)
 	r.HandleFunc("/rooms/{roomId:[0-9]+}/playlists", app.RoomPlaylistsHandler)
+	r.HandleFunc("/rooms/{roomId:[0-9]+}/playlists/add", app.RoomAddPlaylistsHandler)
 
 	// Setup cors policies
 	handler := cors.New(cors.Options{
