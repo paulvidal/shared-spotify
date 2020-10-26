@@ -7,8 +7,11 @@ import {Button} from 'react-bootstrap';
 import {showErrorToastWithError, showSuccessToast, Toast} from "../../components/toast";
 import {getUrl} from "../../utils/urlUtils";
 import CustomHead from "../../components/Head";
+import {useRouter} from "next/router";
 
 export default function Rooms() {
+  const router = useRouter()
+
   const axiosClient = axios.create({
     withCredentials: true
   })
@@ -26,8 +29,8 @@ export default function Rooms() {
   const createRoom = () => {
     axiosClient.post(getUrl('/rooms'))
       .then(resp => {
-        showSuccessToast("Room successfully created !")
-        refresh()
+        const roomId = resp.data.room_id
+        router.push('/rooms/' + roomId)
       })
       .catch(error => {
         showErrorToastWithError("Room failed to create ! Please try again", error)

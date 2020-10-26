@@ -178,6 +178,10 @@ func GetRooms(w http.ResponseWriter, r *http.Request)  {
 	httputils.SendJson(w, &roomCollection)
 }
 
+type NewRoom struct {
+	RoomId string `json:"room_id"`
+}
+
 func CreateRoom(w http.ResponseWriter, r *http.Request)  {
 	user, err := spotifyclient.CreateUserFromRequest(r)
 
@@ -189,7 +193,7 @@ func CreateRoom(w http.ResponseWriter, r *http.Request)  {
 	room := createRoom()
 	room.addUser(user)
 
-	httputils.SendOk(w)
+	httputils.SendJson(w, NewRoom{room.Id})
 }
 
 /*
