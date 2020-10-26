@@ -126,6 +126,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func Authenticate(w http.ResponseWriter, r *http.Request) {
+	logger.Logger.Info("Headers for request to authenticate are %+v", r.Header)
+
 	// if you didn't store your ID and secret key in the specified environment variables,
 	// you can set them manually here
 	auth.SetAuthInfo(clientId, clientSecret)
@@ -142,6 +144,8 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 
 // the user will eventually be redirected back to your redirect URL
 func CallbackHandler(w http.ResponseWriter, r *http.Request) {
+	logger.Logger.Info("Headers for request to callback are %+v", r.Header)
+
 	// use the same state string here that you used to generate the URL
 	token, err := auth.Token(state, r)
 	if err != nil {
@@ -178,7 +182,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		redirectUrl = FrontendUrl + refererParsedUrl.RequestURI()
 	}
 
-	logger.Logger.Info("Redirecting to %s", redirectUrl)
+	logger.Logger.Info("Redirecting to ", redirectUrl)
 
 	http.Redirect(w, r, redirectUrl, http.StatusFound)
 }
