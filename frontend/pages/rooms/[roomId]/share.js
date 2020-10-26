@@ -36,11 +36,6 @@ export default function RoomShare() {
 
   useEffect(refresh, [roomId])
 
-  // Do not render anything if no room id exists
-  if (!roomId) {
-    return null;
-  }
-
   let button;
 
   if (isEmpty(user)) {
