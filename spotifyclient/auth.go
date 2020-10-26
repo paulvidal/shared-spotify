@@ -4,9 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/shared-spotify/httputils"
 	"golang.org/x/oauth2"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -19,15 +21,17 @@ const state = "state"
 
 const tokenCookieName = "token"
 
-var RedirectURL = os.Getenv("REDIRECT_URL")
+var BackendUrl = os.Getenv("BACKEND_URL")
 var FrontendUrl = os.Getenv("FRONTEND_URL")
 var clientId = os.Getenv("CLIENT_ID")
 var clientSecret = os.Getenv("CLIENT_SECRET_KEY")
 
+var CallbackUrl = fmt.Sprintf("%s/callback", BackendUrl)
+
 // the redirect URL must be an exact match of a URL you've registered for your application
 // scopes determine which permissions the user is prompted to authorize
 var auth = spotify.NewAuthenticator(
-	RedirectURL,
+	CallbackUrl,
 	spotify.ScopeUserReadPrivate,
 	spotify.ScopePlaylistReadPrivate,
 	spotify.ScopePlaylistReadCollaborative,
@@ -195,10 +199,30 @@ func encryptToken(token *oauth2.Token) (*http.Cookie, error) {
 	base64JsonToken := base64.StdEncoding.EncodeToString(jsonToken)
 	expiration := time.Now().Add(365 * 24 * time.Hour)
 
+	urlParsed, err := url.Parse(BackendUrl)
+
+	if err != nil {
+		logger.Logger.Error("Failed to parse urls")
+		return nil, err
+	}
+
+	secure := true
+	sameSite := http.SameSiteNoneMode
+
+	// for localhost development
+	if urlParsed.Scheme == "http" {
+		secure = false
+		sameSite = http.SameSiteDefaultMode
+	}
+
 	cookie := http.Cookie{
 		Name: tokenCookieName,
 		Value: base64JsonToken,
 		Expires: expiration,
+		// we send the cookie cross domain, so we need all this
+		Domain: urlParsed.Host,
+		Secure: secure,
+		SameSite: sameSite,
 	}
 
 	return &cookie, nil
