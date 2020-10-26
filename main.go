@@ -14,7 +14,11 @@ import (
 var Port = os.Getenv("PORT")
 
 func startServer() {
-	r := muxtrace.NewRouter()
+	r := muxtrace.NewRouter(
+		muxtrace.WithServiceName("shared-spotify-backend"),
+		muxtrace.WithAnalytics(true),
+		muxtrace.WithAnalyticsRate(1.0),
+	)
 
 	r.HandleFunc("/login", spotifyclient.Authenticate)
 	r.HandleFunc("/callback", spotifyclient.CallbackHandler)
