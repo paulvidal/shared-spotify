@@ -1,6 +1,5 @@
 import {useRouter} from 'next/router'
 import styles from "../../../styles/rooms/[roomId]/Room.module.scss";
-import Head from "next/head";
 import {showErrorToastWithError, showSuccessToast, Toast} from "../../../components/toast";
 import axios from "axios";
 import {useEffect, useState} from "react";
@@ -42,14 +41,19 @@ export default function Room() {
   }
 
   const fetchMusics = () => {
-    axiosClient.post(getUrl('/rooms/' + roomId + '/playlists'))
-      .then(resp => {
-        refresh()
-        showSuccessToast("Music are currently getting fetched")
-      })
-      .catch(error => {
-        showErrorToastWithError("Failed to find common musics", error)
-      })
+    let confirmation = confirm("Finding the common musics will close the room, so no more people will be able to join. " +
+      "Are you sure you want to do this now?")
+
+    if (confirmation) {
+      axiosClient.post(getUrl('/rooms/' + roomId + '/playlists'))
+        .then(resp => {
+          refresh()
+          showSuccessToast("Common music is currently getting fetched")
+        })
+        .catch(error => {
+          showErrorToastWithError("Failed to find common musics", error)
+        })
+    }
   }
 
   useEffect(refresh, [roomId])
@@ -88,7 +92,7 @@ export default function Room() {
   if (room.shared_music_library == null) {
     button = (
       <Button variant="success" size="lg" className="mt-2 mb-2" onClick={fetchMusics}>
-        Find common musics 🎵
+        Find common music 🎵
       </Button>
     )
 
