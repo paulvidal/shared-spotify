@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/shared-spotify/httputils"
 	"golang.org/x/oauth2"
 	"math/rand"
@@ -18,7 +19,8 @@ import (
 	"github.com/zmb3/spotify"
 )
 
-var states = make(map[string]string)
+// Cache 100 states max
+var states, _ = lru.New(100)
 
 const stateMaxSize = 100000000000
 const tokenCookieName = "token"
@@ -61,7 +63,7 @@ func CreateUserFromRequest(r *http.Request) (*User, error) {
 
 	if err == http.ErrNoCookie {
 		errMsg := "failed to create user from request - no token cookie found "
-		logger.Logger.Error(errMsg, err)
+		logger.Logger.Warning(errMsg, err)  // this is normal if user is not logged in, so show it as a warning
 		return nil, errors.New(errMsg)
 	}
 
@@ -156,7 +158,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	// we generate a random state and remember the redirect url so we use it once we are redirected
 	randomState := randomState()
-	states[randomState] = redirectUrl
+	states.Add(randomState, redirectUrl)
 
 	// get the user to this URL - how you do that is up to you
 	// you should specify a unique state string to identify the session
@@ -173,9 +175,9 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Logger.Info("Headers for request to callback are ", r.Header)
 
 	st := r.FormValue("state")
-	redirectUrl, ok := states[st]
+	var redirectUrl, ok = states.Get(st)
 
-	logger.Logger.Infof("State is state=%s and states are states=%v", st, states)
+	logger.Logger.Infof("State is state=%s and states are states=%+v", st, states.Keys())
 
 	// check state exists to prevent csrf attacks
 	if !ok {
@@ -193,7 +195,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// we delete the state entry
-	delete(states, st)
+	states.Remove(st)
 
 	logger.Logger.Infof("token is: %+v\n", token)
 
@@ -208,7 +210,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger.Logger.Info("Redirecting to ", redirectUrl)
 
-	http.Redirect(w, r, redirectUrl, http.StatusFound)
+	http.Redirect(w, r, redirectUrl.(string), http.StatusFound)
 }
 
 func randomState() string {

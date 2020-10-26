@@ -21,6 +21,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/graph-gophers/graphql-go v0.0.0-20201003130358-c5bdf3b1108e // indirect
 	github.com/hashicorp/consul/api v1.7.0 // indirect
+	github.com/hashicorp/golang-lru v0.5.1
 	github.com/hashicorp/vault/api v1.0.4 // indirect
 	github.com/jinzhu/gorm v1.9.16 // indirect
 	github.com/jmoiron/sqlx v1.2.0 // indirect
