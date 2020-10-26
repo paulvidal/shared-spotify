@@ -165,7 +165,22 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 
-	http.Redirect(w, r, FrontendUrl, http.StatusFound)
+	// We extract the referer if it exists, to redirect to it
+	var redirectUrl string
+	referer:= r.Header.Get("Referer")
+
+	refererParsedUrl, err := url.Parse(referer)
+
+	if err != nil || referer == "" {
+		redirectUrl = FrontendUrl
+
+	} else {
+		redirectUrl = FrontendUrl + refererParsedUrl.RequestURI()
+	}
+
+	logger.Logger.Info("Redirecting to %s", redirectUrl)
+
+	http.Redirect(w, r, redirectUrl, http.StatusFound)
 }
 
 func decryptToken(tokenCookie *http.Cookie) (*oauth2.Token, error) {
