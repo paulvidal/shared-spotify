@@ -1,5 +1,5 @@
 import {Container, Row, Col, Card, Button, Image} from 'react-bootstrap';
-import styles from '../../../styles/rooms/[roomId]/Room.module.scss'
+import styles from '../styles/rooms/[roomId]/Room.module.scss'
 
 export default function UserRoomListElem(props) {
   return (

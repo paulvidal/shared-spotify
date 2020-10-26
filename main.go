@@ -14,32 +14,26 @@ import (
 var Prod = os.Getenv("ENV") == "PROD"
 var Port = os.Getenv("PORT")
 
-func h(w http.ResponseWriter, r *http.Request) {
-	logger.Logger.Infof("Got request for %s://%s%s", r.RequestURI, r.Host, r.URL.String())
-}
-
 func startServer() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/login", spotifyclient.Authenticate)
 	r.HandleFunc("/callback", spotifyclient.CallbackHandler)
 
-	r.HandleFunc("/api/user", spotifyclient.GetUser)
+	r.HandleFunc("/user", spotifyclient.GetUser)
 
-	r.HandleFunc("/api/rooms", app.RoomsHandler)
-	r.HandleFunc("/api/rooms/{roomId:[0-9]+}", app.RoomHandler)
-	r.HandleFunc("/api/rooms/{roomId:[0-9]+}/users", app.RoomUsersHandler)
-	r.HandleFunc("/api/rooms/{roomId:[0-9]+}/playlists", app.RoomPlaylistsHandler)
-	r.HandleFunc("/api/rooms/{roomId:[0-9]+}/playlists/add", app.RoomAddPlaylistsHandler)
-
-	r.PathPrefix("/").HandlerFunc(h)
+	r.HandleFunc("/rooms", app.RoomsHandler)
+	r.HandleFunc("/rooms/{roomId:[0-9]+}", app.RoomHandler)
+	r.HandleFunc("/rooms/{roomId:[0-9]+}/users", app.RoomUsersHandler)
+	r.HandleFunc("/rooms/{roomId:[0-9]+}/playlists", app.RoomPlaylistsHandler)
+	r.HandleFunc("/rooms/{roomId:[0-9]+}/playlists/add", app.RoomAddPlaylistsHandler)
 
 	// Setup cors policies
 	options := cors.Options{}
 	if !Prod {
 		// For dev environment
 		options = cors.Options{
-			AllowedOrigins:   []string{"http://localhost:8080", "http://localhost:3000"},
+			AllowedOrigins: []string{"http://localhost:3000"},
 			AllowCredentials: true,
 		}
 	}

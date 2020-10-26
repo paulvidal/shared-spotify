@@ -19,8 +19,8 @@ const state = "state"
 
 const tokenCookieName = "token"
 
-var HostURL = os.Getenv("HOST_URL")
 var RedirectURL = os.Getenv("REDIRECT_URL")
+var FrontendRedirectUrl = os.Getenv("FRONTEND_REDIRECT_URL")
 var clientId = os.Getenv("CLIENT_ID")
 var clientSecret = os.Getenv("CLIENT_SECRET_KEY")
 
@@ -161,7 +161,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 
-	http.Redirect(w, r, "http://localhost:3000", http.StatusFound)
+	http.Redirect(w, r, FrontendRedirectUrl, http.StatusFound)
 }
 
 func decryptToken(tokenCookie *http.Cookie) (*oauth2.Token, error) {

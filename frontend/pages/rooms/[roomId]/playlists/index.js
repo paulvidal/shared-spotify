@@ -4,7 +4,7 @@ import Head from "next/head";
 import {showErrorToastWithError, showSuccessToast, Toast} from "../../../../components/toast";
 import axios from "axios";
 import {useEffect, useState} from "react";
-import PlaylistElem from "./playlistElem";
+import PlaylistElem from "../../../../components/playlistElem";
 import ReactAudioPlayer from "react-audio-player";
 import {Button, Tooltip, OverlayTrigger, Spinner} from "react-bootstrap";
 import {getArtistsFromTrack} from "../../../../utils/trackUtils";
@@ -32,7 +32,7 @@ export default function Playlist() {
       return null;
     }
 
-    axiosClient.get(getUrl('/api/rooms/' + roomId + '/playlists'))
+    axiosClient.get(getUrl('/rooms/' + roomId + '/playlists'))
       .then(resp => {
         setPlaylists(prevState => {
           return {
@@ -61,7 +61,7 @@ export default function Playlist() {
       }
     })
 
-    axiosClient.post(getUrl('/api/rooms/' + roomId + '/playlists/add'))
+    axiosClient.post(getUrl('/rooms/' + roomId + '/playlists/add'))
       .then(resp => {
         const playlistName = resp.data.name
 

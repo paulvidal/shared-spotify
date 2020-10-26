@@ -1,8 +1,8 @@
 import {Button, Card} from 'react-bootstrap';
 import axios from "axios";
-import {showErrorToastWithError} from "../../components/toast";
+import {showErrorToastWithError} from "./toast";
 import {useRouter} from "next/router";
-import {getUrl} from "../../utils/urlUtils";
+import {getUrl} from "../utils/urlUtils";
 
 export default function RoomListElem(props) {
   const router = useRouter()
@@ -12,7 +12,7 @@ export default function RoomListElem(props) {
   })
 
   const addUserToRoom = () => {
-    axiosClient.post(getUrl('/api/rooms/' + props.room.id + '/users'))
+    axiosClient.post(getUrl('/rooms/' + props.room.id + '/users'))
       .then(resp => {
         router.push('/rooms/' + props.room.id)
       })

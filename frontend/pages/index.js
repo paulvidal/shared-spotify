@@ -15,7 +15,7 @@ export default function Home() {
   const [userInfos, setUserInfos] = useState({});
 
   const refresh = () => {
-    axiosClient.get(getUrl('/api/user'))
+    axiosClient.get(getUrl('/user'))
       .then(resp => setUserInfos(resp.data.user_infos))
       .catch(error => {})
   }
