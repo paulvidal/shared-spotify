@@ -8,6 +8,9 @@ export default function CustomHead() {
       <meta property="og:title" content="Shared spotify" />
       <meta property="og:description" content="The best way to create playlist with songs multiple like!" />
       <meta property="og:image" content={process.env.NEXT_PUBLIC_URL + "/spotify.png"} />
+
+      {/* always allow referrer to exist */}
+      <meta name="referrer" content="always" />
     </Head>
   )
 }
