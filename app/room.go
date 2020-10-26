@@ -25,9 +25,9 @@ var failedToCreatePlaylistError = errors.New("an error occurred while creating t
 
 
 // An in memory representation of all the rooms, would be better if it was persistent but for now this is fine
-var allRooms = AllRooms{make(map[string]*Room, 0)}
+var allRooms = RoomCollection{make(map[string]*Room)}
 
-type AllRooms struct {
+type RoomCollection struct {
 	Rooms map[string]*Room `json:"rooms"`
 }
 
@@ -154,7 +154,24 @@ func RoomsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetRooms(w http.ResponseWriter, r *http.Request)  {
-	httputils.SendJson(w, allRooms)
+	user, err := spotifyclient.CreateUserFromRequest(r)
+
+	if err != nil {
+		httputils.AuthenticationError(w, r)
+		return
+	}
+
+	rooms := make(map[string]*Room)
+
+	for roomId, room := range allRooms.Rooms {
+		if room.isUserInRoom(user) {
+			rooms[roomId] = room
+		}
+	}
+
+	roomCollection := RoomCollection{rooms}
+
+	httputils.SendJson(w, &roomCollection)
 }
 
 func CreateRoom(w http.ResponseWriter, r *http.Request)  {
