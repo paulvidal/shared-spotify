@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react';
 import axios from 'axios';
-import Head from 'next/head'
 import {Button} from 'react-bootstrap';
 import Link from 'next/link'
 import styles from '../styles/Home.module.scss'
 import _ from "lodash"
 import {getUrl} from "../utils/urlUtils";
+import CustomHead from "../components/Head";
 
 export default function Home() {
   const axiosClient = axios.create({
@@ -59,10 +59,7 @@ export default function Home() {
 
   return (
     <div className={styles.container}>
-      <Head>
-        <title>Shared Spotify</title>
-        <link rel="icon" href="/spotify.svg" />
-      </Head>
+      <CustomHead />
 
       {greetings}
 

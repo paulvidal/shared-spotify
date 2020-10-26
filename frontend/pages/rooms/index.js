@@ -1,5 +1,4 @@
 import styles from "../../styles/rooms/Rooms.module.scss";
-import Head from "next/head";
 import {useEffect, useState} from "react";
 import axios from "axios";
 import RoomListElem from "../../components/roomListElem";
@@ -7,6 +6,7 @@ import {Button} from 'react-bootstrap';
 
 import {showErrorToastWithError, showSuccessToast, Toast} from "../../components/toast";
 import {getUrl} from "../../utils/urlUtils";
+import CustomHead from "../../components/Head";
 
 export default function Rooms() {
   const axiosClient = axios.create({
@@ -53,10 +53,7 @@ export default function Rooms() {
 
   return (
     <div className={styles.container}>
-      <Head>
-        <title>Shared Spotify</title>
-        <link rel="icon" href="/spotify.svg" />
-      </Head>
+      <CustomHead />
 
       <main className={styles.main}>
         <h1>Rooms</h1>

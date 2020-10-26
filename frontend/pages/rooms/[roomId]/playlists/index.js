@@ -1,15 +1,15 @@
 import {useRouter} from 'next/router'
 import styles from "../../../../styles/rooms/Rooms.module.scss";
-import Head from "next/head";
 import {showErrorToastWithError, showSuccessToast, Toast} from "../../../../components/toast";
 import axios from "axios";
 import {useEffect, useState} from "react";
 import PlaylistElem from "../../../../components/playlistElem";
 import ReactAudioPlayer from "react-audio-player";
-import {Button, Tooltip, OverlayTrigger, Spinner} from "react-bootstrap";
+import {Button, OverlayTrigger, Spinner, Tooltip} from "react-bootstrap";
 import {getArtistsFromTrack} from "../../../../utils/trackUtils";
-import { isEmpty } from "lodash"
+import {isEmpty} from "lodash"
 import {getUrl} from "../../../../utils/urlUtils";
+import CustomHead from "../../../../components/Head";
 
 export default function Playlist() {
   const router = useRouter()
@@ -176,10 +176,7 @@ export default function Playlist() {
 
   return (
     <div className={styles.container}>
-      <Head>
-        <title>Shared Spotify</title>
-        <link rel="icon" href="/spotify.svg" />
-      </Head>
+      <CustomHead />
 
       <main className={styles.main}>
         <h1>Playlists</h1>
