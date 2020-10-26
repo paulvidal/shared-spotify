@@ -1,5 +1,5 @@
 import {useRouter} from 'next/router'
-import styles from "../../../styles/rooms/Rooms.module.scss";
+import styles from "../../../styles/rooms/[roomId]/Room.module.scss";
 import Head from "next/head";
 import {showErrorToastWithError, showSuccessToast, Toast} from "../../../components/toast";
 import axios from "axios";
@@ -8,6 +8,8 @@ import UserRoomListElem from "../../../components/userRoomListElem";
 import {Button, Spinner} from "react-bootstrap";
 import Link from "next/link";
 import {getUrl} from "../../../utils/urlUtils";
+import {CopyToClipboard} from "react-copy-to-clipboard";
+import CustomHead from "../../../components/Head";
 
 const REFRESH_TIMEOUT = 2000;  // 2s
 
@@ -77,7 +79,7 @@ export default function Room() {
 
   } else {
     lock = (
-      <p>🔓 Unlocked</p>
+      <p>🔓 Open</p>
     )
   }
 
@@ -85,7 +87,7 @@ export default function Room() {
 
   if (room.shared_music_library == null) {
     button = (
-      <Button variant="outline-success" size="lg" className="mt-2 mb-2" onClick={fetchMusics}>
+      <Button variant="success" size="lg" className="mt-2 mb-2" onClick={fetchMusics}>
         Find common musics 🎵
       </Button>
     )
@@ -117,17 +119,23 @@ export default function Room() {
     )
   }
 
+  let shareButton = (
+    <CopyToClipboard text={window.location.origin + '/rooms/' + roomId + '/share'}
+                     onCopy={() => showSuccessToast("Shareable link copied to clipboard")}>
+      <Button variant="outline-warning" className="mt-2 mb-2" p-0>Share room 🔗</Button>
+    </CopyToClipboard>
+  )
+
   return (
     <div className={styles.container}>
-      <Head>
-        <title>Shared Spotify</title>
-        <link rel="icon" href="/spotify.svg" />
-      </Head>
+      <CustomHead />
 
       <main className={styles.main}>
         <h1>Room #{roomId}</h1>
 
         {lock}
+
+        {shareButton}
 
         {button}
 
