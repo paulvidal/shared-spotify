@@ -1,7 +1,5 @@
-import {Container, Row, Col, Card, Image} from 'react-bootstrap';
+import {Card, Col, Container, Image, Row} from 'react-bootstrap';
 import styles from '../styles/rooms/[roomId]/playlist/Playlist.module.scss'
-import ReactAudioPlayer from "react-audio-player";
-import {useState} from "react";
 import {getAlbumCoverUrlFromTrack, getArtistsFromTrack} from "../utils/trackUtils";
 
 export default function PlaylistElem(props) {

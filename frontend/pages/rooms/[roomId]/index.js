@@ -121,7 +121,7 @@ export default function Room() {
   }
 
   let shareButton = (
-    <CopyToClipboard text={window.location.origin + '/rooms/' + roomId + '/share'}
+    <CopyToClipboard text={process.env.NEXT_PUBLIC_URL + '/rooms/' + roomId + '/share'}
                      onCopy={() => showSuccessToast("Shareable link copied to clipboard")}>
       <Button variant="outline-warning" className="mt-2 mb-2" p-0>Share room 🔗</Button>
     </CopyToClipboard>
