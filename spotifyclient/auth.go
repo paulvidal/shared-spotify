@@ -60,7 +60,7 @@ func CreateUserFromRequest(r *http.Request) (*User, error) {
 	tokenCookie, err := r.Cookie(tokenCookieName)
 
 	if err == http.ErrNoCookie {
-		errMsg := "failed to create user from request - no token cookie found"
+		errMsg := "failed to create user from request - no token cookie found "
 		logger.Logger.Error(errMsg, err)
 		return nil, errors.New(errMsg)
 	}
@@ -68,7 +68,7 @@ func CreateUserFromRequest(r *http.Request) (*User, error) {
 	token, err := decryptToken(tokenCookie)
 
 	if err != nil {
-		errMsg := "failed to create user from request - failed to decrypt token"
+		errMsg := "failed to create user from request - failed to decrypt token "
 		logger.Logger.Error(errMsg, err)
 		return nil, errors.New(errMsg)
 	}
