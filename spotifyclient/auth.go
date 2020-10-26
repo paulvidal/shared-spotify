@@ -60,18 +60,23 @@ func CreateUserFromRequest(r *http.Request) (*User, error) {
 	tokenCookie, err := r.Cookie(tokenCookieName)
 
 	if err == http.ErrNoCookie {
-		return nil, errors.New("no token cookie found")
+		errMsg := "failed to create user from request - no token cookie found"
+		logger.Logger.Error(errMsg, err)
+		return nil, errors.New(errMsg)
 	}
 
 	token, err := decryptToken(tokenCookie)
 
 	if err != nil {
-		return nil, errors.New("failed to decrypt token")
+		errMsg := "failed to create user from request - failed to decrypt token"
+		logger.Logger.Error(errMsg, err)
+		return nil, errors.New(errMsg)
 	}
 
 	user, err := createUserFromToken(token)
 
 	if err != nil {
+		logger.Logger.Error("failed to create user from request - create user from token failed ", err)
 		return nil, err
 	}
 
@@ -83,6 +88,7 @@ func createUserFromToken(token *oauth2.Token) (*User, error) {
 	privateUser, err := client.CurrentUser()
 
 	if err != nil {
+		logger.Logger.Error("Failed to create user from token ", err)
 		return nil, err
 	}
 
@@ -146,6 +152,8 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 		redirectUrl = FrontendUrl + refererParsedUrl.RequestURI()
 	}
 
+	logger.Logger.Info("Redirect Url for user after auth will be: ", redirectUrl)
+
 	// we generate a random state and remember the redirect url so we use it once we are redirected
 	randomState := randomState()
 	states[randomState] = redirectUrl
@@ -164,7 +172,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Logger.Info("Headers for request to callback are ", r.Header)
 
-	st := r.FormValue("state");
+	st := r.FormValue("state")
 	redirectUrl, ok := states[st]
 
 	logger.Logger.Infof("State is state=%s and states are states=%v", st, states)
@@ -179,6 +187,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// use the same state string here that you used to generate the URL
 	token, err := auth.Token(st, r)
 	if err != nil {
+		logger.Logger.Errorf("Couldn't get token", err)
 		http.Error(w, "Couldn't get token", http.StatusNotFound)
 		return
 	}
@@ -191,6 +200,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// Add the token as an encrypted cookie
 	cookie, err := encryptToken(token)
 	if err != nil {
+		logger.Logger.Errorf("Failed to set token", err)
 		http.Error(w, "Failed to set token", http.StatusBadRequest)
 		return
 	}
