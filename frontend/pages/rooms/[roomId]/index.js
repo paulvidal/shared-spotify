@@ -44,16 +44,18 @@ export default function Room() {
     let confirmation = confirm("Finding the common musics will close the room, so no more people will be able to join. " +
       "Are you sure you want to do this now?")
 
-    if (confirmation) {
-      axiosClient.post(getUrl('/rooms/' + roomId + '/playlists'))
-        .then(resp => {
-          refresh()
-          showSuccessToast("Common music is currently getting fetched")
-        })
-        .catch(error => {
-          showErrorToastWithError("Failed to find common musics", error)
-        })
+    if (!confirmation) {
+      return
     }
+
+    axiosClient.post(getUrl('/rooms/' + roomId + '/playlists'))
+      .then(resp => {
+        refresh()
+        showSuccessToast("Common music is currently getting fetched")
+      })
+      .catch(error => {
+        showErrorToastWithError("Failed to find common musics", error)
+      })
   }
 
   useEffect(refresh, [roomId])

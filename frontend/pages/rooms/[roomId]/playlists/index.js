@@ -54,6 +54,12 @@ export default function Playlist() {
   }
 
   const addPlaylist = () => {
+    let confirmation = confirm("You are creating a playlist on your account, do you wish to continue?")
+
+    if (!confirmation) {
+      return
+    }
+
     setPlaylists(prevState => {
       return {
         ...prevState,
