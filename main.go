@@ -2,20 +2,19 @@ package main
 
 import (
 	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"github.com/shared-spotify/app"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/spotifyclient"
 	"net/http"
 	"os"
+	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 )
 
-var Prod = os.Getenv("ENV") == "PROD"
 var Port = os.Getenv("PORT")
 
 func startServer() {
-	r := mux.NewRouter()
+	r := muxtrace.NewRouter()
 
 	r.HandleFunc("/login", spotifyclient.Authenticate)
 	r.HandleFunc("/callback", spotifyclient.CallbackHandler)

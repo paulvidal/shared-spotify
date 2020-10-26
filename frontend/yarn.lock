@@ -1076,6 +1076,29 @@
     lodash "^4.17.19"
     to-fast-properties "^2.0.0"
 
+"@datadog/browser-core@1.24.1":
+  version "1.24.1"
+  resolved "https://registry.yarnpkg.com/@datadog/browser-core/-/browser-core-1.24.1.tgz#ea127c43b83e393185e40d4e6318748d8d7e636f"
+  integrity sha512-b3mO00JwB07c2fy+L/uHBcdMnbfDqBmEm0fPWR5exOFaNYCFANXqzD48IEdaTSUEO7wnpLsATyDvu0r8Jf51pw==
+  dependencies:
+    tslib "^1.10.0"
+
+"@datadog/browser-logs@^1.24.1":
+  version "1.24.1"
+  resolved "https://registry.yarnpkg.com/@datadog/browser-logs/-/browser-logs-1.24.1.tgz#e9b4b7f8222b38cfd6bad55791a59dd00e54dd3f"
+  integrity sha512-IKI1phgUXpCuJecPi7PUsnQd8b5W69VhLR7FiHAY3U+vo9nN0dCIsfc0vxE4/8pagLv3CkF1Cs1aPlQLV5D4eA==
+  dependencies:
+    "@datadog/browser-core" "1.24.1"
+    tslib "^1.10.0"
+
+"@datadog/browser-rum@^1.24.1":
+  version "1.24.1"
+  resolved "https://registry.yarnpkg.com/@datadog/browser-rum/-/browser-rum-1.24.1.tgz#c752d6f8d54f088c95a303e963adad762799a9db"
+  integrity sha512-pRYBX6qNAxtTqTulpAakrLvuTjcYzWr2QN8j5887SlbqbgJyckjHSbbpYaEVbt5QwFvCexAlXEcgZy/rdGWJtg==
+  dependencies:
+    "@datadog/browser-core" "1.24.1"
+    tslib "^1.10.0"
+
 "@hapi/accept@5.0.1":
   version "5.0.1"
   resolved "https://registry.yarnpkg.com/@hapi/accept/-/accept-5.0.1.tgz#068553e867f0f63225a506ed74e899441af53e10"
@@ -4888,7 +4911,7 @@ ts-pnp@^1.1.6:
   resolved "https://registry.yarnpkg.com/ts-pnp/-/ts-pnp-1.2.0.tgz#a500ad084b0798f1c3071af391e65912c86bca92"
   integrity sha512-csd+vJOb/gkzvcCHgTGSChYpy5f1/XKNsmvBGO4JXS+z1v2HobugDz4s1IeFXM3wZB44uczs+eazB5Q/ccdhQw==
 
-tslib@^1.9.0:
+tslib@^1.10.0, tslib@^1.9.0:
   version "1.14.1"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.14.1.tgz#cf2d38bdc34a134bcaf1091c41f6619e2f672d00"
   integrity sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==
