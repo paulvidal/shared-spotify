@@ -60,11 +60,6 @@ export default function Room() {
 
   useEffect(refresh, [roomId])
 
-  // Do not render anything if no room id exists
-  if (!roomId) {
-    return null;
-  }
-
   // Force a refresh of the page while we are processing the musics
   if (room.shared_music_library != null && room.shared_music_library.processing_status.success == null) {
     setTimeout(refresh, REFRESH_TIMEOUT)

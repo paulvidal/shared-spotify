@@ -48,11 +48,6 @@ export default function Playlist() {
 
   useEffect(refresh, [roomId])
 
-  // Do not render anything if no room id exists
-  if (!roomId) {
-    return null;
-  }
-
   const addPlaylist = () => {
     let confirmation = confirm("You are creating a playlist on your account, do you wish to continue?")
 
