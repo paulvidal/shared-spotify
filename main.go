@@ -29,13 +29,9 @@ func startServer() {
 	r.HandleFunc("/rooms/{roomId:[0-9]+}/playlists/add", app.RoomAddPlaylistsHandler)
 
 	// Setup cors policies
-	options := cors.Options{}
-	if !Prod {
-		// For dev environment
-		options = cors.Options{
-			AllowedOrigins: []string{"http://localhost:3000"},
-			AllowCredentials: true,
-		}
+	options := cors.Options{
+		AllowedOrigins: []string{spotifyclient.FrontendUrl},
+		AllowCredentials: true,
 	}
 	handler := cors.New(options).Handler(r)
 
