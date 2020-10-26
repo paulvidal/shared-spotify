@@ -7,18 +7,20 @@ import (
 	"fmt"
 	"github.com/shared-spotify/httputils"
 	"golang.org/x/oauth2"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/shared-spotify/logger"
 	"github.com/zmb3/spotify"
 )
 
-// TODO: generate different one per user
-const state = "state"
+var states = make(map[string]string)
 
+const stateMaxSize = 100000000000
 const tokenCookieName = "token"
 
 var BackendUrl = os.Getenv("BACKEND_URL")
@@ -126,15 +128,31 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func Authenticate(w http.ResponseWriter, r *http.Request) {
-	logger.Logger.Info("Headers for request to authenticate are %+v", r.Header)
+	logger.Logger.Info("Headers for request to authenticate are ", r.Header)
 
 	// if you didn't store your ID and secret key in the specified environment variables,
 	// you can set them manually here
 	auth.SetAuthInfo(clientId, clientSecret)
 
+	// We extract the referer if it exists, to redirect to it once th auth is finished
+	var redirectUrl string
+	referer:= r.Header.Get("Referer")
+	refererParsedUrl, err := url.Parse(referer)
+
+	if err != nil || referer == "" {
+		redirectUrl = FrontendUrl
+
+	} else {
+		redirectUrl = FrontendUrl + refererParsedUrl.RequestURI()
+	}
+
+	// we generate a random state and remember the redirect url so we use it once we are redirected
+	randomState := randomState()
+	states[randomState] = redirectUrl
+
 	// get the user to this URL - how you do that is up to you
 	// you should specify a unique state string to identify the session
-	authUrl := auth.AuthURL(state)
+	authUrl := auth.AuthURL(randomState)
 
 	logger.Logger.Info("Url to login is: ", authUrl)
 
@@ -144,20 +162,29 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 
 // the user will eventually be redirected back to your redirect URL
 func CallbackHandler(w http.ResponseWriter, r *http.Request) {
-	logger.Logger.Info("Headers for request to callback are %+v", r.Header)
+	logger.Logger.Info("Headers for request to callback are ", r.Header)
+
+	st := r.FormValue("state");
+	redirectUrl, ok := states[st]
+
+	logger.Logger.Infof("State is state=%s and states are states=%v", st, states)
+
+	// check state exists to prevent csrf attacks
+	if !ok {
+		logger.Logger.Errorf("State not found found=%s actual=%v", st, states)
+		http.NotFound(w, r)
+		return
+	}
 
 	// use the same state string here that you used to generate the URL
-	token, err := auth.Token(state, r)
+	token, err := auth.Token(st, r)
 	if err != nil {
 		http.Error(w, "Couldn't get token", http.StatusNotFound)
 		return
 	}
 
-	// check state is the same to prevent csrf attacks
-	if st := r.FormValue("state"); st != state {
-		http.NotFound(w, r)
-		logger.Logger.Fatalf("State mismatch: %s != %s\n", st, state)
-	}
+	// we delete the state entry
+	delete(states, st)
 
 	logger.Logger.Infof("token is: %+v\n", token)
 
@@ -169,22 +196,15 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 
-	// We extract the referer if it exists, to redirect to it
-	var redirectUrl string
-	referer:= r.Header.Get("Referer")
-
-	refererParsedUrl, err := url.Parse(referer)
-
-	if err != nil || referer == "" {
-		redirectUrl = FrontendUrl
-
-	} else {
-		redirectUrl = FrontendUrl + refererParsedUrl.RequestURI()
-	}
-
 	logger.Logger.Info("Redirecting to ", redirectUrl)
 
 	http.Redirect(w, r, redirectUrl, http.StatusFound)
+}
+
+func randomState() string {
+	// we initialise the random seed
+	rand.Seed(time.Now().UnixNano())
+	return strconv.Itoa(rand.Intn(stateMaxSize))
 }
 
 func decryptToken(tokenCookie *http.Cookie) (*oauth2.Token, error) {

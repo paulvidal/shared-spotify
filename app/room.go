@@ -10,9 +10,10 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 )
 
-const maxNumberRooms = 100
+const maxNumberRooms = 10000
 
 var roomDoesNotExistError = errors.New("room does not exists")
 var roomIsNotAccessibleError = errors.New("room is not accessible to user")
@@ -41,6 +42,9 @@ type Room struct {
 
 func createRoom() *Room {
 	var randomId string
+
+	// we initialise the random seed
+	rand.Seed(time.Now().UnixNano())
 
 	for {
 		randomId = strconv.Itoa(rand.Intn(maxNumberRooms))
