@@ -9,6 +9,7 @@ import Link from "next/link";
 import {getUrl} from "../../../utils/urlUtils";
 import {CopyToClipboard} from "react-copy-to-clipboard";
 import CustomHead from "../../../components/Head";
+import Header from "../../../components/Header";
 
 const REFRESH_TIMEOUT = 2000;  // 2s
 
@@ -130,6 +131,8 @@ export default function Room() {
   return (
     <div className={styles.container}>
       <CustomHead />
+
+      <Header />
 
       <main className={styles.main}>
         <h1>Room #{roomId}</h1>

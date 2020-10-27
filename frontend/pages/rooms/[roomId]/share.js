@@ -7,6 +7,7 @@ import {Button} from "react-bootstrap";
 import {useEffect, useState} from "react";
 import {isEmpty} from "lodash";
 import CustomHead from "../../../components/Head";
+import Header from "../../../components/Header";
 
 export default function RoomShare() {
   const router = useRouter()
@@ -56,6 +57,8 @@ export default function RoomShare() {
   return (
     <div className={styles.container}>
       <CustomHead />
+
+      <Header />
 
       <main className={styles.main}>
         <h1>You are invited</h1>

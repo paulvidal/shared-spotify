@@ -8,6 +8,7 @@ import {showErrorToastWithError, showSuccessToast, Toast} from "../../components
 import {getUrl} from "../../utils/urlUtils";
 import CustomHead from "../../components/Head";
 import {useRouter} from "next/router";
+import Header from "../../components/Header";
 
 export default function Rooms() {
   const router = useRouter()
@@ -57,6 +58,8 @@ export default function Rooms() {
   return (
     <div className={styles.container}>
       <CustomHead />
+
+      <Header />
 
       <main className={styles.main}>
         <h1>Rooms</h1>
