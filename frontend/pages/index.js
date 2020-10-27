@@ -1,11 +1,12 @@
 import {useEffect, useState} from 'react';
 import axios from 'axios';
-import {Button} from 'react-bootstrap';
+import {Image, Button, Row} from 'react-bootstrap';
 import Link from 'next/link'
 import styles from '../styles/Home.module.scss'
 import _ from "lodash"
 import {getUrl} from "../utils/urlUtils";
 import CustomHead from "../components/Head";
+import Header from "../components/Header";
 
 export default function Home() {
   const axiosClient = axios.create({
@@ -60,6 +61,8 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <CustomHead />
+
+      <Header />
 
       {greetings}
 

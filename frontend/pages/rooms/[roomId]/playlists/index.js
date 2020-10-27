@@ -10,6 +10,7 @@ import {getArtistsFromTrack} from "../../../../utils/trackUtils";
 import {isEmpty} from "lodash"
 import {getUrl} from "../../../../utils/urlUtils";
 import CustomHead from "../../../../components/Head";
+import Header from "../../../../components/Header";
 
 export default function Playlist() {
   const router = useRouter()
@@ -178,6 +179,8 @@ export default function Playlist() {
   return (
     <div className={styles.container}>
       <CustomHead />
+
+      <Header />
 
       <main className={styles.main}>
         <h1>Playlists</h1>
