@@ -7,12 +7,11 @@ import (
 	"fmt"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/shared-spotify/httputils"
+	"github.com/shared-spotify/utils"
 	"golang.org/x/oauth2"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/shared-spotify/logger"
@@ -22,7 +21,6 @@ import (
 // Cache 100 states max
 var states, _ = lru.New(100)
 
-const stateMaxSize = 100000000000
 const tokenCookieName = "token"
 
 var BackendUrl = os.Getenv("BACKEND_URL")
@@ -157,7 +155,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 	logger.Logger.Info("Redirect Url for user after auth will be: ", redirectUrl)
 
 	// we generate a random state and remember the redirect url so we use it once we are redirected
-	randomState := randomState()
+	randomState := utils.GenerateStrongHash()
 	states.Add(randomState, redirectUrl)
 
 	// get the user to this URL - how you do that is up to you
@@ -211,12 +209,6 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Logger.Info("Redirecting to ", redirectUrl)
 
 	http.Redirect(w, r, redirectUrl.(string), http.StatusFound)
-}
-
-func randomState() string {
-	// we initialise the random seed
-	rand.Seed(time.Now().UnixNano())
-	return strconv.Itoa(rand.Intn(stateMaxSize))
 }
 
 func decryptToken(tokenCookie *http.Cookie) (*oauth2.Token, error) {

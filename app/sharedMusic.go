@@ -9,6 +9,8 @@ import (
 	"runtime/debug"
 )
 
+var errorPlaylistNotFound = errors.New("playlist id not found")
+
 type SharedMusicLibrary struct {
 	TotalUsers             int                               `json:"total_users"`
 	ProcessingStatus       *ProcessingStatus                 `json:"processing_status"`
@@ -31,8 +33,14 @@ func (musicLibrary *SharedMusicLibrary) hasProcessingFinished() bool {
 	return musicLibrary.ProcessingStatus.Success != nil
 }
 
-func (musicLibrary *SharedMusicLibrary) GetPlaylist() []*spotify.FullTrack {
-	return musicLibrary.CommonPlaylists.TracksInCommon
+func (musicLibrary *SharedMusicLibrary) GetPlaylist(id string) (*Playlist, error) {
+	playlist, ok := musicLibrary.CommonPlaylists.PlaylistsFound[id]
+
+	if !ok {
+		return nil, errorPlaylistNotFound
+	}
+
+	return playlist, nil
 }
 
 type MusicProcessingResult struct {

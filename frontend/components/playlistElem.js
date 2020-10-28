@@ -1,5 +1,5 @@
 import {Card, Col, Container, Image, Row} from 'react-bootstrap';
-import styles from '../styles/rooms/[roomId]/playlist/Playlist.module.scss'
+import styles from '../styles/rooms/[roomId]/playlists/Playlist.module.scss'
 import {getAlbumCoverUrlFromTrack, getArtistsFromTrack} from "../utils/trackUtils";
 
 export default function PlaylistElem(props) {

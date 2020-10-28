@@ -1,24 +1,35 @@
 package app
 
 import (
+	"fmt"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/spotifyclient"
+	"github.com/shared-spotify/utils"
 	"github.com/zmb3/spotify"
 )
 
+const minNumberOfUserForCommonMusic = 2
+
 type CommonPlaylists struct {
 	TracksPerUser          map[string][]*spotify.FullTrack   `json:"-"`
-	TracksInCommon         []*spotify.FullTrack              `json:"tracks_in_common"`
 	SharedTracksRank       map[string]*int                   `json:"-"`
 	SharedTracks           map[string]*spotify.FullTrack     `json:"-"`
+	PlaylistsFound         map[string]*Playlist              `json:"playlists"`
+}
+
+type Playlist struct {
+	Id          string                `json:"id"`
+	Name        string                `json:"name"`
+	SharedCount int                   `json:"shared_count"`
+	Tracks      []*spotify.FullTrack  `json:"tracks"`
 }
 
 func CreateCommonPlaylists() *CommonPlaylists {
 	return &CommonPlaylists{
 		make(map[string][]*spotify.FullTrack),
-		make([]*spotify.FullTrack, 0),
 		make(map[string]*int ),
 		make(map[string]*spotify.FullTrack),
+		make(map[string]*Playlist, 0),
 	}
 }
 
@@ -60,18 +71,28 @@ func (playlists *CommonPlaylists) GenerateCommonPlaylists() {
 	logger.Logger.Infof("Finding most common tracks for %d users across %d different tracks",
 		totalUsers, len(playlists.SharedTracksRank))
 
-	inCommon := make([]*spotify.FullTrack, 0)
+	tracksInCommon := make(map[int][]*spotify.FullTrack)
 
 	for trackId, trackCount := range playlists.SharedTracksRank {
-		if *trackCount == totalUsers {
-			track := playlists.SharedTracks[trackId]
-			inCommon = append(inCommon, track)
+		if *trackCount >= minNumberOfUserForCommonMusic {
+			// playlist containing as key the number of user that share this music, and in value the number of tracks
+			trackListForUserCount := tracksInCommon[*trackCount]
 
-			logger.Logger.Infof("Common track found: %s", track.Name)
+			if trackListForUserCount == nil {
+				trackListForUserCount = make([]*spotify.FullTrack, 0)
+			}
+
+			track := playlists.SharedTracks[trackId]
+			tracksInCommon[*trackCount] = append(trackListForUserCount, track)
+
+			logger.Logger.Infof("Common track found for %d person: %s", track.Name)
 		}
 	}
 
-	logger.Logger.Infof("Found %d tracks in common", len(inCommon))
-
-	playlists.TracksInCommon = inCommon
+	for commonUserCount, tracks := range tracksInCommon {
+		logger.Logger.Infof("Found %d tracks shared between %d users", len(tracks), commonUserCount)
+		playlistName := fmt.Sprintf("Common songs shared by at least %d friends", commonUserCount)
+		id := utils.GenerateStrongHash()
+		playlists.PlaylistsFound[id] = &Playlist{id, playlistName, commonUserCount, tracks}
+	}
 }

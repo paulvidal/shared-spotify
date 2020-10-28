@@ -28,10 +28,11 @@ func startServer() {
 	r.HandleFunc("/user", spotifyclient.GetUser)
 
 	r.HandleFunc("/rooms", app.RoomsHandler)
-	r.HandleFunc("/rooms/{roomId:[0-9]+}", app.RoomHandler)
-	r.HandleFunc("/rooms/{roomId:[0-9]+}/users", app.RoomUsersHandler)
-	r.HandleFunc("/rooms/{roomId:[0-9]+}/playlists", app.RoomPlaylistsHandler)
-	r.HandleFunc("/rooms/{roomId:[0-9]+}/playlists/add", app.RoomAddPlaylistsHandler)
+	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}", app.RoomHandler)
+	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}/users", app.RoomUsersHandler)
+	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}/playlists", app.RoomPlaylistsHandler)
+	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}/playlists/{playlistId:[a-zA-Z0-9]+}", app.RoomPlaylistHandler)
+	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}/playlists/{playlistId:[a-zA-Z0-9]+}/add", app.RoomAddPlaylistHandler)
 
 	// Setup cors policies
 	options := cors.Options{

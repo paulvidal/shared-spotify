@@ -100,7 +100,7 @@ export default function Room() {
 
     button = (
       <Button variant="warning" size="lg" className="mt-2 mb-2" disabled>
-        <Spinner animation="border" className="mr-2"/> Searching common musics ({current}/{total})
+        <Spinner animation="border" className="mr-2"/> Searching common musics ({Math.floor(current/total*100)} %)
       </Button>
     )
 
@@ -124,7 +124,7 @@ export default function Room() {
   let shareButton = (
     <CopyToClipboard text={process.env.NEXT_PUBLIC_URL + '/rooms/' + roomId + '/share'}
                      onCopy={() => showSuccessToast("Shareable link copied to clipboard")}>
-      <Button variant="outline-warning" className="mt-2 mb-2" p-0>Share room 🔗</Button>
+      <Button variant="outline-warning" className="mt-2 mb-2">Share room 🔗</Button>
     </CopyToClipboard>
   )
 
