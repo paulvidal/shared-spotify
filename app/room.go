@@ -118,7 +118,7 @@ func handleError(err error, w http.ResponseWriter, r *http.Request) {
 	} else if err == roomLockedError {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 
-	} else if err == errorPlaylistNotFound {
+	} else if err == errorPlaylistTypeNotFound {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 
 	} else if err == processingInProgressError || err == processingFailedError || err == processingNotStartedError {

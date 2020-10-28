@@ -1,11 +1,13 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/spotifyclient"
+	"github.com/zmb3/spotify"
 	"net/http"
 )
 
@@ -138,16 +140,16 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
+	playlistType, err := room.MusicLibrary.GetPlaylistType(playlistId)
 
 	if err != nil {
 		logger.Logger.Error("Playlist %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
-		handleError(errorPlaylistNotFound, w, r)
+		handleError(errorPlaylistTypeNotFound, w, r)
 		return
 	}
 
-	httputils.SendJson(w, playlist)
+	httputils.SendJson(w, playlistType)
 }
 
 /*
@@ -164,6 +166,10 @@ func RoomAddPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type AddPlaylistRequestBody struct {
+	MinSharedCount int `json:"min_shared_count"`
+}
+
 func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 	user, err := spotifyclient.CreateUserFromRequest(r)
 
@@ -175,6 +181,16 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 	playlistId := vars["playlistId"]
+
+	decoder := json.NewDecoder(r.Body)
+	var addPlaylistRequestBody AddPlaylistRequestBody
+
+	err = decoder.Decode(&addPlaylistRequestBody)
+	if err != nil {
+		logger.Logger.Error("Failed to decode json body for add playlist for user")
+		httputils.UnhandledError(w)
+		return
+	}
 
 	room, err := getRoomAndCheckUser(roomId, r)
 
@@ -201,18 +217,28 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
+	playlist, err := room.MusicLibrary.GetPlaylistType(playlistId)
 
 	if err != nil {
 		logger.Logger.Error("Playlist %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
-		handleError(errorPlaylistNotFound, w, r)
+		handleError(errorPlaylistTypeNotFound, w, r)
 		return
 	}
 
 	// we create in spotify the playlist
-	newPlaylist := CreateNewPlaylist(roomId, playlist.Name)
-	spotifyUrl, err := user.CreatePlaylist(newPlaylist.Name, playlist.Tracks)
+	newPlaylist := CreateNewPlaylist(roomId, playlist.Type)
+
+	// we get the songs that are above the min shared count limit requested by the user
+	tracks := make([]*spotify.FullTrack, 0)
+
+	for sharedCount, sharedTracks := range playlist.TracksPerSharedCount {
+		if sharedCount >= addPlaylistRequestBody.MinSharedCount {
+			tracks = append(tracks, sharedTracks...)
+		}
+	}
+
+	spotifyUrl, err := user.CreatePlaylist(newPlaylist.Name, tracks)
 
 	if spotifyUrl != nil {
 		newPlaylist.SpotifyUrl = *spotifyUrl
@@ -232,6 +258,6 @@ type NewPlaylist struct {
 }
 
 func CreateNewPlaylist(roomId string, playlistName string) *NewPlaylist {
-	spotifyPlaylistName := fmt.Sprintf("Shared Spotify - Room #%s - %s", roomId, playlistName)
+	spotifyPlaylistName := fmt.Sprintf("Room #%s - %s by Shared Spotify", roomId, playlistName)
 	return &NewPlaylist{spotifyPlaylistName, ""}
 }

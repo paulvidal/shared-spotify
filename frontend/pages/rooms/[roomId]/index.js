@@ -11,7 +11,8 @@ import {CopyToClipboard} from "react-copy-to-clipboard";
 import CustomHead from "../../../components/Head";
 import Header from "../../../components/Header";
 
-const REFRESH_TIMEOUT = 2000;  // 2s
+const GENERAL_REFRESH_TIMEOUT = 6000;  // 6s
+const REFRESH_TIMEOUT_PLAYLIST_CREATION = 2000;  // 2s
 
 export default function Room() {
   const router = useRouter()
@@ -25,7 +26,8 @@ export default function Room() {
     roomId: roomId,
     users: [],
     lock: false,
-    shared_music_library: null
+    shared_music_library: null,
+    awaiting_new_refresh: true
   });
 
   const refresh = () => {
@@ -35,7 +37,14 @@ export default function Room() {
     }
 
     axiosClient.get(getUrl('/rooms/' + roomId))
-      .then(resp => setRoom(resp.data))
+      .then(resp => {
+        setRoom(prevState => {
+          return {
+            ...prevState,
+            ...resp.data,
+          }
+        })
+      })
       .catch(error => {
         showErrorToastWithError("Failed to get room info", error)
       })
@@ -61,9 +70,39 @@ export default function Room() {
 
   useEffect(refresh, [roomId])
 
-  // Force a refresh of the page while we are processing the musics
-  if (room.shared_music_library != null && room.shared_music_library.processing_status.success == null) {
-    setTimeout(refresh, REFRESH_TIMEOUT)
+  // we refresh the page on a daily basis waiting for users to join
+  if (room.awaiting_new_refresh) {
+
+    if (room.shared_music_library != null && room.shared_music_library.processing_status.success == null) {
+      // Force a refresh of the page while we are processing the musics more often to get the progress
+      setTimeout(() => {
+        setRoom(prevState => {
+          return {
+            ...prevState,
+            awaiting_new_refresh: true
+          }
+        })
+        refresh()
+      }, REFRESH_TIMEOUT_PLAYLIST_CREATION)
+
+    } else {
+      setTimeout(() => {
+        setRoom(prevState => {
+          return {
+            ...prevState,
+            awaiting_new_refresh: true
+          }
+        })
+        refresh()
+      }, GENERAL_REFRESH_TIMEOUT)
+    }
+
+    setRoom(prevState => {
+      return {
+        ...prevState,
+        awaiting_new_refresh: false
+      }
+    })
   }
 
   let userList = room.users.map(user => {

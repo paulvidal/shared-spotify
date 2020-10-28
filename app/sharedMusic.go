@@ -9,7 +9,7 @@ import (
 	"runtime/debug"
 )
 
-var errorPlaylistNotFound = errors.New("playlist id not found")
+var errorPlaylistTypeNotFound = errors.New("playlist type id not found")
 
 type SharedMusicLibrary struct {
 	TotalUsers             int                               `json:"total_users"`
@@ -33,14 +33,14 @@ func (musicLibrary *SharedMusicLibrary) hasProcessingFinished() bool {
 	return musicLibrary.ProcessingStatus.Success != nil
 }
 
-func (musicLibrary *SharedMusicLibrary) GetPlaylist(id string) (*Playlist, error) {
-	playlist, ok := musicLibrary.CommonPlaylists.PlaylistsFound[id]
+func (musicLibrary *SharedMusicLibrary) GetPlaylistType(id string) (*PlaylistType, error) {
+	playlistType, ok := musicLibrary.CommonPlaylists.PlaylistTypes[id]
 
 	if !ok {
-		return nil, errorPlaylistNotFound
+		return nil, errorPlaylistTypeNotFound
 	}
 
-	return playlist, nil
+	return playlistType, nil
 }
 
 type MusicProcessingResult struct {
@@ -162,7 +162,7 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 
 	if success {
 		// if everything went well, we now generate the common playlist for the users in the room
-		musicLibrary.CommonPlaylists.GenerateCommonPlaylists()
+		musicLibrary.CommonPlaylists.GenerateCommonPlaylistType()
 	}
 
 	musicLibrary.ProcessingStatus.Success = &success

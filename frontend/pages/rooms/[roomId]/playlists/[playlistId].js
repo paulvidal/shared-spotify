@@ -1,16 +1,17 @@
 import {useRouter} from 'next/router'
-import styles from "../../../../styles/rooms/Rooms.module.scss";
+import styles from "../../../../styles/rooms/[roomId]/playlists/Playlist.module.scss";
 import {showErrorToastWithError, showSuccessToast, Toast} from "../../../../components/toast";
 import axios from "axios";
 import {useEffect, useState} from "react";
-import PlaylistElem from "../../../../components/playlistElem";
+import PlaylistListElem from "../../../../components/playlistListElem";
 import ReactAudioPlayer from "react-audio-player";
 import {Button, OverlayTrigger, Spinner, Tooltip} from "react-bootstrap";
 import {getArtistsFromTrack} from "../../../../utils/trackUtils";
-import {isEmpty} from "lodash"
+import {isEmpty, max, min, sum} from "lodash"
 import {getUrl} from "../../../../utils/urlUtils";
 import CustomHead from "../../../../components/Head";
 import Header from "../../../../components/Header";
+import {getTrackBackground, Range} from "react-range";
 
 export default function Playlist() {
   const router = useRouter()
@@ -21,11 +22,14 @@ export default function Playlist() {
   })
 
   const [playlist, setPlaylist] = useState({
-    name: '',
-    tracks: [],
+    type: '',
+    tracks_per_shared_count: {},
     song_playing: '',
     creating_playlist: false,
-    created_playlist: {}
+    new_playlist: {},
+    minSharedCount: 0,
+    minSharedCountLimit: 0,
+    maxSharedCountLimit: 0,
   });
 
   const refresh = () => {
@@ -36,10 +40,22 @@ export default function Playlist() {
 
     axiosClient.get(getUrl('/rooms/' + roomId + '/playlists/' + playlistId))
       .then(resp => {
+        let playlistReceived = resp.data.tracks_per_shared_count
+
+        let minSharedCountLimit = min(Object.keys(playlistReceived).map(i => {
+          return parseInt(i)
+        }))
+        let maxSharedCountLimit = max(Object.keys(playlistReceived).map(i => {
+          return parseInt(i)
+        }))
+
         setPlaylist(prevState => {
           return {
             ...prevState,
             ...resp.data,
+            minSharedCount: maxSharedCountLimit,
+            minSharedCountLimit: minSharedCountLimit,
+            maxSharedCountLimit: maxSharedCountLimit
           }
         })
       })
@@ -64,8 +80,9 @@ export default function Playlist() {
       }
     })
 
-    axiosClient.post(getUrl('/rooms/' + roomId + '/playlists/' + playlistId + '/add'))
-      .then(resp => {
+    axiosClient.post(getUrl('/rooms/' + roomId + '/playlists/' + playlistId + '/add'), {
+      min_shared_count: playlist.minSharedCount
+    }).then(resp => {
         const playlistName = resp.data.name
 
         setPlaylist(prevState => {
@@ -99,22 +116,64 @@ export default function Playlist() {
     })
   }
 
+  let tracksPerSharedCount = Object.keys(playlist.tracks_per_shared_count)
+    .filter(sharedCount => parseInt(sharedCount) >= playlist.minSharedCount)
+    .sort()
+    .reverse()
+
+  let info;
+
   let music = (
-    <h3 className="mt-5 text-center">No tracks in common found... 😞</h3>
+    <h4 className="mt-5 text-center">No tracks in common found... 😞</h4>
   );
 
-  if (playlist.tracks) {
-    music = playlist.tracks.sort((track1, track2) => {
-      return getArtistsFromTrack(track1).localeCompare(getArtistsFromTrack(track2))
-    }).map(track => {
-      return (
-        <PlaylistElem
-          key={track.id}
-          track={track}
-          songPlaying={playlist.song_playing}
-          updateSongCallback={updateSongCallback}/>
-      )
-    })
+  if (tracksPerSharedCount.length !== 0) {
+    let totalCount = sum(
+      tracksPerSharedCount
+        .map(sharedCount => playlist.tracks_per_shared_count[sharedCount].length)
+    )
+
+    info = [
+      <p key="count" className="font-weight-bold text-center mb-0">
+        {totalCount} songs in common 🎉
+      </p>,
+      <p key="info" className="font-weight-normal">
+        (shared between at least {playlist.minSharedCount} friends)
+      </p>
+    ]
+
+    music = tracksPerSharedCount
+      .map((sharedCount, index) => {
+        let divider;
+
+        if (index !== tracksPerSharedCount.length - 1) {
+          divider = (
+            <div className={styles.group_divider + " mt-5 col-5 col-md-3"}/>
+          )
+        }
+
+        return (
+          <div key={sharedCount} className={styles.common_songs_group}>
+            <h5 className="mt-3 mb-3">Songs shared by {sharedCount} friends</h5>
+            {playlist.tracks_per_shared_count[sharedCount]
+              .sort((track1, track2) => {
+                return getArtistsFromTrack(track1).localeCompare(getArtistsFromTrack(track2))
+              })
+              .map(track => {
+                return (
+                  <PlaylistListElem
+                    key={track.id}
+                    track={track}
+                    songPlaying={playlist.song_playing}
+                    updateSongCallback={updateSongCallback}/>
+                )
+              })
+            }
+
+            {divider}
+          </div>
+        )
+      })
   }
 
   let player = (
@@ -124,33 +183,26 @@ export default function Playlist() {
     />
   )
 
-  let info;
   let addButton;
 
-  if (playlist.tracks) {
-    info = (
-      <p className="font-weight-bold">
-        {playlist.tracks.length} songs in common 🎉
-      </p>
-    )
-
+  if (!isEmpty(playlist.tracks_per_shared_count)) {
     if (playlist.creating_playlist) {
       addButton = (
-        <Button variant="warning" size="lg" className="mb-3" disabled>
+        <Button variant="warning" size="lg" className="mb-4" disabled>
           <Spinner animation="border" className="mr-2"/> Creating playlist
         </Button>
       )
 
-    } else if (!isEmpty(playlist.created_playlist)) {
+    } else if (!isEmpty(playlist.new_playlist)) {
       let url = "#"
 
-      if (playlist.created_playlist.spotify_url) {
-        url = playlist.created_playlist.spotify_url
+      if (playlist.new_playlist.spotify_url) {
+        url = playlist.new_playlist.spotify_url
       }
 
       addButton = (
         (
-          <Button variant="success" size="lg" className="mb-3" target="_blank" href={url}>
+          <Button variant="success" size="lg" className="mb-4" target="_blank" href={url}>
             Go to my new playlist ➡️
           </Button>
         )
@@ -168,13 +220,116 @@ export default function Playlist() {
               </Tooltip>
             }
           >
-            <Button variant="outline-success" size="lg" className="mb-3" onClick={addPlaylist}>
+            <Button variant="outline-success" size="lg" className="mb-4" onClick={addPlaylist}>
               Add to my playlists
             </Button>
           </OverlayTrigger>
         )
       )
     }
+  }
+
+  let slider;
+  let sliderHelp;
+
+  // Ugly slider but it does the job
+  if (roomId && playlist.minSharedCountLimit < playlist.maxSharedCountLimit) {
+    sliderHelp = (
+      <p className={styles.slider_help + " mb-5 mt-3 ml-3 mr-3 text-center"}>
+        Select the minimum number of friends that <br/>
+        must have the song in their spotify library among the group for it to appear
+      </p>
+    )
+
+    let current = playlist.minSharedCount
+    let min = playlist.minSharedCountLimit
+    let max = playlist.maxSharedCountLimit
+
+    slider = (
+      <Range
+        step={1}
+        min={min}
+        max={max}
+        values={[current]}
+        onChange={(values) => {
+          setPlaylist(prevState => {
+            return {
+              ...prevState,
+              minSharedCount: values[0]
+            }
+          })
+        }}
+        renderTrack={({ props, children }) => (
+          <div
+            onMouseDown={props.onMouseDown}
+            onTouchStart={props.onTouchStart}
+            className={styles.tracker}
+            style={{
+              ...props.style,
+            }}
+          >
+            <div
+              ref={props.ref}
+              style={{
+                height: '5px',
+                width: '100%',
+                borderRadius: '4px',
+                background: getTrackBackground({
+                  values: [current],
+                  colors: ['#28a745', '#cccccc'],
+                  min: min,
+                  max: max
+                }),
+                alignSelf: 'center'
+              }}
+            >
+              {children}
+            </div>
+          </div>
+        )}
+        renderThumb={({ props, isDragged }) => (
+          <div
+            {...props}
+            style={{
+              ...props.style,
+              height: '42px',
+              width: '42px',
+              borderRadius: '4px',
+              backgroundColor: '#ffffff',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              boxShadow: '0px 2px 6px #AAA'
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: '-35px',
+                color: '#fff',
+                fontWeight: 'bold',
+                fontSize: '14px',
+                fontFamily: 'Arial,Helvetica Neue,Helvetica,sans-serif',
+                padding: '4px',
+                paddingLeft: '7px',
+                paddingRight: '7px',
+                borderRadius: '4px',
+                backgroundColor: '#28a745'
+              }}
+            >
+              {current}
+            </div>
+            <div
+              style={{
+                height: '16px',
+                width: '5px',
+                backgroundColor: isDragged ? '#28a745' : '#CCC'
+              }}
+            />
+          </div>
+        )}
+      />
+    )
   }
 
   return (
@@ -184,8 +339,10 @@ export default function Playlist() {
       <Header />
 
       <main className={styles.main}>
-        <h3 className="text-center mt-3 mb-3">{playlist.name}</h3>
+        <h1 className="text-center mt-3 mb-3">{playlist.type}</h1>
         <p>Room #{roomId}</p>
+        {slider}
+        {sliderHelp}
         {info}
         {addButton}
         {music}
