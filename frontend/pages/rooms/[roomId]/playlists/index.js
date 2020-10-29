@@ -33,16 +33,9 @@ export default function Playlists() {
         let playlistsReceived = resp.data
 
         setPlaylists(prevState => {
-
-          // let minFriends = min(Object.values(playlistsReceived.playlists).map(playlist => playlist.shared_count))
-          // let maxFriends = max(Object.values(playlistsReceived.playlists).map(playlist => playlist.shared_count))
-
           return {
             ...prevState,
             ...playlistsReceived,
-            // minFriends: maxFriends,
-            // minFriendsLimit: minFriends,
-            // maxFriendsLimit: maxFriends
           }
         })
 
@@ -77,7 +70,7 @@ export default function Playlists() {
       <Header />
 
       <main className={styles.main}>
-        <h1 className="mb-5">Playlists</h1>
+        <h1 className="mb-5">Generated Playlists</h1>
         {formattedPlaylists}
       </main>
 
