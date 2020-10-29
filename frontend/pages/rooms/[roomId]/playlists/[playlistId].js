@@ -80,8 +80,10 @@ export default function Playlist() {
       }
     })
 
+    const minSharedCount =  playlist.minSharedCount
+
     axiosClient.post(getUrl('/rooms/' + roomId + '/playlists/' + playlistId + '/add'), {
-      min_shared_count: playlist.minSharedCount
+      min_shared_count: minSharedCount
     }).then(resp => {
         const playlistName = resp.data.name
 
@@ -89,7 +91,9 @@ export default function Playlist() {
           return {
             ...prevState,
             creating_playlist: false,
-            new_playlist: resp.data
+            new_playlist: {
+              [minSharedCount]: resp.data
+            }
           }
         })
         showSuccessToast(`Successfully created in spotify playlist "${playlistName}"`)
@@ -186,6 +190,7 @@ export default function Playlist() {
   let addButton;
 
   if (!isEmpty(playlist.tracks_per_shared_count)) {
+
     if (playlist.creating_playlist) {
       addButton = (
         <Button variant="warning" size="lg" className="mb-4" disabled>
@@ -193,11 +198,12 @@ export default function Playlist() {
         </Button>
       )
 
-    } else if (!isEmpty(playlist.new_playlist)) {
+    } else if (!isEmpty(playlist.new_playlist[playlist.minSharedCount])) {
       let url = "#"
+      let spotifyUrl = playlist.new_playlist[playlist.minSharedCount].spotify_url
 
-      if (playlist.new_playlist.spotify_url) {
-        url = playlist.new_playlist.spotify_url
+      if (spotifyUrl) {
+        url = spotifyUrl
       }
 
       addButton = (
