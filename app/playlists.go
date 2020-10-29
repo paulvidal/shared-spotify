@@ -41,9 +41,16 @@ func (playlists *CommonPlaylists) addTracks(user *spotifyclient.User, tracks []*
 	trackAlreadyInserted := make(map[string]bool)
 
 	for _, track := range tracks {
-		trackId := string(track.URI)
+		// Unique id representing a track
+		// https://en.wikipedia.org/wiki/International_Standard_Recording_Code
+		trackId, ok := track.ExternalIDs["isrc"]
 
-		_, ok := trackAlreadyInserted[trackId]
+		if !ok {
+			logger.WithUser(user.GetUserId()).Error("ISRC does not exist, found=", track.ExternalIDs)
+			continue
+		}
+
+		_, ok = trackAlreadyInserted[trackId]
 
 		if ok {
 			// if the track has already been inserted for this user, we skip it to prevent adding duplicate songs
@@ -54,11 +61,13 @@ func (playlists *CommonPlaylists) addTracks(user *spotifyclient.User, tracks []*
 		trackCount, ok := playlists.SharedTracksRank[trackId]
 
 		if !ok {
-			logger.Logger.Infof("new song %s, id is %s, user is %s, track=%+v", track.Name, track.ID, user.GetUserId(), track)
+			logger.Logger.Infof("New song %s, id is %s, user is %s, track=%+v",
+				track.Name, track.ID, user.GetUserId(), track)
 			newTrackCount = 1
 		} else {
-			logger.Logger.Infof("song %s present multiple times %d, id is %s, user is %s, track=%+v", track.Name, *trackCount + 1, track.ID, user.GetUserId(), track)
 			newTrackCount = *trackCount + 1
+			logger.Logger.Infof("Song %s present multiple times %d, id is %s, user is %s, track=%+v",
+				track.Name, newTrackCount, track.ID, user.GetUserId(), track)
 		}
 
 		playlists.SharedTracksRank[trackId] = &newTrackCount
@@ -88,7 +97,7 @@ func (playlists *CommonPlaylists) GenerateCommonPlaylistType() {
 			track := playlists.SharedTracks[trackId]
 			tracksInCommon[*trackCount] = append(trackListForUserCount, track)
 
-			logger.Logger.Infof("Common track found for %d person: %s", *trackCount, track.Name)
+			logger.Logger.Infof("Common track found for %d person: %s by %v", *trackCount, track.Name, track.Artists)
 		}
 	}
 

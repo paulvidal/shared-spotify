@@ -41,21 +41,6 @@ var auth = spotify.NewAuthenticator(
 	spotify.ScopePlaylistModifyPublic,
 	spotify.ScopeUserLibraryRead)
 
-type UserInfos struct {
-	Id       string `json:"id"`
-	Name     string `json:"name"`
-	ImageUrl string `json:"image"`
-}
-
-type User struct {
-	Infos  UserInfos        `json:"user_infos"`
-	Client *spotify.Client  `json:"-"` // we ignore this field
-}
-
-func (user *User) GetUserId() string {
-	return user.Infos.Name
-}
-
 func CreateUserFromRequest(r *http.Request) (*User, error) {
 	tokenCookie, err := r.Cookie(tokenCookieName)
 
@@ -106,20 +91,6 @@ func toUserInfos(user *spotify.PrivateUser) UserInfos {
 	}
 
 	return UserInfos{user.ID, displayName, image}
-}
-
-func (user *User) ToJson() ([]byte, error) {
-	jsonUserInfos, err := json.Marshal(user.Infos)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return jsonUserInfos, nil
-}
-
-func (user *User) IsEqual(otherUser *User) bool {
-	return otherUser.Infos.Id == user.Infos.Id
 }
 
 func GetUser(w http.ResponseWriter, r *http.Request) {

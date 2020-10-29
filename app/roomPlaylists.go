@@ -6,7 +6,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
-	"github.com/shared-spotify/spotifyclient"
 	"github.com/zmb3/spotify"
 	"net/http"
 )
@@ -31,28 +30,30 @@ func GetPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 
-	room, err := getRoomAndCheckUser(roomId, r)
+	room, user, err := getRoomAndCheckUser(roomId, r)
 
 	if err != nil {
-		handleError(err, w, r)
+		handleError(err, w, r, user)
 		return
 	}
+
+	logger.WithUser(user.GetUserId()).Infof("User %s requested playlist for room %s", user.GetUserId(), roomId)
 
 	musicLibrary := room.MusicLibrary
 
 	if musicLibrary == nil {
-		handleError(processingNotStartedError, w, r)
+		handleError(processingNotStartedError, w, r, user)
 		return
 	}
 
 	// check the processing is over and it did not fail
 	if !musicLibrary.hasProcessingFinished() {
-		handleError(processingInProgressError, w, r)
+		handleError(processingInProgressError, w, r, user)
 		return
 	}
 
 	if musicLibrary.hasProcessingFailed() {
-		handleError(processingFailedError, w, r)
+		handleError(processingFailedError, w, r, user)
 		return
 	}
 
@@ -64,15 +65,18 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request)  {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 
-	room, err := getRoomAndCheckUser(roomId, r)
+	room, user, err := getRoomAndCheckUser(roomId, r)
 
 	if err != nil {
-		handleError(err, w, r)
+		handleError(err, w, r, user)
 		return
 	}
 
+	logger.WithUser(user.GetUserId()).Infof("User %s requested to find the playlists for room %s",
+		user.GetUserId(), roomId)
+
 	if room.MusicLibrary != nil && !room.MusicLibrary.hasProcessingFailed() {
-		handleError(processingInProgressError, w, r)
+		handleError(processingInProgressError, w, r, user)
 		return
 	}
 
@@ -104,39 +108,35 @@ func RoomPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
-	user, err := spotifyclient.CreateUserFromRequest(r)
-
-	if err != nil {
-		httputils.AuthenticationError(w, r)
-		return
-	}
-
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 	playlistId := vars["playlistId"]
 
-	room, err := getRoomAndCheckUser(roomId, r)
+	room, user, err := getRoomAndCheckUser(roomId, r)
 
 	if err != nil {
-		handleError(err, w, r)
+		handleError(err, w, r, user)
 		return
 	}
+
+	logger.WithUser(user.GetUserId()).Infof("User %s requested playlist %s for room %s", user.GetUserId(),
+		playlistId, roomId)
 
 	musicLibrary := room.MusicLibrary
 
 	if musicLibrary == nil {
-		handleError(processingNotStartedError, w, r)
+		handleError(processingNotStartedError, w, r, user)
 		return
 	}
 
 	// check the processing is over and it did not fail
 	if !musicLibrary.hasProcessingFinished() {
-		handleError(processingInProgressError, w, r)
+		handleError(processingInProgressError, w, r, user)
 		return
 	}
 
 	if musicLibrary.hasProcessingFailed() {
-		handleError(processingFailedError, w, r)
+		handleError(processingFailedError, w, r, user)
 		return
 	}
 
@@ -145,7 +145,7 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
 	if err != nil {
 		logger.Logger.Error("Playlist %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
-		handleError(errorPlaylistTypeNotFound, w, r)
+		handleError(errorPlaylistTypeNotFound, w, r, user)
 		return
 	}
 
@@ -171,49 +171,46 @@ type AddPlaylistRequestBody struct {
 }
 
 func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
-	user, err := spotifyclient.CreateUserFromRequest(r)
-
-	if err != nil {
-		httputils.AuthenticationError(w, r)
-		return
-	}
-
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 	playlistId := vars["playlistId"]
+
+	room, user, err := getRoomAndCheckUser(roomId, r)
+
+	if err != nil {
+		handleError(err, w, r, user)
+		return
+	}
 
 	decoder := json.NewDecoder(r.Body)
 	var addPlaylistRequestBody AddPlaylistRequestBody
 
 	err = decoder.Decode(&addPlaylistRequestBody)
+
 	if err != nil {
 		logger.Logger.Error("Failed to decode json body for add playlist for user")
-		httputils.UnhandledError(w)
+		handleError(err, w, r, user)
 		return
 	}
 
-	room, err := getRoomAndCheckUser(roomId, r)
-
-	if err != nil {
-		handleError(err, w, r)
-		return
-	}
+	logger.WithUser(user.GetUserId()).Infof("User %s requested to create playlist %s for room %s",
+		user.GetUserId(), playlistId, roomId)
 
 	musicLibrary := room.MusicLibrary
 
 	if musicLibrary == nil {
-		handleError(processingNotStartedError, w, r)
+		handleError(processingNotStartedError, w, r, user)
 		return
 	}
 
 	// check the processing is over and it did not fail
 	if !musicLibrary.hasProcessingFinished() {
-		handleError(processingInProgressError, w, r)
+		handleError(processingInProgressError, w, r, user)
 		return
 	}
 
 	if musicLibrary.hasProcessingFailed() {
-		handleError(processingFailedError, w, r)
+		handleError(processingFailedError, w, r, user)
 		return
 	}
 
@@ -222,7 +219,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 	if err != nil {
 		logger.Logger.Error("Playlist %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
-		handleError(errorPlaylistTypeNotFound, w, r)
+		handleError(errorPlaylistTypeNotFound, w, r, user)
 		return
 	}
 
@@ -245,7 +242,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 	}
 
 	if err != nil {
-		handleError(failedToCreatePlaylistError, w, r)
+		handleError(failedToCreatePlaylistError, w, r, user)
 		return
 	}
 

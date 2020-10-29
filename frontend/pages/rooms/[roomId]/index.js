@@ -25,9 +25,10 @@ export default function Room() {
   const [room, setRoom] = useState({
     roomId: roomId,
     users: [],
-    lock: false,
+    locked: false,
     shared_music_library: null,
-    awaiting_new_refresh: true
+    awaiting_new_refresh: true,
+    stop_refresh: false
   });
 
   const refresh = () => {
@@ -46,6 +47,12 @@ export default function Room() {
         })
       })
       .catch(error => {
+        setRoom(prevState => {
+          return {
+            ...prevState,
+            stop_refresh: true
+          }
+        })
         showErrorToastWithError("Failed to get room info", error)
       })
   }
@@ -85,7 +92,7 @@ export default function Room() {
         refresh()
       }, REFRESH_TIMEOUT_PLAYLIST_CREATION)
 
-    } else {
+    } else if (!room.stop_refresh && !room.locked) {
       setTimeout(() => {
         setRoom(prevState => {
           return {
@@ -139,7 +146,7 @@ export default function Room() {
 
     button = (
       <Button variant="warning" size="lg" className="mt-2 mb-2" disabled>
-        <Spinner animation="border" className="mr-2"/> Searching common musics ({Math.floor(current/total*100)} %)
+        <Spinner animation="border" className="mr-2"/> Searching common musics ({Math.floor(current/total*100)}%)
       </Button>
     )
 

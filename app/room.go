@@ -28,10 +28,10 @@ type RoomCollection struct {
 }
 
 type Room struct {
-	Id            string                 `json:"id"`
-	Users         []*spotifyclient.User  `json:"users"`
-	Locked        *bool                  `json:"locked"`
-	MusicLibrary  *SharedMusicLibrary    `json:"shared_music_library"`
+	Id            string                `json:"id"`
+	Users         []*spotifyclient.User `json:"users"`
+	Locked        *bool                 `json:"locked"`
+	MusicLibrary  *SharedMusicLibrary   `json:"shared_music_library"`
 
 }
 
@@ -83,28 +83,34 @@ func getRoom(roomId string) (*Room, error) {
 	return room, nil
 }
 
-func getRoomAndCheckUser(roomId string, r *http.Request) (*Room, error) {
+func getRoomAndCheckUser(roomId string, r *http.Request) (*Room, *spotifyclient.User, error) {
 	room, err := getRoom(roomId)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	user, err := spotifyclient.CreateUserFromRequest(r)
 
 	if err != nil {
-		return nil, authenticationError
+		return nil, nil, authenticationError
 	}
 
 	if !room.isUserInRoom(user) {
-		return nil, roomIsNotAccessibleError
+		return nil, user, roomIsNotAccessibleError
 	}
 
-	return room, nil
+	return room, user, nil
 }
 
-func handleError(err error, w http.ResponseWriter, r *http.Request) {
-	logger.Logger.Error("Handling error ", err)
+func handleError(err error, w http.ResponseWriter, r *http.Request, user *spotifyclient.User) {
+	userId := "unknown"
+
+	if user != nil {
+		userId = user.GetUserId()
+	}
+
+	logger.WithUser(userId).Error("Handling error: ", err)
 
 	if err == roomDoesNotExistError {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -148,9 +154,11 @@ func GetRooms(w http.ResponseWriter, r *http.Request)  {
 	user, err := spotifyclient.CreateUserFromRequest(r)
 
 	if err != nil {
-		httputils.AuthenticationError(w, r)
+		handleError(authenticationError, w, r, user)
 		return
 	}
+
+	logger.WithUser(user.GetUserId()).Infof("User %s requested to get rooms", user.GetUserId())
 
 	rooms := make(map[string]*Room)
 
@@ -173,9 +181,11 @@ func CreateRoom(w http.ResponseWriter, r *http.Request)  {
 	user, err := spotifyclient.CreateUserFromRequest(r)
 
 	if err != nil {
-		httputils.AuthenticationError(w, r)
+		handleError(authenticationError, w, r, user)
 		return
 	}
+
+	logger.WithUser(user.GetUserId()).Infof("User %s requested to create a room", user.GetUserId())
 
 	room := createRoom()
 	room.addUser(user)
@@ -201,12 +211,14 @@ func GetRoom(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 
-	room, err := getRoomAndCheckUser(roomId, r)
+	room, user, err := getRoomAndCheckUser(roomId, r)
 
 	if err != nil {
-		handleError(err, w, r)
+		handleError(err, w, r, user)
 		return
 	}
+
+	logger.WithUser(user.GetUserId()).Infof("User %s requested to get room %s", user.GetUserId(), roomId)
 
 	httputils.SendJson(w, room)
 }
@@ -229,7 +241,7 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 	user, err := spotifyclient.CreateUserFromRequest(r)
 
 	if err != nil {
-		httputils.AuthenticationError(w, r)
+		handleError(authenticationError, w, r, user)
 		return
 	}
 
@@ -239,9 +251,11 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 	room, err := getRoom(roomId)
 
 	if err != nil {
-		handleError(err, w, r)
+		handleError(err, w, r, user)
 		return
 	}
+
+	logger.WithUser(user.GetUserId()).Infof("User %s requested to be added to room %s", user.GetUserId(), roomId)
 
 	if room.isUserInRoom(user) {
 		// if user is already in room, just send ok
@@ -249,7 +263,7 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if *room.Locked {
-		handleError(roomLockedError, w, r)
+		handleError(roomLockedError, w, r, user)
 		return
 	}
 

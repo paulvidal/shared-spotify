@@ -70,7 +70,7 @@ export default function Playlists() {
       <Header />
 
       <main className={styles.main}>
-        <h1 className="mb-5">Generated Playlists</h1>
+        <h1 className="mb-5 text-center">Generated Playlists</h1>
         {formattedPlaylists}
       </main>
 
