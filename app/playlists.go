@@ -75,14 +75,15 @@ func (playlists *CommonPlaylists) GenerateCommonPlaylistType() {
 
 	tracksInCommon := make(map[int][]*spotify.FullTrack)
 
+	// Create the track list for each user count possibility
+	for i := minNumberOfUserForCommonMusic; i <= totalUsers; i++ {
+		tracksInCommon[i] = make([]*spotify.FullTrack, 0)
+	}
+
 	for trackId, trackCount := range playlists.SharedTracksRank {
 		if *trackCount >= minNumberOfUserForCommonMusic {
 			// playlist containing as key the number of user that share this music, and in value the number of tracks
 			trackListForUserCount := tracksInCommon[*trackCount]
-
-			if trackListForUserCount == nil {
-				trackListForUserCount = make([]*spotify.FullTrack, 0)
-			}
 
 			track := playlists.SharedTracks[trackId]
 			tracksInCommon[*trackCount] = append(trackListForUserCount, track)

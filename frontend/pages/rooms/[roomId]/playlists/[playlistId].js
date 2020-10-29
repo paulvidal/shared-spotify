@@ -125,21 +125,22 @@ export default function Playlist() {
     .sort()
     .reverse()
 
+  let trackTotalCount = sum(
+    tracksPerSharedCount
+      .map(sharedCount => playlist.tracks_per_shared_count[sharedCount].length)
+  )
+
   let info;
 
   let music = (
-    <h4 className="mt-5 text-center">No tracks in common found... 😞</h4>
+    <p className="mt-5 text-center font-weight-bold">No tracks in common found... 😞</p>
   );
 
-  if (tracksPerSharedCount.length !== 0) {
-    let totalCount = sum(
-      tracksPerSharedCount
-        .map(sharedCount => playlist.tracks_per_shared_count[sharedCount].length)
-    )
+  if (trackTotalCount !== 0) {
 
     info = [
       <p key="count" className="font-weight-bold text-center mb-0">
-        {totalCount} songs in common 🎉
+        {trackTotalCount} songs in common 🎉
       </p>,
       <p key="info" className="font-weight-normal">
         (shared between at least {playlist.minSharedCount} friends)
@@ -148,6 +149,8 @@ export default function Playlist() {
 
     music = tracksPerSharedCount
       .map((sharedCount, index) => {
+        let tracks = playlist.tracks_per_shared_count[sharedCount]
+
         let divider;
 
         if (index !== tracksPerSharedCount.length - 1) {
@@ -159,8 +162,7 @@ export default function Playlist() {
         return (
           <div key={sharedCount} className={styles.common_songs_group}>
             <h5 className="mt-3 mb-3">Songs shared by {sharedCount} friends</h5>
-            {playlist.tracks_per_shared_count[sharedCount]
-              .sort((track1, track2) => {
+            {tracks.sort((track1, track2) => {
                 return getArtistsFromTrack(track1).localeCompare(getArtistsFromTrack(track2))
               })
               .map(track => {
@@ -189,7 +191,7 @@ export default function Playlist() {
 
   let addButton;
 
-  if (!isEmpty(playlist.tracks_per_shared_count)) {
+  if (trackTotalCount !== 0) {
 
     if (playlist.creating_playlist) {
       addButton = (
