@@ -8,6 +8,7 @@ import {useEffect, useState} from "react";
 import {isEmpty} from "lodash";
 import CustomHead from "../../../components/Head";
 import Header from "../../../components/Header";
+import LoaderScreen from "../../../components/LoaderScreen";
 
 export default function RoomShare() {
   const router = useRouter()
@@ -17,29 +18,58 @@ export default function RoomShare() {
     withCredentials: true
   })
 
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState({
+    'user_infos': {},
+    'loading': true
+  });
 
   const addUserToRoom = () => {
+    // Do not do anything if no roomId exists
+    if (!roomId) {
+      return;
+    }
+
     axiosClient.post(getUrl('/rooms/' + roomId + '/users'))
       .then(resp => {
         router.push('/rooms/' + roomId)
       })
       .catch(error => {
+        setUser(prevState => {
+          return {
+            ...prevState,
+            loading: false
+          }
+        })
         showErrorToastWithError("Failed to join the room", error)
       })
   }
 
   const refresh = () => {
     axiosClient.get(getUrl('/user'))
-      .then(resp => setUser(resp.data))
-      .catch(error => {})
+      .then(resp => {
+        setUser(prevState => {
+          return {
+            ...prevState,
+            ...resp.data
+          }
+        })
+        addUserToRoom()
+      })
+      .catch(error => {
+        setUser(prevState => {
+          return {
+            ...prevState,
+            loading: false
+          }
+        })
+      })
   }
 
   useEffect(refresh, [roomId])
 
   let button;
 
-  if (isEmpty(user)) {
+  if (isEmpty(user.user_infos)) {
     button = (
       <Button href={getUrl('/login')} variant="outline-success" size="lg" className="mt-5">
         Connect spotify account
@@ -51,6 +81,13 @@ export default function RoomShare() {
       <Button variant="success" size="lg" className="mt-5" onClick={addUserToRoom}>
         Join room
       </Button>
+    )
+  }
+
+  // Use a loader screen if nothing is ready
+  if (user.loading) {
+    return (
+      <LoaderScreen/>
     )
   }
 
