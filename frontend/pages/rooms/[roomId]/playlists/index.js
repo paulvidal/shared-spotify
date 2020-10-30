@@ -10,7 +10,6 @@ import {isEmpty} from "lodash";
 import PlaylistElem from "../../../../components/playlistElem";
 import LoaderScreen from "../../../../components/LoaderScreen";
 
-
 export default function Playlists() {
   const router = useRouter()
   const { roomId } = router.query
