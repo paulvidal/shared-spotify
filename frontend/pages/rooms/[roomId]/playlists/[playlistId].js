@@ -13,6 +13,30 @@ import CustomHead from "../../../../components/Head";
 import Header from "../../../../components/Header";
 import {getTrackBackground, Range} from "react-range";
 
+const IDEAL_DEFAULT_COUNT = 40
+
+function findBestDefaultSharedCount(playlists) {
+  let playlistSharedCount = Object.keys(playlists)
+    .sort()
+    .reverse()
+
+  let currentTrackCount = 0;
+  let sharedCount
+
+  for (let i = 0; i < playlistSharedCount.length; i++) {
+    sharedCount = playlistSharedCount[i]
+    let tracks = playlists[sharedCount]
+
+    currentTrackCount += tracks.length
+
+    if (currentTrackCount >= IDEAL_DEFAULT_COUNT) {
+      break
+    }
+  }
+
+  return sharedCount
+}
+
 export default function Playlist() {
   const router = useRouter()
   const { roomId, playlistId } = router.query
@@ -53,7 +77,7 @@ export default function Playlist() {
           return {
             ...prevState,
             ...resp.data,
-            minSharedCount: maxSharedCountLimit,
+            minSharedCount: findBestDefaultSharedCount(playlistReceived),
             minSharedCountLimit: minSharedCountLimit,
             maxSharedCountLimit: maxSharedCountLimit
           }
