@@ -135,8 +135,6 @@ export default function Playlist() {
       })
 
       showSuccessToast(`Successfully created in spotify playlist "${playlistName}"`)
-
-      window.open(resp.data.spotify_url);
     })
     .catch(error => {
       showErrorToastWithError("Failed to create playlist in spotify", error)
