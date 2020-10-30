@@ -15,6 +15,10 @@ type User struct {
 	Client *spotify.Client `json:"-"` // we ignore this field
 }
 
+func (user *User) GetId() string {
+	return user.Infos.Id
+}
+
 func (user *User) GetUserId() string {
 	return user.Infos.Name
 }

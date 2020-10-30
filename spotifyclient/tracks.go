@@ -10,6 +10,14 @@ var maxPage = 50
 
 const maxWaitBetweenCalls = 100 * time.Millisecond
 
+func GetTrackISRC(track *spotify.FullTrack) (string, bool) {
+	// Unique id representing a track
+	// https://en.wikipedia.org/wiki/International_Standard_Recording_Code
+	trackId, ok := track.ExternalIDs["isrc"]
+
+	return trackId, ok
+}
+
 func (user *User) GetAllSongs() ([]*spotify.FullTrack, error) {
 	// Get the liked songs
 	savedTracks, err := user.GetSavedSongs()

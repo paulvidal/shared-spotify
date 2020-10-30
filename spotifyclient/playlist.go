@@ -29,10 +29,10 @@ func (user *User) CreatePlaylist(playlistName string, tracks []*spotify.FullTrac
 		trackIds = append(trackIds, track.ID)
 	}
 
-	// Send the track by batch of maxTrackPerPlaylistAddCall, as we are limited ont he number of songs we can
+	// Send the track by batch of maxTrackPerPlaylistAddCall, as we are limited on the number of songs we can
 	// add at once
 	for i := 0; i < len(trackIds); i += maxTrackPerPlaylistAddCall {
-		upperBound := i+maxTrackPerPlaylistAddCall
+		upperBound := i + maxTrackPerPlaylistAddCall
 
 		if upperBound > len(trackIds) {
 			upperBound = len(trackIds)

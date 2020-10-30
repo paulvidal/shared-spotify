@@ -164,8 +164,13 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 	logger.Logger.Infof("All music processing results received - success=%t", success)
 
 	if success {
-		// if everything went well, we now generate the common playlist for the users in the room
-		musicLibrary.CommonPlaylists.GenerateCommonPlaylistType()
+		// if everything went well, we now generate the playlists for the users in the room
+		err := musicLibrary.CommonPlaylists.GeneratePlaylists()
+
+		if err != nil {
+			logger.Logger.Error("An error when generating playlists occurred ", err)
+			success = false
+		}
 	}
 
 	musicLibrary.ProcessingStatus.Success = &success
