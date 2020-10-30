@@ -13,6 +13,8 @@ import CustomHead from "../../../../components/Head";
 import Header from "../../../../components/Header";
 import {getTrackBackground, Range} from "react-range";
 import LoaderScreen from "../../../../components/LoaderScreen";
+import CustomModal from "../../../../components/CustomModal";
+import setState from "../../../../utils/stateUtils";
 
 const IDEAL_DEFAULT_COUNT = 40
 
@@ -22,7 +24,7 @@ function findBestDefaultSharedCount(playlists) {
     .reverse()
 
   let currentTrackCount = 0;
-  let sharedCount
+  let sharedCount = null;
 
   for (let i = 0; i < playlistSharedCount.length; i++) {
     sharedCount = playlistSharedCount[i]
@@ -55,7 +57,8 @@ export default function Playlist() {
     minSharedCount: 0,
     minSharedCountLimit: 0,
     maxSharedCountLimit: 0,
-    loading: true
+    loading: true,
+    showConfirmationModal: false
   });
 
   const refresh = () => {
@@ -68,32 +71,29 @@ export default function Playlist() {
       .then(resp => {
         let playlistReceived = resp.data.tracks_per_shared_count
 
-        let minSharedCountLimit = min(Object.keys(playlistReceived).map(i => {
+        let sharedCounts = Object.keys(playlistReceived).map(i => {
           return parseInt(i)
-        }))
-        let maxSharedCountLimit = max(Object.keys(playlistReceived).map(i => {
-          return parseInt(i)
-        }))
+        })
 
-        setPlaylist(prevState => {
-          return {
-            ...prevState,
-            ...resp.data,
-            minSharedCount: findBestDefaultSharedCount(playlistReceived),
-            minSharedCountLimit: minSharedCountLimit,
-            maxSharedCountLimit: maxSharedCountLimit,
-            loading: false
-          }
+        let minSharedCountLimit = min(sharedCounts)
+        let maxSharedCountLimit = max(sharedCounts)
+
+        let bestDefaultSharedCount = findBestDefaultSharedCount(playlistReceived)
+        if (!bestDefaultSharedCount) {
+          bestDefaultSharedCount = maxSharedCountLimit
+        }
+
+        setState(setPlaylist, {
+          ...resp.data,
+          minSharedCount: parseInt(bestDefaultSharedCount),
+          minSharedCountLimit: minSharedCountLimit,
+          maxSharedCountLimit: maxSharedCountLimit,
+          loading: false
         })
       })
       .catch(error => {
         showErrorToastWithError("Failed to get playlist " + playlistId, error)
-        setPlaylist(prevState => {
-          return {
-            ...prevState,
-            loading: false
-          }
-        })
+        setState(setPlaylist, {loading: false})
       })
   }
 
@@ -106,18 +106,18 @@ export default function Playlist() {
     )
   }
 
+  const showModal = () => {
+    setState(setPlaylist, {showConfirmationModal: true})
+  }
+
+  const hideModal = () => {
+    setState(setPlaylist, {showConfirmationModal: false})
+  }
+
   const addPlaylist = () => {
-    let confirmation = confirm("You are creating a playlist on your account, do you wish to continue?")
-
-    if (!confirmation) {
-      return
-    }
-
-    setPlaylist(prevState => {
-      return {
-        ...prevState,
-        creating_playlist: true,
-      }
+    setState(setPlaylist, {
+      showConfirmationModal: false,
+      creating_playlist: true
     })
 
     const minSharedCount =  playlist.minSharedCount
@@ -125,39 +125,29 @@ export default function Playlist() {
     axiosClient.post(getUrl('/rooms/' + roomId + '/playlists/' + playlistId + '/add'), {
       min_shared_count: minSharedCount
     }).then(resp => {
-        const playlistName = resp.data.name
+      const playlistName = resp.data.name
 
-        setPlaylist(prevState => {
-          return {
-            ...prevState,
-            creating_playlist: false,
-            new_playlist: {
-              [minSharedCount]: resp.data
-            }
-          }
-        })
-        showSuccessToast(`Successfully created in spotify playlist "${playlistName}"`)
+      setState(setPlaylist, {
+        creating_playlist: false,
+        new_playlist: {
+          [minSharedCount]: resp.data
+        }
       })
-      .catch(error => {
-        showErrorToastWithError("Failed to create playlist in spotify", error)
-      })
-      .finally(() => {
-        setPlaylist(prevState => {
-          return {
-            ...prevState,
-            creating_playlist: false,
-          }
-        })
-      })
+
+      showSuccessToast(`Successfully created in spotify playlist "${playlistName}"`)
+
+      window.open(resp.data.spotify_url);
+    })
+    .catch(error => {
+      showErrorToastWithError("Failed to create playlist in spotify", error)
+    })
+    .finally(() => {
+      setState(setPlaylist, {creating_playlist: false})
+    })
   }
 
   const updateSongCallback = (song) => {
-    setPlaylist(prevState => {
-      return {
-        ...prevState,
-        song_playing: song
-      }
-    })
+    setState(setPlaylist, {song_playing: song})
   }
 
   let tracksPerSharedCount = Object.keys(playlist.tracks_per_shared_count)
@@ -268,7 +258,7 @@ export default function Playlist() {
               </Tooltip>
             }
           >
-            <Button variant="outline-success" size="lg" className="mb-4" onClick={addPlaylist}>
+            <Button variant="outline-success" size="lg" className="mb-4" onClick={showModal}>
               Add to my playlists
             </Button>
           </OverlayTrigger>
@@ -403,6 +393,15 @@ export default function Playlist() {
       </footer>
 
       <Toast/>
+
+      <CustomModal
+        show={playlist.showConfirmationModal}
+        body={"You are creating a playlist on your account, do you wish to continue?"}
+        secondaryActionName={"Cancel"}
+        secondaryAction={hideModal}
+        primaryActionName={"Add playlist"}
+        primaryAction={addPlaylist}
+      />
     </div>
   )
 }
