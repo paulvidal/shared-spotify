@@ -9,6 +9,8 @@ import (
 	"runtime/debug"
 )
 
+var errorPlaylistTypeNotFound = errors.New("playlist type id not found")
+
 type SharedMusicLibrary struct {
 	TotalUsers             int                               `json:"total_users"`
 	ProcessingStatus       *ProcessingStatus                 `json:"processing_status"`
@@ -31,8 +33,14 @@ func (musicLibrary *SharedMusicLibrary) hasProcessingFinished() bool {
 	return musicLibrary.ProcessingStatus.Success != nil
 }
 
-func (musicLibrary *SharedMusicLibrary) GetPlaylist() []*spotify.FullTrack {
-	return musicLibrary.CommonPlaylists.TracksInCommon
+func (musicLibrary *SharedMusicLibrary) GetPlaylistType(id string) (*PlaylistType, error) {
+	playlistType, ok := musicLibrary.CommonPlaylists.PlaylistTypes[id]
+
+	if !ok {
+		return nil, errorPlaylistTypeNotFound
+	}
+
+	return playlistType, nil
 }
 
 type MusicProcessingResult struct {
@@ -66,7 +74,7 @@ func (musicLibrary *SharedMusicLibrary) Process(users []*spotifyclient.User) {
 
 	for _, user := range users {
 		// launch one routine per user to fetch all the songs
-		logger.Logger.Infof("Launching processing for users %s", user.GetUserId())
+		logger.WithUser(user.GetUserId()).Infof("Launching processing for user %s", user.GetUserId())
 		go musicLibrary.fetchSongsForUser(user)
 	}
 
@@ -79,23 +87,24 @@ func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *spotifyclient.Us
 	// Recovery for the goroutine
 	defer func() {
 		if err := recover(); err != nil {
-			logger.Logger.Errorf("An unknown error happened while fetching song for user %s - error: %s",
-				user.GetUserId(), err, string(debug.Stack()))
+			logger.WithUser(user.GetUserId()).Errorf("An unknown error happened while fetching song for " +
+				"user %s - error: %s", user.GetUserId(), err, string(debug.Stack()))
 			fmt.Println(string(debug.Stack()))
 
 			musicLibrary.MusicProcessingChannel <- MusicProcessingResult{user, nil, errors.New("")}
 		}
 	}()
 
-	logger.Logger.Infof("Fetching songs for user %s",user.GetUserId())
+	logger.WithUser(user.GetUserId()).Infof("Fetching songs for user %s",user.GetUserId())
 
 	tracks, err := user.GetAllSongs()
 
 	if err != nil {
-		logger.Logger.Errorf("Failed to fetch all songs for user %s %v", user.GetUserId(), err)
+		logger.WithUser(user.GetUserId()).Errorf("Failed to fetch all songs for user %s %v",
+			user.GetUserId(), err)
 	} else  {
-		logger.Logger.Infof("Fetching songs for user %s finished successfully with %d tracks found",
-			user.GetUserId(), len(tracks))
+		logger.WithUser(user.GetUserId()).Infof("Fetching songs for user %s finished successfully with %d" +
+			" tracks found", user.GetUserId(), len(tracks))
 	}
 
 	// We send in the channel the result after processing the music for this user
@@ -128,19 +137,21 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 
 		// We receive from the channel a messages for each user
 		musicProcessingResult := <- musicLibrary.MusicProcessingChannel
-		userId := musicProcessingResult.User.GetUserId()
+		user := musicProcessingResult.User
+		userId := user.GetUserId()
 
-		logger.Logger.Infof("Received music processing result for user %s", userId)
+		logger.WithUser(user.GetUserId()).Infof("Received music processing result for user %s", userId)
 
 		if musicProcessingResult.Error != nil {
-			logger.Logger.Infof("Music processing failed for user %s %v", userId, musicProcessingResult.Error)
+			logger.WithUser(user.GetUserId()).Infof("Music processing failed for user %s %v",
+				userId, musicProcessingResult.Error)
 
 			// We mark the processing result as failed
 			success = false
 
 		} else {
-			logger.Logger.Infof("Music processing succeeded for user %s, finding %d tracks", userId,
-				len(musicProcessingResult.Tracks))
+			logger.WithUser(user.GetUserId()).Infof("Music processing succeeded for user %s, finding %d tracks",
+				userId, len(musicProcessingResult.Tracks))
 
 			// we add the tracks as all went fine
 			musicLibrary.CommonPlaylists.addTracks(musicProcessingResult.User, musicProcessingResult.Tracks)
@@ -154,7 +165,7 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 
 	if success {
 		// if everything went well, we now generate the common playlist for the users in the room
-		musicLibrary.CommonPlaylists.GenerateCommonPlaylists()
+		musicLibrary.CommonPlaylists.GenerateCommonPlaylistType()
 	}
 
 	musicLibrary.ProcessingStatus.Success = &success

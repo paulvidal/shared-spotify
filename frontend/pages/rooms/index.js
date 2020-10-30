@@ -9,6 +9,7 @@ import {getUrl} from "../../utils/urlUtils";
 import CustomHead from "../../components/Head";
 import {useRouter} from "next/router";
 import Header from "../../components/Header";
+import LoaderScreen from "../../components/LoaderScreen";
 
 export default function Rooms() {
   const router = useRouter()
@@ -17,13 +18,28 @@ export default function Rooms() {
     withCredentials: true
   })
 
-  const [rooms, setRooms] = useState([]);
+  const [rooms, setRooms] = useState({
+    rooms: [],
+    loading: true
+  });
 
   const refresh = () => {
     axiosClient.get(getUrl('/rooms'))
-      .then(resp => setRooms(Object.values(resp.data.rooms)))
+      .then(resp => setRooms(prevState => {
+        return {
+          ...prevState,
+          rooms: Object.values(resp.data.rooms),
+          loading: false
+        }
+      }))
       .catch(error => {
         showErrorToastWithError("Failed to get all rooms info", error)
+        setRooms(prevState => {
+          return {
+            ...prevState,
+            loading: false
+          }
+        })
       })
   }
 
@@ -40,15 +56,23 @@ export default function Rooms() {
 
   useEffect(refresh, [])
 
+  // Use a loader screen if nothing is ready
+  if (rooms.loading) {
+    return (
+      <LoaderScreen/>
+    )
+  }
+
   let roomsList;
 
-  if (rooms.length === 0) {
+  if (rooms.rooms.length === 0) {
     roomsList = (
       <p className="mt-4">No rooms at the moment...</p>
     )
 
   } else {
-    roomsList = rooms.map(room => {
+    roomsList = rooms.rooms.map(room => {
+      console.log(rooms)
       return (
         <RoomListElem key={room.id} room={room}/>
       )

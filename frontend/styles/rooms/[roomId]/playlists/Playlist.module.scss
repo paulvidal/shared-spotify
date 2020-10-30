@@ -1,0 +1,70 @@
+@import "../../../common";
+
+.common_songs_group {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 2rem;
+}
+
+.group_divider {
+  width: 100%;
+  border-top: 0.4rem solid #807d7d;
+  border-radius: 1rem;
+}
+
+.tracker {
+  height: 36px;
+  display: flex;
+  width: 45%;
+  margin-top: 2rem;
+}
+
+.slider_help {
+  font-size: 0.8rem;
+}
+
+.album_pic {
+  height: 40px;
+  width: 40px;
+}
+
+.album_pic_container {
+  text-align: center;
+}
+
+.track_name {
+  margin-bottom: 0;
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.artist_name {
+  margin-bottom: 0;
+  font-size: 0.8em;
+}
+
+@media (min-width: 768px) {
+  .album_pic {
+    height: 65px;
+    width: 65px;
+    padding: 0.25rem
+  }
+
+  .track_name {
+    font-size: 1.3em;
+  }
+
+  .artist_name {
+    font-size: 1em;
+  }
+
+  .tracker {
+    height: 36px;
+    display: flex;
+    width: 30%;
+    margin-top: 2rem;
+  }
+}

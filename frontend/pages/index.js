@@ -3,7 +3,7 @@ import axios from 'axios';
 import {Image, Button, Row} from 'react-bootstrap';
 import Link from 'next/link'
 import styles from '../styles/Home.module.scss'
-import _ from "lodash"
+import {isEmpty} from "lodash"
 import {getUrl} from "../utils/urlUtils";
 import CustomHead from "../components/Head";
 import Header from "../components/Header";
@@ -25,7 +25,7 @@ export default function Home() {
 
   let greetings;
 
-  if (!_.isEmpty(userInfos)) {
+  if (!isEmpty(userInfos)) {
     greetings = (
       <main className={styles.main}>
         <h1 className={styles.title}>

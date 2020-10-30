@@ -25,5 +25,11 @@ func init() {
 		FullTimestamp: true,
 	})
 	Logger.SetLevel(logrus.InfoLevel)
-	Logger.SetReportCaller(false)
+	Logger.SetReportCaller(true)
+}
+
+func WithUser(userId string) *logrus.Entry {
+	return Logger.WithFields(logrus.Fields{
+		"user": userId,
+	})
 }

@@ -10,8 +10,12 @@ import {getUrl} from "../../../utils/urlUtils";
 import {CopyToClipboard} from "react-copy-to-clipboard";
 import CustomHead from "../../../components/Head";
 import Header from "../../../components/Header";
+import LoaderScreen from "../../../components/LoaderScreen";
+import CustomModal from "../../../components/CustomModal";
+import setState from "../../../utils/stateUtils";
 
-const REFRESH_TIMEOUT = 2000;  // 2s
+const GENERAL_REFRESH_TIMEOUT = 6000;  // 6s
+const REFRESH_TIMEOUT_PLAYLIST_CREATION = 2000;  // 2s
 
 export default function Room() {
   const router = useRouter()
@@ -24,8 +28,12 @@ export default function Room() {
   const [room, setRoom] = useState({
     roomId: roomId,
     users: [],
-    lock: false,
-    shared_music_library: null
+    locked: false,
+    shared_music_library: null,
+    awaiting_new_refresh: true,
+    stop_refresh: false,
+    loading: true,
+    showConfirmationModal: false
   });
 
   const refresh = () => {
@@ -35,19 +43,31 @@ export default function Room() {
     }
 
     axiosClient.get(getUrl('/rooms/' + roomId))
-      .then(resp => setRoom(resp.data))
+      .then(resp => {
+        setState(setRoom, {
+          ...resp.data,
+          loading: false
+        })
+      })
       .catch(error => {
+        setState(setRoom, {
+          stop_refresh: true,
+          loading: false
+        })
         showErrorToastWithError("Failed to get room info", error)
       })
   }
 
-  const fetchMusics = () => {
-    let confirmation = confirm("Finding the common musics will close the room, so no more people will be able to join. " +
-      "Are you sure you want to do this now?")
+  const showModal = () => {
+    setState(setRoom, {showConfirmationModal: true})
+  }
 
-    if (!confirmation) {
-      return
-    }
+  const hideModal = () => {
+    setState(setRoom, {showConfirmationModal: false})
+  }
+
+  const fetchMusics = () => {
+    hideModal()
 
     axiosClient.post(getUrl('/rooms/' + roomId + '/playlists'))
       .then(resp => {
@@ -61,9 +81,31 @@ export default function Room() {
 
   useEffect(refresh, [roomId])
 
-  // Force a refresh of the page while we are processing the musics
-  if (room.shared_music_library != null && room.shared_music_library.processing_status.success == null) {
-    setTimeout(refresh, REFRESH_TIMEOUT)
+  // Use a loader screen if nothing is ready
+  if (room.loading) {
+    return (
+      <LoaderScreen />
+    )
+  }
+
+  // we refresh the page on a daily basis waiting for users to join
+  if (room.awaiting_new_refresh) {
+
+    if (room.shared_music_library != null && room.shared_music_library.processing_status.success == null) {
+      // Force a refresh of the page while we are processing the musics more often to get the progress
+      setTimeout(() => {
+        setState(setRoom, {awaiting_new_refresh: true})
+        refresh()
+      }, REFRESH_TIMEOUT_PLAYLIST_CREATION)
+
+    } else if (!room.stop_refresh && !room.locked) {
+      setTimeout(() => {
+        setState(setRoom, {awaiting_new_refresh: true})
+        refresh()
+      }, GENERAL_REFRESH_TIMEOUT)
+    }
+
+    setState(setRoom, {awaiting_new_refresh: false})
   }
 
   let userList = room.users.map(user => {
@@ -89,7 +131,7 @@ export default function Room() {
 
   if (room.shared_music_library == null) {
     button = (
-      <Button variant="success" size="lg" className="mt-2 mb-2" onClick={fetchMusics}>
+      <Button variant="success" size="lg" className="mt-2 mb-2" onClick={showModal}>
         Find common music 🎵
       </Button>
     )
@@ -100,7 +142,7 @@ export default function Room() {
 
     button = (
       <Button variant="warning" size="lg" className="mt-2 mb-2" disabled>
-        <Spinner animation="border" className="mr-2"/> Searching common musics ({current}/{total})
+        <Spinner animation="border" className="mr-2"/> Searching common musics ({Math.floor(current/total*100)}%)
       </Button>
     )
 
@@ -115,7 +157,7 @@ export default function Room() {
 
   } else if (!room.shared_music_library.processing_status.success) {
     button = (
-      <Button variant="danger" size="lg" className="mt-2 mb-2" onClick={fetchMusics}>
+      <Button variant="danger" size="lg" className="mt-2 mb-2" onClick={showModal}>
         ⚰️ An error occurred, try again !
       </Button>
     )
@@ -124,7 +166,7 @@ export default function Room() {
   let shareButton = (
     <CopyToClipboard text={process.env.NEXT_PUBLIC_URL + '/rooms/' + roomId + '/share'}
                      onCopy={() => showSuccessToast("Shareable link copied to clipboard")}>
-      <Button variant="outline-warning" className="mt-2 mb-2" p-0>Share room 🔗</Button>
+      <Button variant="outline-warning" className="mt-2 mb-2">Share room 🔗</Button>
     </CopyToClipboard>
   )
 
@@ -152,6 +194,16 @@ export default function Room() {
       </footer>
 
       <Toast/>
+
+      <CustomModal
+        show={room.showConfirmationModal}
+        body={"Finding the common musics will close the room, so no more people will be able to join. " +
+        "Are you sure you want to do this now?"}
+        secondaryActionName={"Cancel"}
+        secondaryAction={hideModal}
+        primaryActionName={"Find musics"}
+        primaryAction={fetchMusics}
+      />
     </div>
   )
 }

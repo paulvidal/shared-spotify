@@ -6,4 +6,37 @@
   margin: 1em 0.5em 0.5em 0.5em;
   border-radius: 0.15em;
   text-align: center;
+  font-size: 2rem;
+}
+
+.title a {
+  color: #0070f3;
+  text-decoration: none;
+}
+
+.title a:hover,
+.title a:focus,
+.title a:active {
+  text-decoration: underline;
+}
+
+.title {
+  margin: 0;
+  line-height: 1.15;
+  font-size: 2.8rem;
+}
+
+.title,
+.description {
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .title {
+    font-size: 4rem;
+  }
+
+  .name_title {
+    font-size: 2.5rem;
+  }
 }

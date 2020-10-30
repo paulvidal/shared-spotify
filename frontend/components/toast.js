@@ -22,7 +22,7 @@ function Toast() {
 function showSuccessToast(msg) {
   toast.success(msg, {
     position: "top-right",
-    autoClose: 5000,
+    autoClose: 3000,
     hideProgressBar: true,
     closeOnClick: true,
     pauseOnHover: true,
