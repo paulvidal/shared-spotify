@@ -70,6 +70,8 @@ func CreateUserFromRequest(r *http.Request) (*User, error) {
 
 func createUserFromToken(token *oauth2.Token) (*User, error) {
 	client := auth.NewClient(token)
+	client.AutoRetry = true  // enable auto retries when rate limited
+
 	privateUser, err := client.CurrentUser()
 
 	if err != nil {
