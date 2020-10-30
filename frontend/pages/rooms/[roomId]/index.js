@@ -10,6 +10,7 @@ import {getUrl} from "../../../utils/urlUtils";
 import {CopyToClipboard} from "react-copy-to-clipboard";
 import CustomHead from "../../../components/Head";
 import Header from "../../../components/Header";
+import LoaderScreen from "../../../components/LoaderScreen";
 
 const GENERAL_REFRESH_TIMEOUT = 6000;  // 6s
 const REFRESH_TIMEOUT_PLAYLIST_CREATION = 2000;  // 2s
@@ -28,7 +29,8 @@ export default function Room() {
     locked: false,
     shared_music_library: null,
     awaiting_new_refresh: true,
-    stop_refresh: false
+    stop_refresh: false,
+    loading: true
   });
 
   const refresh = () => {
@@ -43,6 +45,7 @@ export default function Room() {
           return {
             ...prevState,
             ...resp.data,
+            loading: false
           }
         })
       })
@@ -50,7 +53,8 @@ export default function Room() {
         setRoom(prevState => {
           return {
             ...prevState,
-            stop_refresh: true
+            stop_refresh: true,
+            loading: false
           }
         })
         showErrorToastWithError("Failed to get room info", error)
@@ -76,6 +80,13 @@ export default function Room() {
   }
 
   useEffect(refresh, [roomId])
+
+  // Use a loader screen if nothing is ready
+  if (room.loading) {
+    return (
+      <LoaderScreen />
+    )
+  }
 
   // we refresh the page on a daily basis waiting for users to join
   if (room.awaiting_new_refresh) {

@@ -8,6 +8,7 @@ import CustomHead from "../../../../components/Head";
 import Header from "../../../../components/Header";
 import {isEmpty} from "lodash";
 import PlaylistElem from "../../../../components/playlistElem";
+import LoaderScreen from "../../../../components/LoaderScreen";
 
 
 export default function Playlists() {
@@ -20,6 +21,7 @@ export default function Playlists() {
 
   const [playlists, setPlaylists] = useState({
     playlist_types: {},
+    loading: true
   });
 
   const refresh = () => {
@@ -36,16 +38,30 @@ export default function Playlists() {
           return {
             ...prevState,
             ...playlistsReceived,
+            loading: false
           }
         })
 
       })
       .catch(error => {
         showErrorToastWithError("Failed to get playlists", error)
+        setPlaylists(prevState => {
+          return {
+            ...prevState,
+            loading: false
+          }
+        })
       })
   }
 
   useEffect(refresh, [roomId])
+
+  // Use a loader screen if nothing is ready
+  if (playlists.loading) {
+    return (
+      <LoaderScreen/>
+    )
+  }
 
   let formattedPlaylists;
 

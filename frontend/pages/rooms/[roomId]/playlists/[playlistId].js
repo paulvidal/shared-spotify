@@ -12,6 +12,7 @@ import {getUrl} from "../../../../utils/urlUtils";
 import CustomHead from "../../../../components/Head";
 import Header from "../../../../components/Header";
 import {getTrackBackground, Range} from "react-range";
+import LoaderScreen from "../../../../components/LoaderScreen";
 
 const IDEAL_DEFAULT_COUNT = 40
 
@@ -54,6 +55,7 @@ export default function Playlist() {
     minSharedCount: 0,
     minSharedCountLimit: 0,
     maxSharedCountLimit: 0,
+    loading: true
   });
 
   const refresh = () => {
@@ -79,16 +81,30 @@ export default function Playlist() {
             ...resp.data,
             minSharedCount: findBestDefaultSharedCount(playlistReceived),
             minSharedCountLimit: minSharedCountLimit,
-            maxSharedCountLimit: maxSharedCountLimit
+            maxSharedCountLimit: maxSharedCountLimit,
+            loading: false
           }
         })
       })
       .catch(error => {
         showErrorToastWithError("Failed to get playlist " + playlistId, error)
+        setPlaylist(prevState => {
+          return {
+            ...prevState,
+            loading: false
+          }
+        })
       })
   }
 
   useEffect(refresh, [roomId, playlistId])
+
+  // Use a loader screen if nothing is ready
+  if (playlist.loading) {
+    return (
+      <LoaderScreen/>
+    )
+  }
 
   const addPlaylist = () => {
     let confirmation = confirm("You are creating a playlist on your account, do you wish to continue?")
