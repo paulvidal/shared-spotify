@@ -6,9 +6,10 @@ import {useEffect, useState} from "react";
 import {getUrl} from "../../../../utils/urlUtils";
 import CustomHead from "../../../../components/Head";
 import Header from "../../../../components/Header";
-import {isEmpty} from "lodash";
+import {isEmpty, sum} from "lodash";
 import PlaylistElem from "../../../../components/playlistElem";
 import LoaderScreen from "../../../../components/LoaderScreen";
+import {getTotalTrackCount} from "../../../../utils/trackUtils";
 
 
 export default function Playlists() {
@@ -68,7 +69,7 @@ export default function Playlists() {
   if (!isEmpty(playlists.playlist_types)) {
 
     formattedPlaylists = Object.keys(playlists.playlist_types).sort((playlistId1, playlistId2) => {
-      return playlists.playlist_types[playlistId1].type.localeCompare(playlists.playlist_types[playlistId2].type)
+      return getTotalTrackCount(playlists.playlist_types[playlistId2]) - getTotalTrackCount(playlists.playlist_types[playlistId1])
 
     }).map((playlistId, index) => {
       let playlist = playlists.playlist_types[playlistId]

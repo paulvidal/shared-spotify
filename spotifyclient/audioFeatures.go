@@ -7,7 +7,7 @@ import (
 
 const maxAudioFeaturePerApiCall = 100
 
-func (user *User) GetAudioFeatures(tracks map[string]*spotify.FullTrack) (map[string]*spotify.AudioFeatures, error) {
+func (user *User) GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spotify.AudioFeatures, error) {
 	logger.Logger.Infof("Fetching audio features for %d tracks", len(tracks))
 
 	audioFeaturesPerTrack := make(map[string]*spotify.AudioFeatures)
