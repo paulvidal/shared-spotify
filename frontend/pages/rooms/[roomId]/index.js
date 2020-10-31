@@ -17,6 +17,8 @@ import setState from "../../../utils/stateUtils";
 const GENERAL_REFRESH_TIMEOUT = 6000;  // 6s
 const REFRESH_TIMEOUT_PLAYLIST_CREATION = 2000;  // 2s
 
+const MIN_USERS_TO_SHARE = 2;
+
 export default function Room() {
   const router = useRouter()
   const { roomId } = router.query
@@ -72,7 +74,6 @@ export default function Room() {
     axiosClient.post(getUrl('/rooms/' + roomId + '/playlists'))
       .then(resp => {
         refresh()
-        showSuccessToast("Common music is currently getting fetched")
       })
       .catch(error => {
         showErrorToastWithError("Failed to find common musics", error)
@@ -130,11 +131,14 @@ export default function Room() {
   let button;
 
   if (room.shared_music_library == null) {
-    button = (
-      <Button variant="success" size="lg" className="mt-2 mb-2" onClick={showModal}>
-        Find common music 🎵
-      </Button>
-    )
+
+    if (room.users.length >= MIN_USERS_TO_SHARE) {
+      button = (
+        <Button variant="success" size="lg" className="mt-2 mb-2" onClick={showModal}>
+          Find common music 🎵
+        </Button>
+      )
+    }
 
   } else if (room.shared_music_library.processing_status.success == null) {
     let current = room.shared_music_library.processing_status.already_processed

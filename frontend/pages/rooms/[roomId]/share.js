@@ -40,7 +40,7 @@ export default function RoomShare() {
             loading: false
           }
         })
-        showErrorToastWithError("Failed to join the room", error)
+        showErrorToastWithError("Cannot join the room", error)
       })
   }
 

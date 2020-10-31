@@ -1,3 +1,5 @@
+import {sum} from "lodash";
+
 function getArtistsFromTrack(track) {
   let artist = 'unknown artist'
 
@@ -18,7 +20,15 @@ function getAlbumCoverUrlFromTrack(track) {
   return url
 }
 
+function getTotalTrackCount(trackType) {
+  return sum(
+    Object.keys(trackType.tracks_per_shared_count)
+      .map(sharedCount => trackType.tracks_per_shared_count[sharedCount].length)
+  )
+}
+
 export {
   getArtistsFromTrack,
-  getAlbumCoverUrlFromTrack
+  getAlbumCoverUrlFromTrack,
+  getTotalTrackCount
 }

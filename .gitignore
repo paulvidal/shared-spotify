@@ -1,3 +1,6 @@
 *.idea
 env.sh
 *.log
+venv
+*.py
+*.csv

@@ -10,14 +10,14 @@ import (
 	"net/http"
 )
 
-var roomDoesNotExistError = errors.New("room does not exists")
-var roomIsNotAccessibleError = errors.New("room is not accessible to user")
-var authenticationError = errors.New("failed to authenticate user")
-var roomLockedError = errors.New("room is locked and not accepting new members")
-var processingInProgressError = errors.New("processing of music is already in progress")
-var processingNotStartedError = errors.New("processing of music has not been done, cannot get playlists")
-var processingFailedError = errors.New("processing of music failed, cannot get playlists")
-var failedToCreatePlaylistError = errors.New("an error occurred while creating the playlist")
+var roomDoesNotExistError = errors.New("Room does not exists")
+var roomIsNotAccessibleError = errors.New("Room is not accessible to user")
+var authenticationError = errors.New("Failed to authenticate user")
+var roomLockedError = errors.New("Room is locked and not accepting new members. Create a new one to share music")
+var processingInProgressError = errors.New("Processing of music is already in progress")
+var processingNotStartedError = errors.New("Processing of music has not been done, cannot get playlists")
+var processingFailedError = errors.New("Processing of music failed, cannot get playlists")
+var failedToCreatePlaylistError = errors.New("An error occurred while creating the playlist")
 
 
 // An in memory representation of all the rooms, would be better if it was persistent but for now this is fine

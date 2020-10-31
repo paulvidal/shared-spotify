@@ -16,6 +16,7 @@ import LoaderScreen from "../../../../components/LoaderScreen";
 import CustomModal from "../../../../components/CustomModal";
 import setState from "../../../../utils/stateUtils";
 
+const TIMEOUT_BEFORE_BUTTON_AVAILABLE = 2000  // 2s
 const IDEAL_DEFAULT_COUNT = 40
 
 function findBestDefaultSharedCount(playlists) {
@@ -92,8 +93,8 @@ export default function Playlist() {
         })
       })
       .catch(error => {
-        showErrorToastWithError("Failed to get playlist " + playlistId, error)
         setState(setPlaylist, {loading: false})
+        showErrorToastWithError("Failed to get playlist " + playlistId, error)
       })
   }
 
@@ -125,22 +126,19 @@ export default function Playlist() {
     axiosClient.post(getUrl('/rooms/' + roomId + '/playlists/' + playlistId + '/add'), {
       min_shared_count: minSharedCount
     }).then(resp => {
-      const playlistName = resp.data.name
-
       setState(setPlaylist, {
-        creating_playlist: false,
         new_playlist: {
           [minSharedCount]: resp.data
         }
       })
 
-      showSuccessToast(`Successfully created in spotify playlist "${playlistName}"`)
+      setTimeout(() => {
+        setState(setPlaylist, {creating_playlist: false})
+      }, TIMEOUT_BEFORE_BUTTON_AVAILABLE)
     })
     .catch(error => {
-      showErrorToastWithError("Failed to create playlist in spotify", error)
-    })
-    .finally(() => {
       setState(setPlaylist, {creating_playlist: false})
+      showErrorToastWithError("Failed to create playlist in spotify", error)
     })
   }
 
@@ -247,19 +245,9 @@ export default function Playlist() {
     } else {
       addButton = (
         (
-          <OverlayTrigger
-            key="top"
-            placement="top"
-            overlay={
-              <Tooltip id={`tooltip-top`}>
-                Playlist will be created in spotify and added to your playlists
-              </Tooltip>
-            }
-          >
-            <Button variant="outline-success" size="lg" className="mb-4" onClick={showModal}>
-              Add to my playlists
-            </Button>
-          </OverlayTrigger>
+          <Button variant="outline-success" size="lg" className="mb-4" onClick={showModal}>
+            Add to my playlists
+          </Button>
         )
       )
     }
