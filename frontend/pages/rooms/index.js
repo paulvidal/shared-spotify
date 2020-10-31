@@ -33,13 +33,13 @@ export default function Rooms() {
         }
       }))
       .catch(error => {
-        showErrorToastWithError("Failed to get all rooms info", error)
         setRooms(prevState => {
           return {
             ...prevState,
             loading: false
           }
         })
+        showErrorToastWithError("Failed to get all rooms info", error)
       })
   }
 

@@ -10,6 +10,7 @@ import {isEmpty, sum} from "lodash";
 import PlaylistElem from "../../../../components/playlistElem";
 import LoaderScreen from "../../../../components/LoaderScreen";
 import {getTotalTrackCount} from "../../../../utils/trackUtils";
+import setState from "../../../../utils/stateUtils";
 
 
 export default function Playlists() {
@@ -45,13 +46,8 @@ export default function Playlists() {
 
       })
       .catch(error => {
+        setState(setPlaylists, {loading: false})
         showErrorToastWithError("Failed to get playlists", error)
-        setPlaylists(prevState => {
-          return {
-            ...prevState,
-            loading: false
-          }
-        })
       })
   }
 

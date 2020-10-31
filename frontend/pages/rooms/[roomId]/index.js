@@ -72,7 +72,6 @@ export default function Room() {
     axiosClient.post(getUrl('/rooms/' + roomId + '/playlists'))
       .then(resp => {
         refresh()
-        showSuccessToast("Common music is currently getting fetched")
       })
       .catch(error => {
         showErrorToastWithError("Failed to find common musics", error)
