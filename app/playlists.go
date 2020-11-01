@@ -51,11 +51,12 @@ type CommonPlaylists struct {
 }
 
 type PlaylistType struct {
-	Id                   string                       `json:"id"`
-	Name                 string                       `json:"name"`
-	Type                 string                       `json:"type"`
-	Rank                 int                          `json:"rank"`
-	TracksPerSharedCount map[int][]*spotify.FullTrack `json:"tracks_per_shared_count"`
+	Id                   string                           `json:"id"`
+	Name                 string                           `json:"name"`
+	Type                 string                           `json:"type"`
+	Rank                 int                              `json:"rank"`
+	TracksPerSharedCount map[int][]*spotify.FullTrack     `json:"tracks_per_shared_count"`
+	UsersPerSharedTracks map[string][]*spotifyclient.User `json:"users_per_shared_tracks"`
 }
 
 func (playlistType *PlaylistType) getAllTracks() []*spotify.FullTrack {
@@ -231,6 +232,7 @@ func (playlists *CommonPlaylists) GenerateCommonPlaylistType() *PlaylistType {
 		playlistTypeShared,
 		playlistRankShared,
 		tracksInCommon,
+		playlists.SharedTracksRankAboveMinThreshold,
 	}
 	playlists.PlaylistTypes[id] = commonPlaylistType
 
@@ -260,6 +262,7 @@ func (playlists *CommonPlaylists) GeneratePopularPlaylistType(sharedTrackPlaylis
 		playlistTypePopular,
 		playlistRankPopular,
 		popularTracksInCommon,
+		playlists.SharedTracksRankAboveMinThreshold,
 	}
 	playlists.PlaylistTypes[id] = commonPlaylistType
 }
@@ -291,6 +294,7 @@ func (playlists *CommonPlaylists) GenerateDancePlaylist(sharedTrackPlaylist *Pla
 		playlistTypeDance,
 		playlistRankDance,
 		danceTracksInCommon,
+		playlists.SharedTracksRankAboveMinThreshold,
 	}
 	playlists.PlaylistTypes[id] = commonPlaylistType
 }
@@ -365,6 +369,7 @@ func (playlists *CommonPlaylists) GenerateGenrePlaylist(sharedTrackPlaylist *Pla
 			playlistTypeGenre,
 			playlistRankGenre,
 			genreTracksInCommon,
+			playlists.SharedTracksRankAboveMinThreshold,
 		}
 		playlists.PlaylistTypes[id] = commonPlaylistType
 	}
