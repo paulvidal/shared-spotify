@@ -28,7 +28,7 @@ func (user *User) GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify
 				artistSeen[artistId] = true
 			}
 
-			// and artist can have multiple tracks
+			// artist can have multiple tracks
 			trackISCRs := TrackISCRsPerArtistId[artistId]
 			if trackISCRs == nil {
 				trackISCRs = make([]string, 1)
