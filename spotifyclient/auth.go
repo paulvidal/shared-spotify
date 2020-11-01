@@ -27,6 +27,7 @@ var BackendUrl = os.Getenv("BACKEND_URL")
 var FrontendUrl = os.Getenv("FRONTEND_URL")
 var clientId = os.Getenv("CLIENT_ID")
 var clientSecret = os.Getenv("CLIENT_SECRET_KEY")
+var tokenEncryptionKey = os.Getenv("TOKEN_ENCRYPTION_KEY")
 
 var CallbackUrl = fmt.Sprintf("%s/callback", BackendUrl)
 
@@ -190,14 +191,21 @@ func decryptToken(tokenCookie *http.Cookie) (*oauth2.Token, error) {
 	base64JsonToken, err := base64.StdEncoding.DecodeString(tokenCookie.Value)
 
 	if err != nil {
-		logger.Logger.Error("Failed to decode base64 token")
+		logger.Logger.Error("Failed to decode base64 token ", err)
 		return nil, err
 	}
 
-	err = json.Unmarshal(base64JsonToken, &token)
+	decryptedToken, err := utils.Decrypt(base64JsonToken, tokenEncryptionKey)
 
 	if err != nil {
-		logger.Logger.Error("Failed to deserialise json token")
+		logger.Logger.Error("Failed to decrypt token ", err)
+		return nil, err
+	}
+
+	err = json.Unmarshal(decryptedToken, &token)
+
+	if err != nil {
+		logger.Logger.Error("Failed to deserialise json token ", err)
 		return nil, err
 	}
 
@@ -212,13 +220,21 @@ func encryptToken(token *oauth2.Token) (*http.Cookie, error) {
 		return nil, err
 	}
 
-	base64JsonToken := base64.StdEncoding.EncodeToString(jsonToken)
+	encryptedToken, err := utils.Encrypt(jsonToken, tokenEncryptionKey)
+
+	if err != nil {
+		logger.Logger.Error("Failed to encrypt token ", err)
+		return nil, err
+	}
+
+	base64EncryptedToken := base64.StdEncoding.EncodeToString(encryptedToken)
+
 	expiration := time.Now().Add(365 * 24 * time.Hour)
 
 	urlParsed, err := url.Parse(BackendUrl)
 
 	if err != nil {
-		logger.Logger.Error("Failed to parse urls")
+		logger.Logger.Error("Failed to parse urls ", err)
 		return nil, err
 	}
 
@@ -233,7 +249,7 @@ func encryptToken(token *oauth2.Token) (*http.Cookie, error) {
 
 	cookie := http.Cookie{
 		Name: tokenCookieName,
-		Value: base64JsonToken,
+		Value: base64EncryptedToken,
 		Expires: expiration,
 		// we send the cookie cross domain, so we need all this
 		Domain: urlParsed.Host,

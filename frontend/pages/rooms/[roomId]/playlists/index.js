@@ -64,6 +64,13 @@ export default function Playlists() {
   if (!isEmpty(playlists.playlist_types)) {
 
     formattedPlaylists = Object.keys(playlists.playlist_types).sort((playlistId1, playlistId2) => {
+      let playlist1 = playlists.playlist_types[playlistId1]
+      let playlist2 = playlists.playlist_types[playlistId2]
+
+      if (playlist1.rank !== playlist2.rank) {
+        return playlist1.rank -  playlist2.rank
+      }
+
       return getTotalTrackCount(playlists.playlist_types[playlistId2]) - getTotalTrackCount(playlists.playlist_types[playlistId1])
 
     }).map((playlistId, index) => {

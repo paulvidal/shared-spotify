@@ -205,6 +205,7 @@ export default function Room() {
         "Are you sure you want to do this now?"}
         secondaryActionName={"Cancel"}
         secondaryAction={hideModal}
+        onHideAction={hideModal}
         primaryActionName={"Find musics"}
         primaryAction={fetchMusics}
       />

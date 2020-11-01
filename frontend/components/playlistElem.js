@@ -14,7 +14,7 @@ export default function PlaylistElem(props) {
           <Row>
             <Col xs={12}>
                 <h5 className={"text-center " + styles.playlist_elem}>
-                  {props.playlist.type}
+                  {props.playlist.name}
                 </h5>
                 <p className="text-center mb-0 mt-1">
                   <strong>{maxSongsInTotal}</strong> songs at most

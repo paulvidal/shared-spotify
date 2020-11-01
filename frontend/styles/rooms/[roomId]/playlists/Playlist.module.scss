@@ -46,6 +46,28 @@
   font-size: 0.8em;
 }
 
+.user_pic {
+  float: left;
+  width: 22px;
+  height: 22px;
+}
+
+.user_name {
+  margin-left: 20px;
+  float: left;
+}
+
+.songs_users_divider {
+  width: 100%;
+  border-top: 0.1rem solid #807d7d;
+  border-radius: 1rem;
+  margin-bottom: 1rem;
+}
+
+.playlist_item {
+  cursor: pointer;
+}
+
 @media (min-width: 768px) {
   .album_pic {
     height: 65px;
@@ -66,5 +88,10 @@
     display: flex;
     width: 30%;
     margin-top: 2rem;
+  }
+
+  .user_pic {
+    width: 28px;
+    height: 28px;
   }
 }

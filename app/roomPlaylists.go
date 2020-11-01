@@ -224,7 +224,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 	}
 
 	// we create in spotify the playlist
-	newPlaylist := CreateNewPlaylist(roomId, playlist.Type)
+	newPlaylist := CreateNewPlaylist(roomId, playlist.Name)
 
 	// we get the songs that are above the min shared count limit requested by the user
 	tracks := make([]*spotify.FullTrack, 0)

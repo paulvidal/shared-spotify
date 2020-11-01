@@ -6,9 +6,9 @@ import (
 	"github.com/shared-spotify/app"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/spotifyclient"
+	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 	"net/http"
 	"os"
-	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 )
 
 var Port = os.Getenv("PORT")

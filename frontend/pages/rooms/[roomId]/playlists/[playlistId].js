@@ -59,7 +59,8 @@ export default function Playlist() {
     minSharedCountLimit: 0,
     maxSharedCountLimit: 0,
     loading: true,
-    showConfirmationModal: false
+    showConfirmationModal: false,
+    users_per_shared_tracks: {}
   });
 
   const refresh = () => {
@@ -192,11 +193,14 @@ export default function Playlist() {
                 return getArtistsFromTrack(track1).localeCompare(getArtistsFromTrack(track2))
               })
               .map(track => {
+                let trackISRC = track.external_ids["isrc"]
+
                 return (
                   <PlaylistListElem
                     key={track.id}
                     track={track}
                     songPlaying={playlist.song_playing}
+                    usersForTrack={playlist.users_per_shared_tracks[trackISRC]}
                     updateSongCallback={updateSongCallback}/>
                 )
               })
@@ -363,7 +367,7 @@ export default function Playlist() {
       <Header />
 
       <main className={styles.main}>
-        <h1 className="text-center mt-3 mb-3">{playlist.type}</h1>
+        <h1 className="text-center mt-3 mb-3">{playlist.name}</h1>
         <p>Room #{roomId}</p>
         {slider}
         {sliderHelp}
@@ -385,6 +389,7 @@ export default function Playlist() {
         body={"You are creating a playlist on your account, do you wish to continue?"}
         secondaryActionName={"Cancel"}
         secondaryAction={hideModal}
+        onHideAction={hideModal}
         primaryActionName={"Add playlist"}
         primaryAction={addPlaylist}
       />

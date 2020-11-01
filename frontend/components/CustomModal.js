@@ -13,10 +13,26 @@ export default function CustomModal(props) {
     )
   }
 
+  let footer;
+
+  if (props.secondaryAction || props.primaryAction) {
+    footer = (
+      <Modal.Footer>
+        <Button variant="secondary" className="mr-1" onClick={props.secondaryAction}>
+          {props.secondaryActionName}
+        </Button>
+
+        <Button variant="success" onClick={props.primaryAction}>
+          {props.primaryActionName}
+        </Button>
+      </Modal.Footer>
+    )
+  }
+
   return (
     <Modal
       show={props.show}
-      onHide={props.secondaryAction}
+      onHide={props.onHideAction}
       animation={true}
       aria-labelledby="contained-modal-title-vcenter"
       centered
@@ -28,15 +44,7 @@ export default function CustomModal(props) {
         {props.body}
       </Modal.Body>
 
-      <Modal.Footer>
-        <Button variant="secondary" className="mr-1" onClick={props.secondaryAction}>
-          {props.secondaryActionName}
-        </Button>
-
-        <Button variant="success" onClick={props.primaryAction}>
-          {props.primaryActionName}
-        </Button>
-      </Modal.Footer>
+      {footer}
     </Modal>
   )
 }
