@@ -363,7 +363,7 @@ export default function Playlist() {
       <Header />
 
       <main className={styles.main}>
-        <h1 className="text-center mt-3 mb-3">{playlist.type}</h1>
+        <h1 className="text-center mt-3 mb-3">{playlist.name}</h1>
         <p>Room #{roomId}</p>
         {slider}
         {sliderHelp}
