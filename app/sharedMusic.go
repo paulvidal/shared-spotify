@@ -15,13 +15,13 @@ type SharedMusicLibrary struct {
 	TotalUsers             int                               `json:"total_users"`
 	ProcessingStatus       *ProcessingStatus                 `json:"processing_status"`
 	MusicProcessingChannel chan MusicProcessingResult        `json:"-"`
-	CommonPlaylists         *CommonPlaylists                 `json:"common_playlists"`
+	CommonPlaylists         *CommonPlaylists                 `json:"-"`
 }
 
 type ProcessingStatus struct {
 	TotalToProcess        int    `json:"total_to_process"`
-	AlreadyProcessed      int   `json:"already_processed"`
-	Started               bool  `json:"started"`
+	AlreadyProcessed      int    `json:"already_processed"`
+	Started               bool   `json:"started"`
 	Success               *bool  `json:"success"`
 }
 
