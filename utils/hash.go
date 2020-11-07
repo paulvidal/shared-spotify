@@ -8,7 +8,7 @@ import (
 const minCountToBeStrong = 4
 const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func GenerateStrongHash() string {
 	return stringWithCharset(minCountToBeStrong, charset)

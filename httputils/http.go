@@ -2,8 +2,22 @@ package httputils
 
 import (
 	"encoding/json"
+	"github.com/shared-spotify/logger"
 	"net/http"
 )
+
+// Do not forget v needs to be a reference to the object for the serialisation to work
+func DeserialiseBody(r *http.Request, v interface{}) error {
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(v)
+
+	if err != nil {
+		logger.Logger.Error("Failed to deserialise body", err)
+		return err
+	}
+
+	return nil
+}
 
 func SendJson(w http.ResponseWriter, v interface{})  {
 	jsonValue, err := json.Marshal(v)

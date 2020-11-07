@@ -29,6 +29,7 @@ export default function Room() {
 
   const [room, setRoom] = useState({
     roomId: roomId,
+    name: '',
     users: [],
     locked: false,
     shared_music_library: null,
@@ -181,7 +182,7 @@ export default function Room() {
       <Header />
 
       <main className={styles.main}>
-        <h1>Room #{roomId}</h1>
+        <h1>{room.name}</h1>
 
         {lock}
 
