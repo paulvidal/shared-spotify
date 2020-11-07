@@ -29,14 +29,28 @@
 }
 
 .home_block {
-  width: 20%;
+  width: 10%;
   margin-top: 0.6rem;
+  margin-right: 0.25rem;
   float: right;
 }
 
 .home_icon {
   width: 1.6rem;
   height: 1.6rem;
+}
+
+.arrow_block {
+  width: 10%;
+  margin-top: 0.6rem;
+  margin-right: 1rem;
+  float: right;
+  cursor: pointer;
+}
+
+.arrow_icon {
+  width: 1.3rem;
+  height: 1.3rem;
 }
 
 .main {
@@ -148,11 +162,29 @@
   }
 
   .home_block {
+    width: 10%;
     margin-top: 1.1rem;
   }
 
   .home_icon {
     width: 2rem;
     height: 2rem;
+  }
+
+  .arrow_block {
+    width: 10%;
+    margin-top: 1.3rem;
+    margin-right: 1.5rem;
+  }
+
+  .arrow_icon {
+    width: 1.8rem;
+    height: 1.8rem;
+  }
+}
+
+@media (min-width: 992px) {
+  .arrow_block {
+    display: none;
   }
 }
