@@ -57,7 +57,8 @@ func GetPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputils.SendJson(w, room.MusicLibrary.CommonPlaylists)
+	playlists := room.MusicLibrary.CommonPlaylists.getPlaylistsMetadata()
+	httputils.SendJson(w, playlists)
 }
 
 // Here, we launch the process of finding the musics for the users in the room
@@ -140,10 +141,10 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	playlistType, err := room.MusicLibrary.GetPlaylistType(playlistId)
+	playlistType, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {
-		logger.Logger.Error("Playlist %s was not found for room %s, user is %s",
+		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
 		handleError(errorPlaylistTypeNotFound, w, r, user)
 		return
@@ -214,10 +215,10 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	playlist, err := room.MusicLibrary.GetPlaylistType(playlistId)
+	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {
-		logger.Logger.Error("Playlist %s was not found for room %s, user is %s",
+		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
 		handleError(errorPlaylistTypeNotFound, w, r, user)
 		return

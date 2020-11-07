@@ -1,7 +1,6 @@
 import {Card, Col, Container, Row} from 'react-bootstrap';
 import styles from '../styles/rooms/[roomId]/playlists/Playlists.module.scss'
 import Link from "next/link";
-import {sum} from "lodash";
 import {getTotalTrackCount} from "../utils/trackUtils";
 
 export default function PlaylistElem(props) {

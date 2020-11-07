@@ -33,14 +33,14 @@ func (musicLibrary *SharedMusicLibrary) hasProcessingFinished() bool {
 	return musicLibrary.ProcessingStatus.Success != nil
 }
 
-func (musicLibrary *SharedMusicLibrary) GetPlaylistType(id string) (*PlaylistType, error) {
-	playlistType, ok := musicLibrary.CommonPlaylists.PlaylistTypes[id]
+func (musicLibrary *SharedMusicLibrary) GetPlaylist(id string) (*Playlist, error) {
+	playlist, ok := musicLibrary.CommonPlaylists.Playlists[id]
 
 	if !ok {
 		return nil, errorPlaylistTypeNotFound
 	}
 
-	return playlistType, nil
+	return playlist, nil
 }
 
 type MusicProcessingResult struct {

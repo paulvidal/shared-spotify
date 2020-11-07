@@ -22,7 +22,7 @@ export default function Playlists() {
   })
 
   const [playlists, setPlaylists] = useState({
-    playlist_types: {},
+    playlists: {},
     loading: true
   });
 
@@ -39,7 +39,7 @@ export default function Playlists() {
         setPlaylists(prevState => {
           return {
             ...prevState,
-            ...playlistsReceived,
+            playlists: playlistsReceived,
             loading: false
           }
         })
@@ -62,20 +62,20 @@ export default function Playlists() {
 
   let formattedPlaylists;
 
-  if (!isEmpty(playlists.playlist_types)) {
+  if (!isEmpty(playlists.playlists)) {
 
-    formattedPlaylists = Object.keys(playlists.playlist_types).sort((playlistId1, playlistId2) => {
-      let playlist1 = playlists.playlist_types[playlistId1]
-      let playlist2 = playlists.playlist_types[playlistId2]
+    formattedPlaylists = Object.keys(playlists.playlists).sort((playlistId1, playlistId2) => {
+      let playlist1 = playlists.playlists[playlistId1]
+      let playlist2 = playlists.playlists[playlistId2]
 
       if (playlist1.rank !== playlist2.rank) {
         return playlist1.rank -  playlist2.rank
       }
 
-      return getTotalTrackCount(playlists.playlist_types[playlistId2]) - getTotalTrackCount(playlists.playlist_types[playlistId1])
+      return getTotalTrackCount(playlists.playlists[playlistId2]) - getTotalTrackCount(playlists.playlists[playlistId1])
 
     }).map((playlistId, index) => {
-      let playlist = playlists.playlist_types[playlistId]
+      let playlist = playlists.playlists[playlistId]
 
       return (
         <PlaylistElem key={playlistId} index={index + 1} roomId={roomId} playlist={playlist}/>

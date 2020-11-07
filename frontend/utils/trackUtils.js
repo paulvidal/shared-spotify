@@ -20,11 +20,8 @@ function getAlbumCoverUrlFromTrack(track) {
   return url
 }
 
-function getTotalTrackCount(trackType) {
-  return sum(
-    Object.keys(trackType.tracks_per_shared_count)
-      .map(sharedCount => trackType.tracks_per_shared_count[sharedCount].length)
-  )
+function getTotalTrackCount(playlist) {
+  return playlist.shared_track_count
 }
 
 export {

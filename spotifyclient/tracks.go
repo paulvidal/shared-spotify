@@ -55,7 +55,7 @@ func (user *User) GetSavedSongs() ([]*spotify.FullTrack, error) {
 		return nil, err
 	}
 
-	logger.Logger.Infof("Playlist has %d total tracks for user %s", savedTrackPage.Total, user.GetUserId())
+	logger.Logger.Infof("PlaylistMetadata has %d total tracks for user %s", savedTrackPage.Total, user.GetUserId())
 
 	for page := 1; ; page++ {
 		logger.Logger.Infof("Page %d has %d tracks for user %s", page, len(savedTrackPage.Tracks),
@@ -159,7 +159,7 @@ func (user *User) getSongsForPlaylist(playlistId string) ([]*spotify.FullTrack, 
 		return nil, err
 	}
 
-	logger.Logger.Infof("Playlist %s has %d total tracks for user %s", playlistId, playlistTrackPage.Total,
+	logger.Logger.Infof("PlaylistMetadata %s has %d total tracks for user %s", playlistId, playlistTrackPage.Total,
 		user.GetUserId())
 
 	for page := 1; ; page++ {
