@@ -72,7 +72,6 @@ export default function Rooms() {
 
   } else {
     roomsList = rooms.rooms.map(room => {
-      console.log(rooms)
       return (
         <RoomListElem key={room.id} room={room}/>
       )
