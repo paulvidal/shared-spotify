@@ -24,7 +24,7 @@ func init() {
 		DisableColors: false,
 		FullTimestamp: true,
 	})
-	Logger.SetLevel(logrus.InfoLevel)
+	Logger.SetLevel(logrus.DebugLevel)
 	Logger.SetReportCaller(true)
 }
 

@@ -249,12 +249,12 @@ func (playlists *CommonPlaylists) GenerateCommonPlaylistType() *Playlist {
 			// Add shared track rank above min threshold, so we can in the frontend keep record of who liked the song
 			playlists.SharedTracksRankAboveMinThreshold[trackId] = users
 
-			logger.Logger.Infof("Common track found for %d person: %s by %v", userCount, track.Name, track.Artists)
+			logger.Logger.Debugf("Common track found for %d person: %s by %v", userCount, track.Name, track.Artists)
 		}
 	}
 
 	for commonUserCount, tracks := range tracksInCommon {
-		logger.Logger.Infof("Found %d tracks shared between %d users", len(tracks), commonUserCount)
+		logger.Logger.Debugf("Found %d tracks shared between %d users", len(tracks), commonUserCount)
 	}
 
 	id := utils.GenerateStrongHash()
@@ -282,7 +282,7 @@ func (playlists *CommonPlaylists) GeneratePopularPlaylistType(sharedTrackPlaylis
 
 		for _, track := range tracks {
 			if track.Popularity >= popularityThreshold {
-				logger.Logger.Infof("Found popular track for %d person: %s by %v", sharedCount, track.Name, track.Artists)
+				logger.Logger.Debugf("Found popular track for %d person: %s by %v", sharedCount, track.Name, track.Artists)
 				popularTracksInCommonForSharedCount = append(popularTracksInCommonForSharedCount, track)
 			}
 		}
@@ -314,8 +314,6 @@ func (playlists *CommonPlaylists) GenerateDancePlaylist(sharedTrackPlaylist *Pla
 		for _, track := range tracks {
 			isrc, _ := spotifyclient.GetTrackISRC(track)
 			audioFeatures := playlists.AudioFeaturesPerTrack[isrc]
-
-			logger.Logger.Infof("Track %s has audio features %+v", track.Name, audioFeatures)
 
 			if audioFeatures.Danceability >= 0.7 {
 				danceTracksInCommonForSharedCount = append(danceTracksInCommonForSharedCount, track)
@@ -358,7 +356,7 @@ func (playlists *CommonPlaylists) GenerateGenrePlaylists(sharedTrackPlaylist *Pl
 		}
 	}
 
-	logger.Logger.Info("Genres are: ", genres)
+	logger.Logger.Debug("Genres are: ", genres)
 
 	for genre := range genres {
 		playlists.GenerateGenrePlaylist(sharedTrackPlaylist, genre)
@@ -376,8 +374,6 @@ func (playlists *CommonPlaylists) GenerateGenrePlaylist(sharedTrackPlaylist *Pla
 			isrc, _ := spotifyclient.GetTrackISRC(track)
 			artists := playlists.ArtistsPerTrack[isrc]
 
-			logger.Logger.Infof("Track %s has artists %+v", track.Name, artists)
-
 			genreFound := false
 
 			// We include the song if one artist is of this genre
@@ -391,7 +387,7 @@ func (playlists *CommonPlaylists) GenerateGenrePlaylist(sharedTrackPlaylist *Pla
 			}
 
 			if genreFound {
-				logger.Logger.Infof("Track for genre %s found: %s", playlistGenre, track.Name)
+				logger.Logger.Debugf("Track for genre %s found: %s", playlistGenre, track.Name)
 				genreTracksInCommonForSharedCount = append(genreTracksInCommonForSharedCount, track)
 				genreTrackCount += 1
 			}
