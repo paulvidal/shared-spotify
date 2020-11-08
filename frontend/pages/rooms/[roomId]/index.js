@@ -4,7 +4,7 @@ import {showErrorToastWithError, showSuccessToast, Toast} from "../../../compone
 import axios from "axios";
 import {useEffect, useState} from "react";
 import UserRoomListElem from "../../../components/userRoomListElem";
-import {Button, Spinner} from "react-bootstrap";
+import {OverlayTrigger, Tooltip, Button, Spinner} from "react-bootstrap";
 import Link from "next/link";
 import {getUrl} from "../../../utils/urlUtils";
 import {CopyToClipboard} from "react-copy-to-clipboard";
@@ -30,6 +30,8 @@ export default function Room() {
   const [room, setRoom] = useState({
     roomId: roomId,
     name: '',
+    is_owner: false,
+    owner: {},
     users: [],
     locked: false,
     shared_music_library: null,
@@ -134,11 +136,33 @@ export default function Room() {
   if (room.shared_music_library == null) {
 
     if (room.users.length >= MIN_USERS_TO_SHARE) {
-      button = (
-        <Button variant="success" size="lg" className="mt-2 mb-2" onClick={showModal}>
-          Find common music 🎵
-        </Button>
-      )
+
+      if (room.is_owner) {
+        button = (
+          <Button variant="success" size="lg" className="mt-2 mb-2" onClick={showModal}>
+            Find common music 🎵
+          </Button>
+        )
+
+      } else {
+        button = (
+          <OverlayTrigger
+            key="overlay"
+            placement="top"
+            overlay={
+              <Tooltip id="overlay-tooltip">
+                Only {room.owner.user_infos.name}, the person that created the room, can trigger this action
+              </Tooltip>
+            }
+          >
+            <div>
+              <Button variant="success" size="lg" className="mt-2 mb-2 disabled">
+                Find common music 🎵
+              </Button>
+            </div>
+          </OverlayTrigger>
+        )
+      }
     }
 
   } else if (room.shared_music_library.processing_status.success == null) {
@@ -162,7 +186,7 @@ export default function Room() {
 
   } else if (!room.shared_music_library.processing_status.success) {
     button = (
-      <Button variant="danger" size="lg" className="mt-2 mb-2" onClick={showModal}>
+      <Button variant="danger" size="lg" className="mt-2 mb-2" onClick={showModal} disabled={!room.is_owner}>
         ⚰️ An error occurred, try again !
       </Button>
     )

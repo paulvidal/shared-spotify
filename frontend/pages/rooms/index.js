@@ -63,7 +63,7 @@ export default function Rooms() {
   }
 
   const hideModal = () => {
-    setState(setRooms, {showCreateRoomModal: false})
+    setState(setRooms, {showCreateRoomModal: false, newRomName: ""})
   }
 
   useEffect(refresh, [])
@@ -75,10 +75,11 @@ export default function Rooms() {
     )
   }
 
+  let emptyRoomText;
   let roomsList;
 
   if (rooms.rooms.length === 0) {
-    roomsList = (
+    emptyRoomText = (
       <p className="mt-4">No rooms at the moment...</p>
     )
 
@@ -111,6 +112,8 @@ export default function Rooms() {
 
       <main className={styles.main}>
         <h1>Rooms</h1>
+
+        {emptyRoomText}
 
         <Button variant="outline-success" size="lg" className="mt-4 mb-4" onClick={showModal}>
           Create a new room

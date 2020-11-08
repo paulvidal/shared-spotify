@@ -40,6 +40,11 @@ type Room struct {
 	MusicLibrary *SharedMusicLibrary   `json:"shared_music_library"`
 }
 
+type RoomWithOwnerInfo struct {
+	*Room
+	IsOwner bool `json:"is_owner"`
+}
+
 func createRoom(roomId string, roomName string, owner *spotifyclient.User) *Room {
 	locked := false
 	room := &Room{
@@ -86,6 +91,10 @@ func (room *Room) getUserIds() []string {
 		userNames = append(userNames, user.Infos.Id)
 	}
 	return userNames
+}
+
+func (room *Room) isOwner(user *spotifyclient.User) bool {
+	return room.Owner.IsEqual(user)
 }
 
 func getRoom(roomId string) (*Room, error) {
@@ -256,7 +265,12 @@ func GetRoom(w http.ResponseWriter, r *http.Request) {
 
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to get room %s", user.GetUserId(), roomId)
 
-	httputils.SendJson(w, room)
+	roomWithOwnerInfo := RoomWithOwnerInfo{
+		room,
+		room.isOwner(user),
+	}
+
+	httputils.SendJson(w, roomWithOwnerInfo)
 }
 
 /*
