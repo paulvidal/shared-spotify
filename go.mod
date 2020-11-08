@@ -38,7 +38,7 @@ require (
 	github.com/twitchtv/twirp v7.1.0+incompatible // indirect
 	github.com/zenazn/goji v1.0.1 // indirect
 	github.com/zmb3/spotify v0.0.0-20200814173021-9bec46940cc0
-	go.mongodb.org/mongo-driver v1.4.2 // indirect
+	go.mongodb.org/mongo-driver v1.4.3
 	go.opencensus.io v0.22.5 // indirect
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect

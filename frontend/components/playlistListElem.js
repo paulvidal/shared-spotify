@@ -17,7 +17,7 @@ export default function PlaylistListElem(props) {
 
   let showUsersForSong = usersForTrack.slice(0, maxLikedFaceToShow).map(user => {
     return (
-      <div key={user.user_infos.id} className="float-right mr-1">
+      <div key={user.id} className="float-right mr-1">
         <Image className={styles.user_pic} src={getPictureUrl(user)} roundedCircle/>
       </div>
     )
@@ -42,10 +42,10 @@ export default function PlaylistListElem(props) {
       {
         usersForTrack.map(user => {
           return (
-            <Row key={user.user_infos.id} className="ml-1 mr-1">
+            <Row key={user.id} className="ml-1 mr-1">
               <Col xs={12}>
                 <Image className={styles.user_pic} src={getPictureUrl(user)} roundedCircle/>
-                <p className={styles.user_name}>{user.user_infos.name}</p>
+                <p className={styles.user_name}>{user.name}</p>
               </Col>
             </Row>
           )

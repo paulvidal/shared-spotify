@@ -11,7 +11,7 @@ export default function UserRoomListElem(props) {
               <Image src={getPictureUrl(props.user)} className={styles.profile_pic} roundedCircle/>
             </Col>
             <Col xs={9}>
-              <h3 className={styles.profile_name}>{props.user.user_infos.name}</h3>
+              <h3 className={styles.profile_name}>{props.user.name}</h3>
             </Col>
           </Row>
         </Container>

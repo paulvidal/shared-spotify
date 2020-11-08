@@ -1,4 +1,4 @@
-package app
+package appmodels
 
 import (
 	"fmt"
@@ -34,7 +34,7 @@ type CommonPlaylists struct {
 	Playlists map[string]*Playlist `json:"-"`
 
 	// These are fields used for computation of the playlists, they are not useful once Playlists is populated
-	*CommonPlaylistComputation
+	*CommonPlaylistComputation `bson:"-"`
 }
 
 type CommonPlaylistComputation struct {
@@ -68,7 +68,7 @@ type PlaylistMetadata struct {
 
 type Playlist struct {
 	PlaylistMetadata
-	TracksPerSharedCount map[int][]*spotify.FullTrack     `json:"tracks_per_shared_count"`
+	TracksPerSharedCount map[int][]*spotify.FullTrack     `json:"tracks_per_shared_count" bson:"-"`
 	UsersPerSharedTracks map[string][]*spotifyclient.User `json:"users_per_shared_tracks"`
 }
 
@@ -82,7 +82,7 @@ func (playlist *Playlist) getAllTracks() []*spotify.FullTrack {
 	return tracks
 }
 
-func (playlists *CommonPlaylists) getPlaylistsMetadata() PlaylistsMetadata {
+func (playlists *CommonPlaylists) GetPlaylistsMetadata() PlaylistsMetadata {
 	playlistsMetadata := make(PlaylistsMetadata)
 
 	for playlistId, playlist := range playlists.Playlists {
@@ -217,7 +217,6 @@ func (playlists *CommonPlaylists) GeneratePlaylists() error {
 	/*
 	  We release the memory used for the computation as it won't be used anymore
 	*/
-
 	playlists.CommonPlaylistComputation = nil
 
 	return nil

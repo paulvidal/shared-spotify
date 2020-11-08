@@ -1,4 +1,4 @@
-package app
+package appmodels
 
 import (
 	"errors"
@@ -9,13 +9,13 @@ import (
 	"runtime/debug"
 )
 
-var errorPlaylistTypeNotFound = errors.New("playlist type id not found")
+var ErrorPlaylistTypeNotFound = errors.New("playlist type id not found")
 
 type SharedMusicLibrary struct {
-	TotalUsers             int                               `json:"total_users"`
-	ProcessingStatus       *ProcessingStatus                 `json:"processing_status"`
-	MusicProcessingChannel chan MusicProcessingResult        `json:"-"`
-	CommonPlaylists         *CommonPlaylists                 `json:"-"`
+	TotalUsers             int                        `json:"total_users"`
+	ProcessingStatus       *ProcessingStatus          `json:"processing_status"`
+	MusicProcessingChannel chan MusicProcessingResult `json:"-"`
+	CommonPlaylists         *CommonPlaylists          `json:"-"`
 }
 
 type ProcessingStatus struct {
@@ -25,11 +25,15 @@ type ProcessingStatus struct {
 	Success               *bool  `json:"success"`
 }
 
-func (musicLibrary *SharedMusicLibrary) hasProcessingFailed() bool {
+func (musicLibrary *SharedMusicLibrary) SetProcessingSuccess(success *bool)  {
+	musicLibrary.ProcessingStatus.Success = success
+}
+
+func (musicLibrary *SharedMusicLibrary) HasProcessingFailed() bool {
 	return musicLibrary.ProcessingStatus.Success != nil && !(*musicLibrary.ProcessingStatus.Success)
 }
 
-func (musicLibrary *SharedMusicLibrary) hasProcessingFinished() bool {
+func (musicLibrary *SharedMusicLibrary) HasProcessingFinished() bool {
 	return musicLibrary.ProcessingStatus.Success != nil
 }
 
@@ -37,7 +41,7 @@ func (musicLibrary *SharedMusicLibrary) GetPlaylist(id string) (*Playlist, error
 	playlist, ok := musicLibrary.CommonPlaylists.Playlists[id]
 
 	if !ok {
-		return nil, errorPlaylistTypeNotFound
+		return nil, ErrorPlaylistTypeNotFound
 	}
 
 	return playlist, nil
@@ -63,7 +67,7 @@ func CreateSharedMusicLibrary(totalUsers int) *SharedMusicLibrary {
  */
 
 // Will process the common library and find all the common songs
-func (musicLibrary *SharedMusicLibrary) Process(users []*spotifyclient.User) {
+func (musicLibrary *SharedMusicLibrary) Process(users []*spotifyclient.User, callback func()) {
 	logger.Logger.Infof("Starting processing of room for all users")
 	
 	// We mark the processing status as started
@@ -80,7 +84,7 @@ func (musicLibrary *SharedMusicLibrary) Process(users []*spotifyclient.User) {
 
 	// launch a single routine to wait for the songs from users, add them to the library and the fidn the most commons
 	logger.Logger.Infof("Launching processing gatherer of information")
-	go musicLibrary.addSongsToLibraryAndFindMostCommonSongs()
+	go musicLibrary.addSongsToLibraryAndFindMostCommonSongs(callback)
 }
 
 func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *spotifyclient.User)  {
@@ -111,7 +115,7 @@ func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *spotifyclient.Us
 	musicLibrary.MusicProcessingChannel <- MusicProcessingResult{user, tracks, err}
 }
 
-func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs() {
+func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(callback func()) {
 	// Recovery for the goroutine
 	defer func() {
 		if err := recover(); err != nil {
@@ -121,7 +125,10 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 			fmt.Println(string(debug.Stack()))
 
 			success := false
-			musicLibrary.ProcessingStatus.Success = &success
+			musicLibrary.SetProcessingSuccess(&success)
+
+			// we notify that the processing is over
+			callback()
 		}
 	}()
 
@@ -173,5 +180,8 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 		}
 	}
 
-	musicLibrary.ProcessingStatus.Success = &success
+	musicLibrary.SetProcessingSuccess(&success)
+
+	// we notify that the processing is over
+	callback()
 }

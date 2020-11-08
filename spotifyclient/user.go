@@ -11,18 +11,18 @@ type UserInfos struct {
 }
 
 type User struct {
-	Infos  UserInfos       `json:"user_infos"`
+	UserInfos
 	Client *spotify.Client `json:"-"` // we ignore this field
 }
 
 func (user *User) GetId() string {
-	return user.Infos.Id
+	return user.Id
 }
 
 func (user *User) GetUserId() string {
-	return user.Infos.Name
+	return user.Name
 }
 
 func (user *User) IsEqual(otherUser *User) bool {
-	return otherUser.Infos.Id == user.Infos.Id
+	return otherUser.Id == user.Id
 }
