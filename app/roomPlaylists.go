@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shared-spotify/httputils"
@@ -57,7 +56,8 @@ func GetPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputils.SendJson(w, room.MusicLibrary.CommonPlaylists)
+	playlists := room.MusicLibrary.CommonPlaylists.getPlaylistsMetadata()
+	httputils.SendJson(w, playlists)
 }
 
 // Here, we launch the process of finding the musics for the users in the room
@@ -140,10 +140,10 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	playlistType, err := room.MusicLibrary.GetPlaylistType(playlistId)
+	playlistType, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {
-		logger.Logger.Error("Playlist %s was not found for room %s, user is %s",
+		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
 		handleError(errorPlaylistTypeNotFound, w, r, user)
 		return
@@ -182,10 +182,8 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	decoder := json.NewDecoder(r.Body)
 	var addPlaylistRequestBody AddPlaylistRequestBody
-
-	err = decoder.Decode(&addPlaylistRequestBody)
+	err = httputils.DeserialiseBody(r, &addPlaylistRequestBody)
 
 	if err != nil {
 		logger.Logger.Error("Failed to decode json body for add playlist for user")
@@ -214,17 +212,17 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	playlist, err := room.MusicLibrary.GetPlaylistType(playlistId)
+	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {
-		logger.Logger.Error("Playlist %s was not found for room %s, user is %s",
+		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
 		handleError(errorPlaylistTypeNotFound, w, r, user)
 		return
 	}
 
 	// we create in spotify the playlist
-	newPlaylist := CreateNewPlaylist(roomId, playlist.Name)
+	newPlaylist := CreateNewPlaylist(room.Name, playlist.Name)
 
 	// we get the songs that are above the min shared count limit requested by the user
 	tracks := make([]*spotify.FullTrack, 0)
@@ -254,7 +252,7 @@ type NewPlaylist struct {
 	SpotifyUrl  string `json:"spotify_url"`
 }
 
-func CreateNewPlaylist(roomId string, playlistName string) *NewPlaylist {
-	spotifyPlaylistName := fmt.Sprintf("Room #%s - %s by Shared Spotify", roomId, playlistName)
+func CreateNewPlaylist(roomName string, playlistName string) *NewPlaylist {
+	spotifyPlaylistName := fmt.Sprintf("%s - %s by Shared Spotify", roomName, playlistName)
 	return &NewPlaylist{spotifyPlaylistName, ""}
 }

@@ -98,8 +98,7 @@ export default function RoomShare() {
       <Header />
 
       <main className={styles.main}>
-        <h1>You are invited</h1>
-        <p>room #{roomId}</p>
+        <h1 className="text-center p-4">You are invited to join a room</h1>
 
         {button}
       </main>

@@ -2,13 +2,17 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/spotifyclient"
 	"github.com/shared-spotify/utils"
 	"net/http"
+	"time"
 )
+
+const defaultRoomName = "Room #%s"
 
 var roomDoesNotExistError = errors.New("Room does not exists")
 var roomIsNotAccessibleError = errors.New("Room is not accessible to user")
@@ -19,7 +23,6 @@ var processingNotStartedError = errors.New("Processing of music has not been don
 var processingFailedError = errors.New("Processing of music failed, cannot get playlists")
 var failedToCreatePlaylistError = errors.New("An error occurred while creating the playlist")
 
-
 // An in memory representation of all the rooms, would be better if it was persistent but for now this is fine
 var allRooms = RoomCollection{make(map[string]*Room)}
 
@@ -28,20 +31,37 @@ type RoomCollection struct {
 }
 
 type Room struct {
-	Id            string                `json:"id"`
-	Users         []*spotifyclient.User `json:"users"`
-	Locked        *bool                 `json:"locked"`
-	MusicLibrary  *SharedMusicLibrary   `json:"shared_music_library"`
-
+	Id           string                `json:"id"`
+	Name         string                `json:"name"`
+	Owner        *spotifyclient.User   `json:"owner"`
+	Users        []*spotifyclient.User `json:"users"`
+	CreationTime time.Time             `json:"creation_time"`
+	Locked       *bool                 `json:"locked"`
+	MusicLibrary *SharedMusicLibrary   `json:"shared_music_library"`
 }
 
-func createRoom() *Room {
-	randomId := utils.GenerateStrongHash()
-	locked := false
-	room := &Room{randomId, make([]*spotifyclient.User, 0), &locked, nil}
+type RoomWithOwnerInfo struct {
+	*Room
+	IsOwner bool `json:"is_owner"`
+}
 
-	// Add the rooms
-	allRooms.Rooms[randomId] = room
+func createRoom(roomId string, roomName string, owner *spotifyclient.User) *Room {
+	locked := false
+	room := &Room{
+		roomId,
+		roomName,
+		owner,
+		make([]*spotifyclient.User, 0),
+		time.Now(),
+		&locked,
+		nil,
+	}
+
+	// Add the owner to the room
+	room.addUser(owner)
+
+	// Add to the room list
+	allRooms.Rooms[roomId] = room
 
 	return room
 }
@@ -71,6 +91,10 @@ func (room *Room) getUserIds() []string {
 		userNames = append(userNames, user.Infos.Id)
 	}
 	return userNames
+}
+
+func (room *Room) isOwner(user *spotifyclient.User) bool {
+	return room.Owner.IsEqual(user)
 }
 
 func getRoom(roomId string) (*Room, error) {
@@ -137,7 +161,7 @@ func handleError(err error, w http.ResponseWriter, r *http.Request, user *spotif
 
 /*
   Rooms handler
- */
+*/
 func RoomsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 
@@ -150,7 +174,7 @@ func RoomsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetRooms(w http.ResponseWriter, r *http.Request)  {
+func GetRooms(w http.ResponseWriter, r *http.Request) {
 	user, err := spotifyclient.CreateUserFromRequest(r)
 
 	if err != nil {
@@ -173,11 +197,15 @@ func GetRooms(w http.ResponseWriter, r *http.Request)  {
 	httputils.SendJson(w, &roomCollection)
 }
 
-type NewRoom struct {
+type CreatedRoom struct {
 	RoomId string `json:"room_id"`
 }
 
-func CreateRoom(w http.ResponseWriter, r *http.Request)  {
+type NewRoom struct {
+	RoomName string `json:"room_name"`
+}
+
+func CreateRoom(w http.ResponseWriter, r *http.Request) {
 	user, err := spotifyclient.CreateUserFromRequest(r)
 
 	if err != nil {
@@ -185,12 +213,29 @@ func CreateRoom(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	logger.WithUser(user.GetUserId()).Infof("User %s requested to create a room", user.GetUserId())
+	var newRoom NewRoom
+	err = httputils.DeserialiseBody(r, &newRoom)
 
-	room := createRoom()
-	room.addUser(user)
+	if err != nil {
+		logger.Logger.Error("Failed to decode json body for add playlist for user")
+		handleError(err, w, r, user)
+		return
+	}
 
-	httputils.SendJson(w, NewRoom{room.Id})
+	roomId := utils.GenerateStrongHash()
+	roomName := newRoom.RoomName
+
+	// In case no room name was given, we use the room id
+	if roomName == "" {
+		roomName = fmt.Sprintf(defaultRoomName, roomId)
+	}
+
+	logger.WithUser(user.GetUserId()).Infof("User %s requested to create room with name=%s roomId=%s",
+		user.GetUserId(), roomName, roomId)
+
+	room := createRoom(roomId, roomName, user)
+
+	httputils.SendJson(w, CreatedRoom{room.Id})
 }
 
 /*
@@ -220,7 +265,12 @@ func GetRoom(w http.ResponseWriter, r *http.Request) {
 
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to get room %s", user.GetUserId(), roomId)
 
-	httputils.SendJson(w, room)
+	roomWithOwnerInfo := RoomWithOwnerInfo{
+		room,
+		room.isOwner(user),
+	}
+
+	httputils.SendJson(w, roomWithOwnerInfo)
 }
 
 /*

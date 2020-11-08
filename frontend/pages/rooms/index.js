@@ -2,7 +2,7 @@ import styles from "../../styles/rooms/Rooms.module.scss";
 import {useEffect, useState} from "react";
 import axios from "axios";
 import RoomListElem from "../../components/roomListElem";
-import {Button} from 'react-bootstrap';
+import {Button, FormControl, InputGroup} from 'react-bootstrap';
 
 import {showErrorToastWithError, showSuccessToast, Toast} from "../../components/toast";
 import {getUrl} from "../../utils/urlUtils";
@@ -10,6 +10,9 @@ import CustomHead from "../../components/Head";
 import {useRouter} from "next/router";
 import Header from "../../components/Header";
 import LoaderScreen from "../../components/LoaderScreen";
+import CustomModal from "../../components/CustomModal";
+import setState from "../../utils/stateUtils";
+import moment from "moment";
 
 export default function Rooms() {
   const router = useRouter()
@@ -20,38 +23,47 @@ export default function Rooms() {
 
   const [rooms, setRooms] = useState({
     rooms: [],
-    loading: true
+    loading: true,
+    newRomName: "",
+    showCreateRoomModal: false
   });
 
   const refresh = () => {
     axiosClient.get(getUrl('/rooms'))
-      .then(resp => setRooms(prevState => {
-        return {
-          ...prevState,
+      .then(resp => {
+        setState(setRooms, {
           rooms: Object.values(resp.data.rooms),
           loading: false
-        }
-      }))
-      .catch(error => {
-        setRooms(prevState => {
-          return {
-            ...prevState,
-            loading: false
-          }
         })
+      })
+      .catch(error => {
+        setState(setRooms, {loading: false})
         showErrorToastWithError("Failed to get all rooms info", error)
       })
   }
 
   const createRoom = () => {
-    axiosClient.post(getUrl('/rooms'))
-      .then(resp => {
-        const roomId = resp.data.room_id
-        router.push('/rooms/' + roomId)
-      })
-      .catch(error => {
-        showErrorToastWithError("Room failed to create ! Please try again", error)
-      })
+    axiosClient.post(getUrl('/rooms'), {
+      room_name: rooms.newRomName
+
+    }).then(resp => {
+      const roomId = resp.data.room_id
+      router.push('/rooms/' + roomId)
+
+    }).catch(error => {
+      showErrorToastWithError("Room failed to create ! Please try again", error)
+
+    }).finally(() => {
+      setState(setRooms, {newRomName: ""})
+    })
+  }
+
+  const showModal = () => {
+    setState(setRooms, {showCreateRoomModal: true})
+  }
+
+  const hideModal = () => {
+    setState(setRooms, {showCreateRoomModal: false, newRomName: ""})
   }
 
   useEffect(refresh, [])
@@ -63,21 +75,34 @@ export default function Rooms() {
     )
   }
 
+  let emptyRoomText;
   let roomsList;
 
   if (rooms.rooms.length === 0) {
-    roomsList = (
+    emptyRoomText = (
       <p className="mt-4">No rooms at the moment...</p>
     )
 
   } else {
-    roomsList = rooms.rooms.map(room => {
-      console.log(rooms)
+    roomsList = rooms.rooms.sort((room1, room2) => {
+      return moment(room2.creation_time) - moment(room1.creation_time)
+    }).map(room => {
       return (
         <RoomListElem key={room.id} room={room}/>
       )
     });
   }
+
+  let modalBody = (
+    <InputGroup className="mb-3">
+      <FormControl
+        aria-label="Default"
+        aria-describedby="inputGroup-sizing-default"
+        placeholder="Room #4FTY"
+        onChange={(e) => setState(setRooms, {newRomName: e.target.value})}
+      />
+    </InputGroup>
+  )
 
   return (
     <div className={styles.container}>
@@ -88,11 +113,13 @@ export default function Rooms() {
       <main className={styles.main}>
         <h1>Rooms</h1>
 
-        {roomsList}
+        {emptyRoomText}
 
-        <Button variant="outline-success" size="lg" className="mt-4" onClick={createRoom}>
+        <Button variant="outline-success" size="lg" className="mt-4 mb-4" onClick={showModal}>
           Create a new room
         </Button>
+
+        {roomsList}
       </main>
 
       <footer className={styles.footer}>
@@ -101,6 +128,17 @@ export default function Rooms() {
       </footer>
 
       <Toast/>
+
+      <CustomModal
+        show={rooms.showCreateRoomModal}
+        title={"How would you like to call you room ?"}
+        body={modalBody}
+        secondaryActionName={"Cancel"}
+        secondaryAction={hideModal}
+        onHideAction={hideModal}
+        primaryActionName={"Create room"}
+        primaryAction={createRoom}
+      />
     </div>
   )
 }

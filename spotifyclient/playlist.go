@@ -20,7 +20,7 @@ func (user *User) CreatePlaylist(playlistName string, tracks []*spotify.FullTrac
 		return nil, err
 	}
 
-	logger.Logger.Infof("Playlist '%s' successfully created for user %s", playlistName, user.GetUserId())
+	logger.Logger.Infof("PlaylistMetadata '%s' successfully created for user %s", playlistName, user.GetUserId())
 
 	// we add the tracks
 	trackIds := make([]spotify.ID, 0)
@@ -45,7 +45,7 @@ func (user *User) CreatePlaylist(playlistName string, tracks []*spotify.FullTrac
 			return nil, err
 		}
 
-		logger.Logger.Infof("Add %d tracks to Playlist '%s' successfully created for user %s",
+		logger.Logger.Infof("Add %d tracks to PlaylistMetadata '%s' successfully created for user %s",
 			upperBound-i, playlistName, user.GetUserId())
 	}
 
