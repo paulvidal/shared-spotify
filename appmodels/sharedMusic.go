@@ -15,7 +15,7 @@ type SharedMusicLibrary struct {
 	TotalUsers             int                        `json:"total_users"`
 	ProcessingStatus       *ProcessingStatus          `json:"processing_status"`
 	MusicProcessingChannel chan MusicProcessingResult `json:"-"`
-	CommonPlaylists         *CommonPlaylists          `json:"-"`
+	CommonPlaylists        *CommonPlaylists           `json:"-"`
 }
 
 type ProcessingStatus struct {

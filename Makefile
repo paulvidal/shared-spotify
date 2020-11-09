@@ -7,7 +7,7 @@ front:
 	yarn --cwd frontend dev
 
 mongo:
-	mongod --config /usr/local/etc/mongod.conf
+	run-rs --mongod --dbpath /usr/local/var/mongodb --keep
 
 connect:
-	mongo spotify
+	mongo "mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=rs"

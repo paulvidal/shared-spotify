@@ -56,7 +56,7 @@ func startServer() {
 }
 
 func connectToMongo() {
-	mongoclient.Init()
+	mongoclient.Initialise()
 }
 
 func main() {

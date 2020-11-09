@@ -39,7 +39,7 @@ func Initialise() {
 				Build())
 
 	// Connect to MongoDB
-	client, err := mongo.Connect(context.TODO(), clientOptions)
+	client, err := mongo.Connect(context.Background(), clientOptions)
 
 	// setup the client so we don't lose reference
 	MongoClient = client

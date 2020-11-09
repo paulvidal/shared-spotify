@@ -8,7 +8,7 @@ import (
 	"github.com/shared-spotify/spotifyclient"
 	"github.com/zmb3/spotify"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const roomCollection = "rooms"
@@ -22,20 +22,26 @@ type MongoRoom struct {
 }
 
 type MongoPlaylist struct {
-	*appmodels.Playlist
+	appmodels.PlaylistMetadata
 	TrackIdsPerSharedCount map[int][]string
+	UsersPerSharedTracks   map[string][]*spotifyclient.User
 }
 
-/**
-  TODO: We need to make sure when we insert a room, and when we deserialise it, we end up with the room and all its infos
-    we should only touch this class and adapt objects for now
-    => goal is to have rooms and tracks in separate collections otherwise size is too big
- */
-
 func InsertRoom(room *appmodels.Room) error {
+	playlists := room.GetPlaylists()
+
+	tracks := getAllTracksForPlaylists(playlists)
+	err := InsertTracks(tracks)
+
+	if err != nil {
+		return err
+	}
+
+	mongoPlaylists := convertPlaylistsToMongoPlaylists(playlists)
+
 	mongoRoom := MongoRoom{
 		room,
-		convertPlaylistsToMongoPlaylists(room.MusicLibrary.CommonPlaylists.Playlists),
+		mongoPlaylists,
 	}
 
 	insertResult, err := getDatabase().Collection(roomCollection).InsertOne(context.TODO(), mongoRoom)
@@ -51,14 +57,14 @@ func InsertRoom(room *appmodels.Room) error {
 }
 
 func GetRoom(roomId string) (*appmodels.Room, error) {
-	var result MongoRoom
+	var mongoRoom MongoRoom
 
 	filter := bson.D{{
 		"_id",
 		roomId,
 	}}
 
-	err := getDatabase().Collection(roomCollection).FindOne(context.TODO(), filter).Decode(&result)
+	err := getDatabase().Collection(roomCollection).FindOne(context.TODO(), filter).Decode(&mongoRoom)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -68,7 +74,18 @@ func GetRoom(roomId string) (*appmodels.Room, error) {
 		logger.Logger.Error("Failed to find room in mongo ", err)
 	}
 
-	return &result, err
+	room := mongoRoom.Room
+
+	// we then form back the playlists and recreate the room
+	playlists, err := convertMongoPlaylistsToPlaylists(mongoRoom.Playlists)
+
+	if err != nil {
+		return nil, err
+	}
+
+	room.SetPlaylists(playlists)
+
+	return room, err
 }
 
 func GetRoomsForUser(user *spotifyclient.User) ([]*appmodels.Room, error) {
@@ -99,76 +116,84 @@ func GetRoomsForUser(user *spotifyclient.User) ([]*appmodels.Room, error) {
 func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist) map[string]*MongoPlaylist {
 	mongoPlaylists := make(map[string]*MongoPlaylist)
 
-	// TODO
+	for playlistId, playlist := range playlists {
+		trackIdsPerSharedCount := make(map[int][]string)
+
+		for sharedCount, tracks := range playlist.TracksPerSharedCount {
+			trackIdsPerSharedCount[sharedCount] = getTrackIds(tracks)
+		}
+
+		mongoPlaylist := MongoPlaylist{
+			playlist.PlaylistMetadata,
+			trackIdsPerSharedCount,
+			playlist.UsersPerSharedTracks,
+		}
+
+		mongoPlaylists[playlistId] = &mongoPlaylist
+	}
+
+	return mongoPlaylists
 }
 
-func convertMongoPlaylistToPlaylist()  {
+func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) (map[string]*appmodels.Playlist, error) {
+	playlists := make(map[string]*appmodels.Playlist)
+	trackIds := make([]string, 0)
 
+	for _, mongoPlaylist := range mongoPlaylists {
+		for _, trackIds := range mongoPlaylist.TrackIdsPerSharedCount {
+			trackIds = append(trackIds, trackIds...)
+		}
+	}
+
+	trackPerId, err := GetTracks(trackIds)
+
+	if err != nil {
+		logger.Logger.Error("Failed to get tracks when converting mongo playlist to playlists ", err)
+		return nil, err
+	}
+
+	for playlistId, mongoPlaylist := range mongoPlaylists {
+		tracksPerSharedCount := make(map[int][]*spotify.FullTrack)
+
+		for sharedCount, trackIds := range mongoPlaylist.TrackIdsPerSharedCount {
+
+			tracks := make([]*spotify.FullTrack, 0)
+			for _, trackId := range trackIds {
+				track := trackPerId[trackId]
+				tracks = append(tracks, track)
+			}
+
+			tracksPerSharedCount[sharedCount] = tracks
+		}
+
+		playlists[playlistId] = &appmodels.Playlist{
+			PlaylistMetadata:     mongoPlaylist.PlaylistMetadata,
+			TracksPerSharedCount: tracksPerSharedCount,
+			UsersPerSharedTracks: mongoPlaylist.UsersPerSharedTracks,
+		}
+	}
+
+	return playlists, nil
 }
 
-/*
-  Tracks
- */
-
-type MongoTrack struct {
-	TrackId string `bson:"_id"`
-	*spotify.FullTrack `bson:"track"`
-}
-
-func InsertTracks(tracks []*spotify.FullTrack) error {
-	tracksToInsert := make([]interface{}, 0)
+func getTrackIds(tracks []*spotify.FullTrack) []string {
+	trackIds := make([]string, 0)
 
 	for _, track := range tracks {
-		id, _ := spotifyclient.GetTrackISRC(track)
-		tracksToInsert = append(tracksToInsert, MongoTrack{id, track})
+		isrc, _ := spotifyclient.GetTrackISRC(track)
+		trackIds = append(trackIds, isrc)
 	}
 
-	ordered := false // to prevent duplicates from making the whole operation fail, we will just ignore them
-	_, err := getDatabase().Collection(trackCollection).InsertMany(
-		context.TODO(),
-		tracksToInsert,
-		&options.InsertManyOptions{Ordered: &ordered})
-
-	if err != nil {
-		logger.Logger.Error("Failed to insert tracks in mongo ", err)
-		return err
-	}
-
-	return nil
+	return trackIds
 }
 
-func GetTracks(trackIds []string) ([]*spotify.FullTrack, error) {
-	results := make([]*MongoTrack, 0)
-	alltracks := make([]*spotify.FullTrack, 0)
+func getAllTracksForPlaylists(playlists map[string]*appmodels.Playlist) []*spotify.FullTrack {
+	allTracks := make([]*spotify.FullTrack, 0)
 
-	filter := bson.D{{
-		"_id",
-		bson.D{{
-			"$in",
-			bson.A{
-				trackIds,
-			},
-		}},
-	}}
-
-	cursor, err := getDatabase().Collection(trackCollection).Find(context.TODO(), filter)
-
-	if err != nil {
-		logger.Logger.Error("Failed to find tracks in mongo ", err)
-		return nil, err
+	for _, playlist := range playlists {
+		tracks := playlist.GetAllTracks()
+		allTracks = append(allTracks, tracks...)
 	}
 
-	err = cursor.All(context.TODO(), &results)
-
-	if err != nil {
-		logger.Logger.Error("Failed to find tracks in mongo ", err)
-		return nil, err
-	}
-
-	// we convert the tracks back to their original format
-	for _, r := range results {
-		alltracks = append(alltracks, r.FullTrack)
-	}
-
-	return alltracks, nil
+	return allTracks
 }

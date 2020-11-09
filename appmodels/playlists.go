@@ -69,10 +69,10 @@ type PlaylistMetadata struct {
 type Playlist struct {
 	PlaylistMetadata
 	TracksPerSharedCount map[int][]*spotify.FullTrack     `json:"tracks_per_shared_count" bson:"-"`
-	UsersPerSharedTracks map[string][]*spotifyclient.User `json:"users_per_shared_tracks"`
+	UsersPerSharedTracks map[string][]*spotifyclient.User `json:"users_per_shared_tracks" bson:"-"`
 }
 
-func (playlist *Playlist) getAllTracks() []*spotify.FullTrack {
+func (playlist *Playlist) GetAllTracks() []*spotify.FullTrack {
 	tracks := make([]*spotify.FullTrack, 0)
 
 	for _, tracksPart := range playlist.TracksPerSharedCount {
@@ -168,7 +168,7 @@ func (playlists *CommonPlaylists) GeneratePlaylists() error {
 	sharedTrackPlaylist := playlists.GenerateCommonPlaylistType()
 
 	// get all the shared track so it can be used to get infos on those tracks
-	allSharedTracks := sharedTrackPlaylist.getAllTracks()
+	allSharedTracks := sharedTrackPlaylist.GetAllTracks()
 
 	// get audio features among common songs
 	user := playlists.getAUser()
