@@ -6,7 +6,7 @@ import (
 )
 
 type Room struct {
-	Id           string                `json:"id" bson:"_id"`
+	Id           string                `json:"id"`
 	Name         string                `json:"name"`
 	Owner        *spotifyclient.User   `json:"owner"`
 	Users        []*spotifyclient.User `json:"users"`

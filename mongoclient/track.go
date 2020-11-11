@@ -6,13 +6,12 @@ import (
 	"github.com/shared-spotify/spotifyclient"
 	"github.com/zmb3/spotify"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type MongoTrack struct {
 	TrackId            string `bson:"_id"`
-	*spotify.FullTrack `bson:"track"`
+	*spotify.FullTrack        `bson:"track"`
 }
 
 func InsertTracks(tracks []*spotify.FullTrack) error {
@@ -26,48 +25,61 @@ func InsertTracks(tracks []*spotify.FullTrack) error {
 	// We do a mongo transaction as we want all the documents to be inserted at once
 	ctx := context.Background()
 
-	callback := func(sessCtx mongo.SessionContext) (interface{}, error) {
-		// Important: You must pass sessCtx as the Context parameter to the operations for them to be executed in the
-		// transaction.
-
-		ordered := false // to prevent duplicates from making the whole operation fail, we will just ignore them
-		result, err := getDatabase().Collection(trackCollection).InsertMany(
-			sessCtx,
-			tracksToInsert,
-			&options.InsertManyOptions{Ordered: &ordered})
-
-		return result, err
-	}
-
 	mongoSession, err := MongoClient.StartSession()
 
 	if err != nil {
 		logger.Logger.Error("Failed to start mongo session ", err)
-	}
-
-	defer mongoSession.EndSession(ctx)
-
-	_, err = mongoSession.WithTransaction(ctx, callback)
-
-	if err != nil {
-		logger.Logger.Error("Failed to insert tracks in mongo ", err)
 		return err
 	}
+
+	err = mongoSession.StartTransaction()
+
+	if err != nil {
+		logger.Logger.Error("Failed to start mongo transaction ", err)
+		return err
+	}
+
+	ordered := false // to prevent duplicates from making the whole operation fail, we will just ignore them
+	result, err := getDatabase().Collection(trackCollection).InsertMany(
+		ctx,
+		tracksToInsert,
+		&options.InsertManyOptions{Ordered: &ordered})
+
+	if !IsOnlyDuplicateError(err) {
+		logger.Logger.Error("Failed to insert tracks in mongo ", err)
+		abortErr := mongoSession.AbortTransaction(ctx)
+
+		if abortErr != nil {
+			logger.Logger.Error("Failed to abort mongo transaction ", err)
+			return abortErr
+		}
+
+		return err
+	}
+
+	err = mongoSession.CommitTransaction(ctx)
+
+	if err != nil {
+		logger.Logger.Error("Failed to commit mongo transaction ", err)
+		return err
+	}
+
+	mongoSession.EndSession(ctx)
+
+	logger.Logger.Info("Tracks were inserted successfully in mongo ", result.InsertedIDs)
 
 	return nil
 }
 
 func GetTracks(trackIds []string) (map[string]*spotify.FullTrack, error) {
-	mongotracks := make([]*MongoTrack, 0)
+	mongoTracks := make([]*MongoTrack, 0)
 	tracksPerId := make(map[string]*spotify.FullTrack)
 
 	filter := bson.D{{
 		"_id",
 		bson.D{{
 			"$in",
-			bson.A{
-				trackIds,
-			},
+			trackIds,
 		}},
 	}}
 
@@ -78,7 +90,7 @@ func GetTracks(trackIds []string) (map[string]*spotify.FullTrack, error) {
 		return nil, err
 	}
 
-	err = cursor.All(context.TODO(), &mongotracks)
+	err = cursor.All(context.TODO(), &mongoTracks)
 
 	if err != nil {
 		logger.Logger.Error("Failed to find tracks in mongo ", err)
@@ -86,7 +98,7 @@ func GetTracks(trackIds []string) (map[string]*spotify.FullTrack, error) {
 	}
 
 	// we convert the tracks back to their original format
-	for _, mongoTrack := range mongotracks {
+	for _, mongoTrack := range mongoTracks {
 		isrc, _ := spotifyclient.GetTrackISRC(mongoTrack.FullTrack)
 		tracksPerId[isrc] = mongoTrack.FullTrack
 	}

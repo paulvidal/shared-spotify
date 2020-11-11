@@ -17,8 +17,9 @@ const trackCollection = "tracks"
 var NotFound = errors.New("Not found")
 
 type MongoRoom struct {
-	*appmodels.Room
-	Playlists map[string]*MongoPlaylist
+	Id string                             `bson:"_id"`
+	*appmodels.Room                       `bson:"room"`
+	Playlists map[string]*MongoPlaylist   `bson:"playlists"`
 }
 
 type MongoPlaylist struct {
@@ -40,6 +41,7 @@ func InsertRoom(room *appmodels.Room) error {
 	mongoPlaylists := convertPlaylistsToMongoPlaylists(playlists)
 
 	mongoRoom := MongoRoom{
+		room.Id,
 		room,
 		mongoPlaylists,
 	}
@@ -89,10 +91,11 @@ func GetRoom(roomId string) (*appmodels.Room, error) {
 }
 
 func GetRoomsForUser(user *spotifyclient.User) ([]*appmodels.Room, error) {
-	results := make([]*appmodels.Room, 0)
+	mongoRooms := make([]*MongoRoom, 0)
+	rooms := make([]*appmodels.Room, 0)
 
 	filter := bson.D{{
-		"users.userinfos.id",
+		"room.users.userinfos.id",
 		user.GetId(),
 	}}
 
@@ -103,14 +106,18 @@ func GetRoomsForUser(user *spotifyclient.User) ([]*appmodels.Room, error) {
 		return nil, err
 	}
 
-	err = cursor.All(context.TODO(), &results)
+	err = cursor.All(context.TODO(), &mongoRooms)
 
 	if err != nil {
 		logger.Logger.Error("Failed to find rooms for user in mongo ", err)
 		return nil, err
 	}
 
-	return results, nil
+	for _, mongoRoom := range mongoRooms {
+		rooms = append(rooms, mongoRoom.Room)
+	}
+
+	return rooms, nil
 }
 
 func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist) map[string]*MongoPlaylist {
@@ -137,15 +144,15 @@ func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist) 
 
 func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) (map[string]*appmodels.Playlist, error) {
 	playlists := make(map[string]*appmodels.Playlist)
-	trackIds := make([]string, 0)
+	allTrackIds := make([]string, 0)
 
 	for _, mongoPlaylist := range mongoPlaylists {
 		for _, trackIds := range mongoPlaylist.TrackIdsPerSharedCount {
-			trackIds = append(trackIds, trackIds...)
+			allTrackIds = append(allTrackIds, trackIds...)
 		}
 	}
 
-	trackPerId, err := GetTracks(trackIds)
+	trackPerId, err := GetTracks(allTrackIds)
 
 	if err != nil {
 		logger.Logger.Error("Failed to get tracks when converting mongo playlist to playlists ", err)
