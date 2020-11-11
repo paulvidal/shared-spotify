@@ -9,9 +9,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+const trackCollection = "tracks"
+
 type MongoTrack struct {
 	TrackId            string `bson:"_id"`
-	*spotify.FullTrack        `bson:"track"`
+	*spotify.FullTrack        `bson:"inline"`
 }
 
 func InsertTracks(tracks []*spotify.FullTrack) error {
@@ -28,14 +30,14 @@ func InsertTracks(tracks []*spotify.FullTrack) error {
 	mongoSession, err := MongoClient.StartSession()
 
 	if err != nil {
-		logger.Logger.Error("Failed to start mongo session ", err)
+		logger.Logger.Error("Failed to start mongo session to insert track ", err)
 		return err
 	}
 
 	err = mongoSession.StartTransaction()
 
 	if err != nil {
-		logger.Logger.Error("Failed to start mongo transaction ", err)
+		logger.Logger.Error("Failed to start mongo transaction to insert tracks ", err)
 		return err
 	}
 
@@ -45,12 +47,12 @@ func InsertTracks(tracks []*spotify.FullTrack) error {
 		tracksToInsert,
 		&options.InsertManyOptions{Ordered: &ordered})
 
-	if !IsOnlyDuplicateError(err) {
+	if err != nil && !IsOnlyDuplicateError(err) {
 		logger.Logger.Error("Failed to insert tracks in mongo ", err)
 		abortErr := mongoSession.AbortTransaction(ctx)
 
 		if abortErr != nil {
-			logger.Logger.Error("Failed to abort mongo transaction ", err)
+			logger.Logger.Error("Failed to abort mongo transaction to insert tracks ", err)
 			return abortErr
 		}
 
@@ -60,7 +62,7 @@ func InsertTracks(tracks []*spotify.FullTrack) error {
 	err = mongoSession.CommitTransaction(ctx)
 
 	if err != nil {
-		logger.Logger.Error("Failed to commit mongo transaction ", err)
+		logger.Logger.Error("Failed to commit mongo transaction to insert tracks ", err)
 		return err
 	}
 

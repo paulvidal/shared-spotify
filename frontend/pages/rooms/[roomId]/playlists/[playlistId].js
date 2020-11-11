@@ -60,7 +60,8 @@ export default function Playlist() {
     maxSharedCountLimit: 0,
     loading: true,
     showConfirmationModal: false,
-    users_per_shared_tracks: {}
+    user_ids_per_shared_tracks: {},
+    users: {}
   });
 
   const refresh = () => {
@@ -194,13 +195,15 @@ export default function Playlist() {
               })
               .map(track => {
                 let trackISRC = track.external_ids["isrc"]
+                let userIds = playlist.user_ids_per_shared_tracks[trackISRC]
+                let users = userIds.map(id => playlist.users[id])
 
                 return (
                   <PlaylistListElem
                     key={track.id}
                     track={track}
                     songPlaying={playlist.song_playing}
-                    usersForTrack={playlist.users_per_shared_tracks[trackISRC]}
+                    usersForTrack={users}
                     updateSongCallback={updateSongCallback}/>
                 )
               })
@@ -368,7 +371,6 @@ export default function Playlist() {
 
       <main className={styles.main}>
         <h1 className="text-center mt-3 mb-3">{playlist.name}</h1>
-        <p>Room #{roomId}</p>
         {slider}
         {sliderHelp}
         {info}

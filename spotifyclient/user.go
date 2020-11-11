@@ -5,13 +5,13 @@ import (
 )
 
 type UserInfos struct {
-	Id       string `json:"id"`
+	Id       string `json:"id" bson:"_id"`
 	Name     string `json:"name"`
 	ImageUrl string `json:"image"`
 }
 
 type User struct {
-	UserInfos
+	UserInfos              `bson:"inline"`
 	Client *spotify.Client `json:"-"` // we ignore this field
 }
 

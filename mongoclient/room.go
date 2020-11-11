@@ -12,36 +12,43 @@ import (
 )
 
 const roomCollection = "rooms"
-const trackCollection = "tracks"
 
 var NotFound = errors.New("Not found")
 
 type MongoRoom struct {
-	Id string                             `bson:"_id"`
-	*appmodels.Room                       `bson:"room"`
+	*appmodels.Room                       `bson:"inline"`
 	Playlists map[string]*MongoPlaylist   `bson:"playlists"`
 }
 
 type MongoPlaylist struct {
-	appmodels.PlaylistMetadata
-	TrackIdsPerSharedCount map[int][]string
-	UsersPerSharedTracks   map[string][]*spotifyclient.User
+	appmodels.PlaylistMetadata                             `bson:"inline"`
+	TrackIdsPerSharedCount map[int][]string                `bson:"track_ids_per_shared_count"`
+	UserIdsPerSharedTracks map[string][]string             `bson:"user_ids_per_shared_tracks"`
+	Users                  map[string]*spotifyclient.User  `bson:"users"`
 }
 
 func InsertRoom(room *appmodels.Room) error {
 	playlists := room.GetPlaylists()
 
-	tracks := getAllTracksForPlaylists(playlists)
-	err := InsertTracks(tracks)
+	// we insert the users
+	err := InsertUsers(room.Users)
 
 	if err != nil {
 		return err
 	}
 
+	// we insert the tracks
+	tracks := getAllTracksForPlaylists(playlists)
+	err = InsertTracks(tracks)
+
+	if err != nil {
+		return err
+	}
+
+	// we insert the room
 	mongoPlaylists := convertPlaylistsToMongoPlaylists(playlists)
 
 	mongoRoom := MongoRoom{
-		room.Id,
 		room,
 		mongoPlaylists,
 	}
@@ -95,7 +102,7 @@ func GetRoomsForUser(user *spotifyclient.User) ([]*appmodels.Room, error) {
 	rooms := make([]*appmodels.Room, 0)
 
 	filter := bson.D{{
-		"room.users.userinfos.id",
+		"users._id",
 		user.GetId(),
 	}}
 
@@ -133,7 +140,8 @@ func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist) 
 		mongoPlaylist := MongoPlaylist{
 			playlist.PlaylistMetadata,
 			trackIdsPerSharedCount,
-			playlist.UsersPerSharedTracks,
+			playlist.UserIdsPerSharedTracks,
+			playlist.Users,
 		}
 
 		mongoPlaylists[playlistId] = &mongoPlaylist
@@ -144,8 +152,9 @@ func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist) 
 
 func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) (map[string]*appmodels.Playlist, error) {
 	playlists := make(map[string]*appmodels.Playlist)
-	allTrackIds := make([]string, 0)
 
+	// we get the tracks
+	allTrackIds := make([]string, 0)
 	for _, mongoPlaylist := range mongoPlaylists {
 		for _, trackIds := range mongoPlaylist.TrackIdsPerSharedCount {
 			allTrackIds = append(allTrackIds, trackIds...)
@@ -176,7 +185,8 @@ func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) 
 		playlists[playlistId] = &appmodels.Playlist{
 			PlaylistMetadata:     mongoPlaylist.PlaylistMetadata,
 			TracksPerSharedCount: tracksPerSharedCount,
-			UsersPerSharedTracks: mongoPlaylist.UsersPerSharedTracks,
+			UserIdsPerSharedTracks: mongoPlaylist.UserIdsPerSharedTracks,
+			Users: mongoPlaylist.Users,
 		}
 	}
 

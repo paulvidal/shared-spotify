@@ -15,7 +15,6 @@ import (
 
 const defaultRoomName = "Room #%s"
 
-var failedToCreateRoom = errors.New("Failed to create room")
 var failedToGetRoom = errors.New("Failed to get room")
 var failedToGetRooms = errors.New("Failed to get rooms")
 var roomDoesNotExistError = errors.New("Room does not exists")
