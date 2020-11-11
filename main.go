@@ -8,20 +8,49 @@ import (
 	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/spotifyclient"
 	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
 	"net/http"
 	"os"
 )
 
 var Port = os.Getenv("PORT")
+var Env = os.Getenv("ENV")
+var ReleaseVersion = os.Getenv("HEROKU_RELEASE_VERSION")
+
+const Service = "shared-spotify-backend"
 
 func startServer() {
+	// Activate datadog tracer
+	rules := []tracer.SamplingRule{tracer.RateRule(1)}
+	tracer.Start(
+		tracer.WithSamplingRules(rules),
+		tracer.WithService(Service),
+		tracer.WithEnv(Env),
+		tracer.WithServiceVersion(ReleaseVersion),
+	)
+	defer tracer.Stop()
+
+	logger.Logger.Warning("Datadog tracer started")
+
+	// Activate datadog profiler
+	err := profiler.Start(
+		profiler.WithService("shared-spotify"),
+		profiler.WithEnv("staging"),
+	);
+
+	if err != nil {
+		logger.Logger.Fatal("Failed to start profiler ", err)
+	}
+
+	logger.Logger.Warning("Datadog profiler started")
+
+	defer profiler.Stop()
+
 	logger.Logger.Warning("Starting server")
 
-	r := muxtrace.NewRouter(
-		muxtrace.WithServiceName("shared-spotify-backend"),
-		muxtrace.WithAnalytics(true),
-		muxtrace.WithAnalyticsRate(1.0),
-	)
+	// Create the router
+	r := muxtrace.NewRouter()
 
 	r.HandleFunc("/login", spotifyclient.Authenticate)
 	r.HandleFunc("/callback", spotifyclient.CallbackHandler)
@@ -49,9 +78,9 @@ func startServer() {
 	handler = handlers.RecoveryHandler()(handler)
 
 	// Launch the server
-	err := http.ListenAndServe(":" + Port, handler)
+	err = http.ListenAndServe(":" + Port, handler)
 	if err != nil {
-		logger.Logger.Fatal("Failed to start server", err)
+		logger.Logger.Fatal("Failed to start server ", err)
 	}
 }
 
