@@ -35,8 +35,9 @@ func startServer() {
 
 	// Activate datadog profiler
 	err := profiler.Start(
-		profiler.WithService("shared-spotify"),
-		profiler.WithEnv("staging"),
+		profiler.WithService(Service),
+		profiler.WithEnv(Env),
+		profiler.WithVersion(ReleaseVersion),
 	);
 
 	if err != nil {
