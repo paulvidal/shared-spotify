@@ -25,6 +25,7 @@ func startServer() {
 	rules := []tracer.SamplingRule{tracer.RateRule(1)}
 	tracer.Start(
 		tracer.WithSamplingRules(rules),
+		tracer.WithAnalytics(true),
 		tracer.WithService(Service),
 		tracer.WithEnv(Env),
 		tracer.WithServiceVersion(ReleaseVersion),
