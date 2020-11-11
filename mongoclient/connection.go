@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	mongotrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/go.mongodb.org/mongo-driver/mongo"
 	"os"
 	"reflect"
 )
@@ -36,7 +37,8 @@ func Initialise() {
 			bson.NewRegistryBuilder().  // Add th new struct codec
 				RegisterDefaultDecoder(reflect.Struct, structcodec).
 				RegisterDefaultEncoder(reflect.Struct, structcodec).
-				Build())
+				Build()).
+		SetMonitor(mongotrace.NewMonitor(mongotrace.WithAnalytics(true))) // enable tracing of mongo calls
 
 	// Connect to MongoDB
 	client, err := mongo.Connect(context.Background(), clientOptions)
