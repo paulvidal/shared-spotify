@@ -4,16 +4,19 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/shared-spotify/appmodels"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/spotifyclient"
 	"github.com/shared-spotify/utils"
 	"net/http"
-	"time"
 )
 
 const defaultRoomName = "Room #%s"
 
+var failedToGetRoom = errors.New("Failed to get room")
+var failedToGetRooms = errors.New("Failed to get rooms")
 var roomDoesNotExistError = errors.New("Room does not exists")
 var roomIsNotAccessibleError = errors.New("Room is not accessible to user")
 var authenticationError = errors.New("Failed to authenticate user")
@@ -23,91 +26,48 @@ var processingNotStartedError = errors.New("Processing of music has not been don
 var processingFailedError = errors.New("Processing of music failed, cannot get playlists")
 var failedToCreatePlaylistError = errors.New("An error occurred while creating the playlist")
 
-// An in memory representation of all the rooms, would be better if it was persistent but for now this is fine
-var allRooms = RoomCollection{make(map[string]*Room)}
+// we store in memory the rooms not processed so that if the server crashes, we do not need to manage recovery of
+// ongoing processing - it has the pitfall though that we won't preserve state for not processed room
+var roomNotProcessed = make(map[string]*appmodels.Room)
 
-type RoomCollection struct {
-	Rooms map[string]*Room `json:"rooms"`
+func addRoomNotProcessed(room *appmodels.Room) {
+	roomNotProcessed[room.Id] = room
 }
 
-type Room struct {
-	Id           string                `json:"id"`
-	Name         string                `json:"name"`
-	Owner        *spotifyclient.User   `json:"owner"`
-	Users        []*spotifyclient.User `json:"users"`
-	CreationTime time.Time             `json:"creation_time"`
-	Locked       *bool                 `json:"locked"`
-	MusicLibrary *SharedMusicLibrary   `json:"shared_music_library"`
+func removeRoomNotProcessed(room *appmodels.Room) {
+	err := mongoclient.InsertRoom(room)
+
+	if err != nil {
+		// if we fail to insert the result in mongo, we declare processing as failed
+		success := false
+		roomNotProcessed[room.Id].MusicLibrary.SetProcessingSuccess(&success)
+
+	} else {
+		// otherwise we delete the room from the rooms being processed
+		delete(roomNotProcessed, room.Id)
+	}
 }
 
-type RoomWithOwnerInfo struct {
-	*Room
-	IsOwner bool `json:"is_owner"`
-}
-
-func createRoom(roomId string, roomName string, owner *spotifyclient.User) *Room {
-	locked := false
-	room := &Room{
-		roomId,
-		roomName,
-		owner,
-		make([]*spotifyclient.User, 0),
-		time.Now(),
-		&locked,
-		nil,
+func getRoom(roomId string) (*appmodels.Room, error) {
+	// we check if a room not processed exists first, and we use it if it exists
+	if roomNotProcessed, ok := roomNotProcessed[roomId]; ok {
+		return roomNotProcessed, nil
 	}
 
-	// Add the owner to the room
-	room.addUser(owner)
+	room, err := mongoclient.GetRoom(roomId)
 
-	// Add to the room list
-	allRooms.Rooms[roomId] = room
-
-	return room
-}
-
-func (room *Room) addUser(user *spotifyclient.User) {
-	// If the user is already in the room, do not add it
-	if room.isUserInRoom(user) {
-		return
-	}
-
-	room.Users = append(room.Users, user)
-}
-
-func (room *Room) isUserInRoom(user *spotifyclient.User) bool {
-	for _, roomUser := range room.Users {
-		if roomUser.IsEqual(user) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (room *Room) getUserIds() []string {
-	userNames := make([]string, 0)
-	for _, user := range room.Users {
-		userNames = append(userNames, user.Infos.Id)
-	}
-	return userNames
-}
-
-func (room *Room) isOwner(user *spotifyclient.User) bool {
-	return room.Owner.IsEqual(user)
-}
-
-func getRoom(roomId string) (*Room, error) {
-	room, ok := allRooms.Rooms[roomId]
-
-	if !ok {
+	if err == mongoclient.NotFound {
 		return nil, roomDoesNotExistError
+	}
+
+	if err != nil {
+		return nil, failedToGetRoom
 	}
 
 	return room, nil
 }
 
-func getRoomAndCheckUser(roomId string, r *http.Request) (*Room, *spotifyclient.User, error) {
+func getRoomAndCheckUser(roomId string, r *http.Request) (*appmodels.Room, *spotifyclient.User, error) {
 	room, err := getRoom(roomId)
 
 	if err != nil {
@@ -120,7 +80,7 @@ func getRoomAndCheckUser(roomId string, r *http.Request) (*Room, *spotifyclient.
 		return nil, nil, authenticationError
 	}
 
-	if !room.isUserInRoom(user) {
+	if !room.IsUserInRoom(user) {
 		return nil, user, roomIsNotAccessibleError
 	}
 
@@ -148,7 +108,7 @@ func handleError(err error, w http.ResponseWriter, r *http.Request, user *spotif
 	} else if err == roomLockedError {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 
-	} else if err == errorPlaylistTypeNotFound {
+	} else if err == appmodels.ErrorPlaylistTypeNotFound {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 
 	} else if err == processingInProgressError || err == processingFailedError || err == processingNotStartedError {
@@ -184,17 +144,21 @@ func GetRooms(w http.ResponseWriter, r *http.Request) {
 
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to get rooms", user.GetUserId())
 
-	rooms := make(map[string]*Room)
+	rooms, err := mongoclient.GetRoomsForUser(user)
 
-	for roomId, room := range allRooms.Rooms {
-		if room.isUserInRoom(user) {
-			rooms[roomId] = room
+	if err != nil {
+		handleError(failedToGetRooms, w, r, user)
+		return
+	}
+
+	// we add to these rooms the not processed yet rooms
+	for _, room := range roomNotProcessed {
+		if room.IsUserInRoom(user) {
+			rooms = append(rooms, room)
 		}
 	}
 
-	roomCollection := RoomCollection{rooms}
-
-	httputils.SendJson(w, &roomCollection)
+	httputils.SendJson(w, &rooms)
 }
 
 type CreatedRoom struct {
@@ -233,7 +197,10 @@ func CreateRoom(w http.ResponseWriter, r *http.Request) {
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to create room with name=%s roomId=%s",
 		user.GetUserId(), roomName, roomId)
 
-	room := createRoom(roomId, roomName, user)
+	room := appmodels.CreateRoom(roomId, roomName, user)
+
+	// Add the room in memory (it will be added to mongo once processed)
+	addRoomNotProcessed(room)
 
 	httputils.SendJson(w, CreatedRoom{room.Id})
 }
@@ -265,9 +232,9 @@ func GetRoom(w http.ResponseWriter, r *http.Request) {
 
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to get room %s", user.GetUserId(), roomId)
 
-	roomWithOwnerInfo := RoomWithOwnerInfo{
-		room,
-		room.isOwner(user),
+	roomWithOwnerInfo := appmodels.RoomWithOwnerInfo{
+		Room:    room,
+		IsOwner: room.IsOwner(user),
 	}
 
 	httputils.SendJson(w, roomWithOwnerInfo)
@@ -307,7 +274,7 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to be added to room %s", user.GetUserId(), roomId)
 
-	if room.isUserInRoom(user) {
+	if room.IsUserInRoom(user) {
 		// if user is already in room, just send ok
 		httputils.SendOk(w)
 	}
@@ -317,7 +284,7 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	room.addUser(user)
+	room.AddUser(user)
 
 	httputils.SendOk(w)
 }

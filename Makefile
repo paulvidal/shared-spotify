@@ -5,3 +5,9 @@ run:
 
 front:
 	yarn --cwd frontend dev
+
+mongo:
+	mongod --config /usr/local/etc/mongod.conf --replSet rs
+
+connect:
+	mongo spotify

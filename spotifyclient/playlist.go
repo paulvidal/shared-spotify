@@ -12,7 +12,7 @@ const spotifyExternalLinkName = "spotify"
 
 func (user *User) CreatePlaylist(playlistName string, tracks []*spotify.FullTrack) (*string, error) {
 	// we create the playlist
-	fullPlaylist, err := user.Client.CreatePlaylistForUser(user.Infos.Id, playlistName,
+	fullPlaylist, err := user.Client.CreatePlaylistForUser(user.GetId(), playlistName,
 		playlistDescription, playlistPublic)
 
 	if err != nil {

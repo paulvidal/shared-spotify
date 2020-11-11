@@ -114,7 +114,7 @@ export default function Room() {
 
   let userList = room.users.map(user => {
     return (
-      <UserRoomListElem key={user.user_infos.id} user={user} />
+      <UserRoomListElem key={user.id} user={user} />
     )
   })
 
@@ -151,7 +151,7 @@ export default function Room() {
             placement="top"
             overlay={
               <Tooltip id="overlay-tooltip">
-                Only {room.owner.user_infos.name}, the person that created the room, can trigger this action
+                Only {room.owner.name}, the person that created the room, can trigger this action
               </Tooltip>
             }
           >

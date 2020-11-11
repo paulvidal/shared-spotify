@@ -5,6 +5,7 @@ import (
 	"github.com/rs/cors"
 	"github.com/shared-spotify/app"
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/spotifyclient"
 	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 	"net/http"
@@ -54,6 +55,11 @@ func startServer() {
 	}
 }
 
+func connectToMongo() {
+	mongoclient.Initialise()
+}
+
 func main() {
+	connectToMongo()
 	startServer()
 }

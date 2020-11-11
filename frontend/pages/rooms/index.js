@@ -32,7 +32,7 @@ export default function Rooms() {
     axiosClient.get(getUrl('/rooms'))
       .then(resp => {
         setState(setRooms, {
-          rooms: Object.values(resp.data.rooms),
+          rooms: resp.data,
           loading: false
         })
       })

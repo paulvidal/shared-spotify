@@ -45,7 +45,7 @@ export default function RoomListElem(props) {
         </Card.Title>
 
         <Card.Text>
-          Friends: {props.room.users.map(user => user.user_infos.name).join(", ")}
+          Friends: {props.room.users.map(user => user.name).join(", ")}
         </Card.Text>
 
         <div>

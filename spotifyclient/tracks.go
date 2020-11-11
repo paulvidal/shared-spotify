@@ -110,7 +110,7 @@ func (user *User) GetAllPlaylistSongs() ([]*spotify.FullTrack, error) {
 		for _, simplePlaylist := range simplePlaylistPage.Playlists {
 
 			// If the playlist is owned by someone else and was just "liked" by the user, do not include it
-			if simplePlaylist.Owner.ID != user.Infos.Id {
+			if simplePlaylist.Owner.ID != user.GetId() {
 				continue
 			}
 

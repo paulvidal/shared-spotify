@@ -9,6 +9,7 @@ import {isEmpty} from "lodash";
 import CustomHead from "../../../components/Head";
 import Header from "../../../components/Header";
 import LoaderScreen from "../../../components/LoaderScreen";
+import setState from "../../../utils/stateUtils";
 
 export default function RoomShare() {
   const router = useRouter()
@@ -19,8 +20,8 @@ export default function RoomShare() {
   })
 
   const [user, setUser] = useState({
-    'user_infos': {},
-    'loading': true
+    user: {},
+    loading: true
   });
 
   const addUserToRoom = () => {
@@ -34,12 +35,7 @@ export default function RoomShare() {
         router.push('/rooms/' + roomId)
       })
       .catch(error => {
-        setUser(prevState => {
-          return {
-            ...prevState,
-            loading: false
-          }
-        })
+        setState(setUser, {loading: false})
         showErrorToastWithError("Cannot join the room", error)
       })
   }
@@ -47,21 +43,11 @@ export default function RoomShare() {
   const refresh = () => {
     axiosClient.get(getUrl('/user'))
       .then(resp => {
-        setUser(prevState => {
-          return {
-            ...prevState,
-            ...resp.data
-          }
-        })
+        setState(setUser, {user: resp.data})
         addUserToRoom()
       })
       .catch(error => {
-        setUser(prevState => {
-          return {
-            ...prevState,
-            loading: false
-          }
-        })
+        setState(setUser, {loading: false})
       })
   }
 
@@ -69,7 +55,7 @@ export default function RoomShare() {
 
   let button;
 
-  if (isEmpty(user.user_infos)) {
+  if (isEmpty(user.user)) {
     button = (
       <Button href={getUrl('/login')} variant="outline-success" size="lg" className="mt-5">
         Connect spotify account

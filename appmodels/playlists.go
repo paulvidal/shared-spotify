@@ -1,4 +1,4 @@
-package app
+package appmodels
 
 import (
 	"fmt"
@@ -34,7 +34,7 @@ type CommonPlaylists struct {
 	Playlists map[string]*Playlist `json:"-"`
 
 	// These are fields used for computation of the playlists, they are not useful once Playlists is populated
-	*CommonPlaylistComputation
+	*CommonPlaylistComputation `bson:"-"`
 }
 
 type CommonPlaylistComputation struct {
@@ -44,8 +44,8 @@ type CommonPlaylistComputation struct {
 	TracksPerUser map[string][]*spotify.FullTrack `json:"-"`
 	// all users sharing track in a map with key track id
 	SharedTracksRank map[string][]*spotifyclient.User `json:"-"`
-	// all users sharing track above the min threshold minNumberOfUserForCommonMusic in a map with key track id
-	SharedTracksRankAboveMinThreshold map[string][]*spotifyclient.User `json:"-"`
+	// all user ids sharing track above the min threshold minNumberOfUserForCommonMusic in a map with key track id
+	SharedTracksRankAboveMinThreshold map[string][]string `json:"-"`
 	// all tracks of all users in a map with key track id
 	SharedTracks map[string]*spotify.FullTrack `json:"-"`
 	// audio records in a map with key track id
@@ -67,12 +67,13 @@ type PlaylistMetadata struct {
 }
 
 type Playlist struct {
-	PlaylistMetadata
-	TracksPerSharedCount map[int][]*spotify.FullTrack     `json:"tracks_per_shared_count"`
-	UsersPerSharedTracks map[string][]*spotifyclient.User `json:"users_per_shared_tracks"`
+	PlaylistMetadata                                        `bson:"inline"`
+	TracksPerSharedCount   map[int][]*spotify.FullTrack     `json:"tracks_per_shared_count"`
+	UserIdsPerSharedTracks map[string][]string              `json:"user_ids_per_shared_tracks"`
+	Users                  map[string]*spotifyclient.User   `json:"users"`
 }
 
-func (playlist *Playlist) getAllTracks() []*spotify.FullTrack {
+func (playlist *Playlist) GetAllTracks() []*spotify.FullTrack {
 	tracks := make([]*spotify.FullTrack, 0)
 
 	for _, tracksPart := range playlist.TracksPerSharedCount {
@@ -82,7 +83,7 @@ func (playlist *Playlist) getAllTracks() []*spotify.FullTrack {
 	return tracks
 }
 
-func (playlists *CommonPlaylists) getPlaylistsMetadata() PlaylistsMetadata {
+func (playlists *CommonPlaylists) GetPlaylistsMetadata() PlaylistsMetadata {
 	playlistsMetadata := make(PlaylistsMetadata)
 
 	for playlistId, playlist := range playlists.Playlists {
@@ -97,7 +98,7 @@ func CreateCommonPlaylists() *CommonPlaylists {
 		make(map[string]*spotifyclient.User),
 		make(map[string][]*spotify.FullTrack),
 		make(map[string][]*spotifyclient.User),
-		make(map[string][]*spotifyclient.User),
+		make(map[string][]string),
 		make(map[string]*spotify.FullTrack),
 		nil,
 		nil,
@@ -168,7 +169,7 @@ func (playlists *CommonPlaylists) GeneratePlaylists() error {
 	sharedTrackPlaylist := playlists.GenerateCommonPlaylistType()
 
 	// get all the shared track so it can be used to get infos on those tracks
-	allSharedTracks := sharedTrackPlaylist.getAllTracks()
+	allSharedTracks := sharedTrackPlaylist.GetAllTracks()
 
 	// get audio features among common songs
 	user := playlists.getAUser()
@@ -217,7 +218,6 @@ func (playlists *CommonPlaylists) GeneratePlaylists() error {
 	/*
 	  We release the memory used for the computation as it won't be used anymore
 	*/
-
 	playlists.CommonPlaylistComputation = nil
 
 	return nil
@@ -247,7 +247,11 @@ func (playlists *CommonPlaylists) GenerateCommonPlaylistType() *Playlist {
 			tracksInCommon[userCount] = append(trackListForUserCount, track)
 
 			// Add shared track rank above min threshold, so we can in the frontend keep record of who liked the song
-			playlists.SharedTracksRankAboveMinThreshold[trackId] = users
+			userIds := make([]string, 0)
+			for _, user := range users {
+				userIds = append(userIds, user.GetId())
+			}
+			playlists.SharedTracksRankAboveMinThreshold[trackId] = userIds 
 
 			logger.Logger.Debugf("Common track found for %d person: %s by %v", userCount, track.Name, track.Artists)
 		}
@@ -268,6 +272,7 @@ func (playlists *CommonPlaylists) GenerateCommonPlaylistType() *Playlist {
 		},
 		tracksInCommon,
 		playlists.SharedTracksRankAboveMinThreshold,
+		playlists.Users,
 	}
 	playlists.Playlists[id] = commonPlaylistType
 
@@ -301,6 +306,7 @@ func (playlists *CommonPlaylists) GeneratePopularPlaylistType(sharedTrackPlaylis
 		},
 		popularTracksInCommon,
 		playlists.SharedTracksRankAboveMinThreshold,
+		playlists.Users,
 	}
 	playlists.Playlists[id] = commonPlaylistType
 }
@@ -334,6 +340,7 @@ func (playlists *CommonPlaylists) GenerateDancePlaylist(sharedTrackPlaylist *Pla
 		},
 		danceTracksInCommon,
 		playlists.SharedTracksRankAboveMinThreshold,
+		playlists.Users,
 	}
 	playlists.Playlists[id] = commonPlaylistType
 }
@@ -410,6 +417,7 @@ func (playlists *CommonPlaylists) GenerateGenrePlaylist(sharedTrackPlaylist *Pla
 			},
 			genreTracksInCommon,
 			playlists.SharedTracksRankAboveMinThreshold,
+			playlists.Users,
 		}
 		playlists.Playlists[id] = commonPlaylistType
 	}
