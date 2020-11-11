@@ -21,34 +21,6 @@ var ReleaseVersion = os.Getenv("HEROKU_RELEASE_VERSION")
 const Service = "shared-spotify-backend"
 
 func startServer() {
-	// Activate datadog tracer
-	rules := []tracer.SamplingRule{tracer.RateRule(1)}
-	tracer.Start(
-		tracer.WithSamplingRules(rules),
-		tracer.WithAnalytics(true),
-		tracer.WithService(Service),
-		tracer.WithEnv(Env),
-		tracer.WithServiceVersion(ReleaseVersion),
-	)
-	defer tracer.Stop()
-
-	logger.Logger.Warning("Datadog tracer started")
-
-	// Activate datadog profiler
-	err := profiler.Start(
-		profiler.WithService(Service),
-		profiler.WithEnv(Env),
-		profiler.WithVersion(ReleaseVersion),
-	);
-
-	if err != nil {
-		logger.Logger.Fatal("Failed to start profiler ", err)
-	}
-
-	logger.Logger.Warning("Datadog profiler started")
-
-	defer profiler.Stop()
-
 	logger.Logger.Warning("Starting server")
 
 	// Create the router
@@ -79,8 +51,12 @@ func startServer() {
 	// Setup recovery in case of panic
 	handler = handlers.RecoveryHandler()(handler)
 
+	// Close tracer and profiler in case server is shut down
+	defer tracer.Stop()
+	defer profiler.Stop()
+
 	// Launch the server
-	err = http.ListenAndServe(":" + Port, handler)
+	err := http.ListenAndServe(":" + Port, handler)
 	if err != nil {
 		logger.Logger.Fatal("Failed to start server ", err)
 	}
@@ -90,7 +66,35 @@ func connectToMongo() {
 	mongoclient.Initialise()
 }
 
+func startTracing()  {
+	// Activate datadog tracer
+	rules := []tracer.SamplingRule{tracer.RateRule(1)}
+	tracer.Start(
+		tracer.WithSamplingRules(rules),
+		tracer.WithAnalytics(true),
+		tracer.WithService(Service),
+		tracer.WithEnv(Env),
+		tracer.WithServiceVersion(ReleaseVersion),
+	)
+
+	logger.Logger.Warning("Datadog tracer started")
+
+	// Activate datadog profiler
+	err := profiler.Start(
+		profiler.WithService(Service),
+		profiler.WithEnv(Env),
+		profiler.WithVersion(ReleaseVersion),
+	);
+
+	if err != nil {
+		logger.Logger.Fatal("Failed to start profiler ", err)
+	}
+
+	logger.Logger.Warning("Datadog profiler started")
+}
+
 func main() {
+	startTracing()
 	connectToMongo()
 	startServer()
 }
