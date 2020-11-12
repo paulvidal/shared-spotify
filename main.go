@@ -4,6 +4,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/rs/cors"
 	"github.com/shared-spotify/app"
+	"github.com/shared-spotify/env"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/spotifyclient"
@@ -15,7 +16,6 @@ import (
 )
 
 var Port = os.Getenv("PORT")
-var Env = os.Getenv("ENV")
 var ReleaseVersion = os.Getenv("HEROKU_RELEASE_VERSION")
 
 const Service = "shared-spotify-backend"
@@ -73,7 +73,7 @@ func startTracing()  {
 		tracer.WithSamplingRules(rules),
 		tracer.WithAnalytics(true),
 		tracer.WithService(Service),
-		tracer.WithEnv(Env),
+		tracer.WithEnv(env.GetEnv()),
 		tracer.WithServiceVersion(ReleaseVersion),
 	)
 
@@ -82,7 +82,7 @@ func startTracing()  {
 	// Activate datadog profiler
 	err := profiler.Start(
 		profiler.WithService(Service),
-		profiler.WithEnv(Env),
+		profiler.WithEnv(env.GetEnv()),
 		profiler.WithVersion(ReleaseVersion),
 	);
 
@@ -94,7 +94,9 @@ func startTracing()  {
 }
 
 func main() {
-	startTracing()
+	if env.IsProd() {
+		startTracing()
+	}
 	connectToMongo()
 	startServer()
 }
