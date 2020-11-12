@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import axios from 'axios';
-import {Button} from 'react-bootstrap';
+import {Image, Button, Row} from 'react-bootstrap';
 import Link from 'next/link'
 import styles from '../styles/Home.module.scss'
 import {isEmpty} from "lodash"
