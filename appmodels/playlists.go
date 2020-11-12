@@ -149,12 +149,9 @@ func (playlists *CommonPlaylists) addTracks(user *spotifyclient.User, tracks []*
 		if !ok {
 			users = make([]*spotifyclient.User, 1)
 			users[0] = user
-			logger.Logger.Infof("New song %s, id is %s, user is %s, track=%+v",
-				track.Name, track.ID, user.GetUserId(), track)
-
 		} else {
 			users = append(users, user)
-			logger.Logger.Infof("Song %s present multiple times %d, id is %s, user is %s, track=%+v",
+			logger.Logger.Debugf("Song %s present multiple times %d, id is %s, user is %s, track=%+v",
 				track.Name, len(users), track.ID, user.GetUserId(), track)
 		}
 
