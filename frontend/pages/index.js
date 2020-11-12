@@ -17,7 +17,7 @@ export default function Home() {
 
   const refresh = () => {
     axiosClient.get(getUrl('/user'))
-      .then(resp => setUserInfos(resp.data.user_infos))
+      .then(resp => setUserInfos(resp.data))
       .catch(error => {})
   }
 

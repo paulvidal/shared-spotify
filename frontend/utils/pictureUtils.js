@@ -1,7 +1,7 @@
 const DEFAULT_IMAGE_URL = "/user.png"
 
 function getPictureUrl(user) {
-  let imageUrl = user.user_infos.image
+  let imageUrl = user.image
 
   if (!imageUrl) {
     imageUrl = DEFAULT_IMAGE_URL

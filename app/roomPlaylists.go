@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/shared-spotify/appmodels"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/zmb3/spotify"
@@ -46,17 +47,17 @@ func GetPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check the processing is over and it did not fail
-	if !musicLibrary.hasProcessingFinished() {
+	if !musicLibrary.HasProcessingFinished() {
 		handleError(processingInProgressError, w, r, user)
 		return
 	}
 
-	if musicLibrary.hasProcessingFailed() {
+	if musicLibrary.HasProcessingFailed() {
 		handleError(processingFailedError, w, r, user)
 		return
 	}
 
-	playlists := room.MusicLibrary.CommonPlaylists.getPlaylistsMetadata()
+	playlists := room.MusicLibrary.CommonPlaylists.GetPlaylistsMetadata()
 	httputils.SendJson(w, playlists)
 }
 
@@ -75,7 +76,7 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request)  {
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to find the playlists for room %s",
 		user.GetUserId(), roomId)
 
-	if room.MusicLibrary != nil && !room.MusicLibrary.hasProcessingFailed() {
+	if room.MusicLibrary != nil && !room.MusicLibrary.HasProcessingFailed() {
 		handleError(processingInProgressError, w, r, user)
 		return
 	}
@@ -84,11 +85,13 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request)  {
 	*room.Locked = true
 
 	// we create the music library
-	room.MusicLibrary = CreateSharedMusicLibrary(len(room.Users))
+	room.MusicLibrary = appmodels.CreateSharedMusicLibrary(len(room.Users))
 
 	// we now process the library of the users (all this is done async)
-	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.getUserIds())
-	room.MusicLibrary.Process(room.Users)
+	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.GetUserIds())
+	room.MusicLibrary.Process(room.Users, func() {
+		removeRoomNotProcessed(room) // callback function
+	})
 
 	httputils.SendOk(w)
 }
@@ -130,12 +133,12 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
 	}
 
 	// check the processing is over and it did not fail
-	if !musicLibrary.hasProcessingFinished() {
+	if !musicLibrary.HasProcessingFinished() {
 		handleError(processingInProgressError, w, r, user)
 		return
 	}
 
-	if musicLibrary.hasProcessingFailed() {
+	if musicLibrary.HasProcessingFailed() {
 		handleError(processingFailedError, w, r, user)
 		return
 	}
@@ -145,7 +148,7 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
 	if err != nil {
 		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
-		handleError(errorPlaylistTypeNotFound, w, r, user)
+		handleError(appmodels.ErrorPlaylistTypeNotFound, w, r, user)
 		return
 	}
 
@@ -202,12 +205,12 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 	}
 
 	// check the processing is over and it did not fail
-	if !musicLibrary.hasProcessingFinished() {
+	if !musicLibrary.HasProcessingFinished() {
 		handleError(processingInProgressError, w, r, user)
 		return
 	}
 
-	if musicLibrary.hasProcessingFailed() {
+	if musicLibrary.HasProcessingFailed() {
 		handleError(processingFailedError, w, r, user)
 		return
 	}
@@ -217,7 +220,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 	if err != nil {
 		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
-		handleError(errorPlaylistTypeNotFound, w, r, user)
+		handleError(appmodels.ErrorPlaylistTypeNotFound, w, r, user)
 		return
 	}
 

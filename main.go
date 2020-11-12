@@ -4,23 +4,27 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/rs/cors"
 	"github.com/shared-spotify/app"
+	"github.com/shared-spotify/env"
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/spotifyclient"
 	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
 	"net/http"
 	"os"
 )
 
 var Port = os.Getenv("PORT")
+var ReleaseVersion = os.Getenv("HEROKU_RELEASE_VERSION")
+
+const Service = "shared-spotify-backend"
 
 func startServer() {
 	logger.Logger.Warning("Starting server")
 
-	r := muxtrace.NewRouter(
-		muxtrace.WithServiceName("shared-spotify-backend"),
-		muxtrace.WithAnalytics(true),
-		muxtrace.WithAnalyticsRate(1.0),
-	)
+	// Create the router
+	r := muxtrace.NewRouter()
 
 	r.HandleFunc("/login", spotifyclient.Authenticate)
 	r.HandleFunc("/callback", spotifyclient.CallbackHandler)
@@ -47,13 +51,52 @@ func startServer() {
 	// Setup recovery in case of panic
 	handler = handlers.RecoveryHandler()(handler)
 
+	// Close tracer and profiler in case server is shut down
+	defer tracer.Stop()
+	defer profiler.Stop()
+
 	// Launch the server
 	err := http.ListenAndServe(":" + Port, handler)
 	if err != nil {
-		logger.Logger.Fatal("Failed to start server", err)
+		logger.Logger.Fatal("Failed to start server ", err)
 	}
 }
 
+func connectToMongo() {
+	mongoclient.Initialise()
+}
+
+func startTracing()  {
+	// Activate datadog tracer
+	rules := []tracer.SamplingRule{tracer.RateRule(1)}
+	tracer.Start(
+		tracer.WithSamplingRules(rules),
+		tracer.WithAnalytics(true),
+		tracer.WithService(Service),
+		tracer.WithEnv(env.GetEnv()),
+		tracer.WithServiceVersion(ReleaseVersion),
+	)
+
+	logger.Logger.Warning("Datadog tracer started")
+
+	// Activate datadog profiler
+	err := profiler.Start(
+		profiler.WithService(Service),
+		profiler.WithEnv(env.GetEnv()),
+		profiler.WithVersion(ReleaseVersion),
+	);
+
+	if err != nil {
+		logger.Logger.Fatal("Failed to start profiler ", err)
+	}
+
+	logger.Logger.Warning("Datadog profiler started")
+}
+
 func main() {
+	if env.IsProd() {
+		startTracing()
+	}
+	connectToMongo()
 	startServer()
 }

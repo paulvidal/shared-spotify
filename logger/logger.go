@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"github.com/shared-spotify/env"
 	"github.com/sirupsen/logrus"
 	"io"
 	"log"
@@ -8,6 +9,8 @@ import (
 )
 
 const logFilename = "app.log"
+
+var level = os.Getenv("LOG_LEVEL")
 
 var Logger = logrus.StandardLogger()
 
@@ -20,12 +23,26 @@ func init() {
 	mw := io.MultiWriter(os.Stdout, logFile)
 	logrus.SetOutput(mw)
 
-	Logger.SetFormatter(&logrus.TextFormatter{
-		DisableColors: false,
-		FullTimestamp: true,
-	})
-	Logger.SetLevel(logrus.InfoLevel)
-	Logger.SetReportCaller(true)
+	logLevel, err := logrus.ParseLevel(level)
+
+	if err != nil {
+		log.Fatalf("Invalid log level: %v", err)
+	}
+
+	Logger.SetLevel(logLevel)
+
+	if env.IsProd() {
+		Logger.SetFormatter(&logrus.JSONFormatter{
+		})
+		Logger.SetReportCaller(true)
+
+	} else {
+		Logger.SetFormatter(&logrus.TextFormatter{
+			ForceColors: true,
+			FullTimestamp: true,
+		})
+		Logger.SetReportCaller(false)
+	}
 }
 
 func WithUser(userId string) *logrus.Entry {

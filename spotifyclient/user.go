@@ -5,24 +5,24 @@ import (
 )
 
 type UserInfos struct {
-	Id       string `json:"id"`
+	Id       string `json:"id" bson:"_id"`
 	Name     string `json:"name"`
 	ImageUrl string `json:"image"`
 }
 
 type User struct {
-	Infos  UserInfos       `json:"user_infos"`
+	UserInfos              `bson:"inline"`
 	Client *spotify.Client `json:"-"` // we ignore this field
 }
 
 func (user *User) GetId() string {
-	return user.Infos.Id
+	return user.Id
 }
 
 func (user *User) GetUserId() string {
-	return user.Infos.Name
+	return user.Name
 }
 
 func (user *User) IsEqual(otherUser *User) bool {
-	return otherUser.Infos.Id == user.Infos.Id
+	return otherUser.Id == user.Id
 }
