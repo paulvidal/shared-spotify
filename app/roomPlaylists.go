@@ -89,8 +89,8 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request)  {
 
 	// we now process the library of the users (all this is done async)
 	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.GetUserIds())
-	room.MusicLibrary.Process(room.Users, func() {
-		removeRoomNotProcessed(room) // callback function
+	room.MusicLibrary.Process(room.Users, func(success bool) {
+		updateRoomNotProcessed(room, success) // callback function
 	})
 
 	httputils.SendOk(w)

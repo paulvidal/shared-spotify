@@ -255,7 +255,7 @@ func (playlists *CommonPlaylists) GenerateCommonPlaylistType() *Playlist {
 	}
 
 	for commonUserCount, tracks := range tracksInCommon {
-		logger.Logger.Debugf("Found %d tracks shared between %d users", len(tracks), commonUserCount)
+		logger.Logger.Infof("Found %d tracks shared between %d users", len(tracks), commonUserCount)
 	}
 
 	id := utils.GenerateStrongHash()

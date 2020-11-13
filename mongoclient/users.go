@@ -2,6 +2,7 @@ package mongoclient
 
 import (
 	"context"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/spotifyclient"
 	"go.mongodb.org/mongo-driver/bson"
@@ -64,6 +65,9 @@ func InsertUsers(users []*spotifyclient.User) error {
 	}
 
 	mongoSession.EndSession(ctx)
+
+	newUsersCount := len(result.InsertedIDs)
+	datadog.Increment(newUsersCount, datadog.UsersNewCount)
 
 	logger.Logger.Info("Users were inserted successfully in mongo ", result.InsertedIDs)
 

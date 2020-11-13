@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/shared-spotify/appmodels"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/spotifyclient"
 	"github.com/zmb3/spotify"
@@ -33,6 +34,9 @@ func InsertRoom(room *appmodels.Room) error {
 	// we insert the users
 	err := InsertUsers(room.Users)
 
+	newUserCount := len(room.Users)
+	datadog.Increment(newUserCount, datadog.RoomUsers, datadog.RoomIdTag.Tag(room.Id))
+
 	if err != nil {
 		return err
 	}
@@ -46,7 +50,7 @@ func InsertRoom(room *appmodels.Room) error {
 	}
 
 	// we insert the room
-	mongoPlaylists := convertPlaylistsToMongoPlaylists(playlists)
+	mongoPlaylists := convertPlaylistsToMongoPlaylists(playlists, room.Id)
 
 	mongoRoom := MongoRoom{
 		room,
@@ -127,14 +131,16 @@ func GetRoomsForUser(user *spotifyclient.User) ([]*appmodels.Room, error) {
 	return rooms, nil
 }
 
-func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist) map[string]*MongoPlaylist {
+func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist, roomId string) map[string]*MongoPlaylist {
 	mongoPlaylists := make(map[string]*MongoPlaylist)
 
 	for playlistId, playlist := range playlists {
 		trackIdsPerSharedCount := make(map[int][]string)
+		totalTracks := 0
 
 		for sharedCount, tracks := range playlist.TracksPerSharedCount {
 			trackIdsPerSharedCount[sharedCount] = getTrackIds(tracks)
+			totalTracks += len(tracks)
 		}
 
 		mongoPlaylist := MongoPlaylist{
@@ -143,6 +149,11 @@ func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist) 
 			playlist.UserIdsPerSharedTracks,
 			playlist.Users,
 		}
+
+		datadog.Increment(totalTracks, datadog.TrackForRoom,
+			datadog.RoomIdTag.Tag(roomId),
+			datadog.PlaylistTypeTag.Tag(playlist.Type),
+		)
 
 		mongoPlaylists[playlistId] = &mongoPlaylist
 	}

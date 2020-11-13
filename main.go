@@ -4,6 +4,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/rs/cors"
 	"github.com/shared-spotify/app"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/env"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/mongoclient"
@@ -93,9 +94,14 @@ func startTracing()  {
 	logger.Logger.Warning("Datadog profiler started")
 }
 
+func startMetricClient()  {
+	datadog.Initialise()
+}
+
 func main() {
 	if env.IsProd() {
 		startTracing()
+		startMetricClient()
 	}
 	connectToMongo()
 	startServer()

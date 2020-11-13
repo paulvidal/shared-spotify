@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shared-spotify/appmodels"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/mongoclient"
@@ -31,20 +32,33 @@ var failedToCreatePlaylistError = errors.New("An error occurred while creating t
 var roomNotProcessed = make(map[string]*appmodels.Room)
 
 func addRoomNotProcessed(room *appmodels.Room) {
+	datadog.Increment(1, datadog.RoomCount, datadog.RoomIdTag.Tag(room.Id))
+
 	roomNotProcessed[room.Id] = room
 }
 
-func removeRoomNotProcessed(room *appmodels.Room) {
+func updateRoomNotProcessed(room *appmodels.Room, success bool) {
+	// we set processing result
+	roomNotProcessed[room.Id].MusicLibrary.SetProcessingSuccess(&success)
+
+	if !success {
+		datadog.Increment(1, datadog.RoomProcessedFailed, datadog.RoomIdTag.Tag(room.Id))
+		return
+	}
+
+	// we insert the room result in mongo
 	err := mongoclient.InsertRoom(room)
 
 	if err != nil {
 		// if we fail to insert the result in mongo, we declare processing as failed
 		success := false
 		roomNotProcessed[room.Id].MusicLibrary.SetProcessingSuccess(&success)
+		datadog.Increment(1, datadog.RoomProcessedFailed, datadog.RoomIdTag.Tag(room.Id))
 
 	} else {
 		// otherwise we delete the room from the rooms being processed
 		delete(roomNotProcessed, room.Id)
+		datadog.Increment(1, datadog.RoomProcessedCount, datadog.RoomIdTag.Tag(room.Id))
 	}
 }
 
@@ -277,6 +291,7 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 	if room.IsUserInRoom(user) {
 		// if user is already in room, just send ok
 		httputils.SendOk(w)
+		return
 	}
 
 	if *room.Locked {
