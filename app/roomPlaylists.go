@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shared-spotify/appmodels"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/zmb3/spotify"
@@ -57,6 +58,12 @@ func GetPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	datadog.Increment(1, datadog.RoomPlaylistAllRequest,
+		datadog.UserIdTag.Tag(user.GetId()),
+		datadog.RoomIdTag.Tag(roomId),
+		datadog.RoomNameTag.Tag(room.Name),
+	)
+
 	playlists := room.MusicLibrary.CommonPlaylists.GetPlaylistsMetadata()
 	httputils.SendJson(w, playlists)
 }
@@ -89,8 +96,8 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request)  {
 
 	// we now process the library of the users (all this is done async)
 	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.GetUserIds())
-	room.MusicLibrary.Process(room.Users, func() {
-		removeRoomNotProcessed(room) // callback function
+	room.MusicLibrary.Process(room.Users, func(success bool) {
+		updateRoomNotProcessed(room, success) // callback function
 	})
 
 	httputils.SendOk(w)
@@ -143,7 +150,7 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	playlistType, err := room.MusicLibrary.GetPlaylist(playlistId)
+	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {
 		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
@@ -152,7 +159,14 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	httputils.SendJson(w, playlistType)
+	datadog.Increment(1, datadog.RoomPlaylistRequest,
+		datadog.UserIdTag.Tag(user.GetId()),
+		datadog.RoomIdTag.Tag(roomId),
+		datadog.RoomNameTag.Tag(room.Name),
+		datadog.PlaylistTypeTag.Tag(playlist.Type),
+	)
+
+	httputils.SendJson(w, playlist)
 }
 
 /*
@@ -246,6 +260,13 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 		handleError(failedToCreatePlaylistError, w, r, user)
 		return
 	}
+
+	datadog.Increment(1, datadog.RoomPlaylistAdd,
+		datadog.UserIdTag.Tag(user.GetId()),
+		datadog.RoomIdTag.Tag(roomId),
+		datadog.RoomNameTag.Tag(room.Name),
+		datadog.PlaylistTypeTag.Tag(playlist.Type),
+	)
 
 	httputils.SendJson(w, newPlaylist)
 }

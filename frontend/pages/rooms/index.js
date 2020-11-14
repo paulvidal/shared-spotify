@@ -25,7 +25,9 @@ export default function Rooms() {
     rooms: [],
     loading: true,
     newRomName: "",
-    showCreateRoomModal: false
+    showCreateRoomModal: false,
+    roomToDeleteId: "",
+    showDeleteRoomModal: false,
   });
 
   const refresh = () => {
@@ -54,16 +56,37 @@ export default function Rooms() {
       showErrorToastWithError("Room failed to create ! Please try again", error)
 
     }).finally(() => {
-      setState(setRooms, {newRomName: ""})
+      hideCreateModal()
     })
   }
 
-  const showModal = () => {
+  const deleteRoom = () => {
+    axiosClient.delete(getUrl('/rooms/' + rooms.roomToDeleteId)).then(resp => {
+      showSuccessToast("Room successfully deleted")
+      refresh()
+
+    }).catch(error => {
+      showErrorToastWithError("Failed to delete room ! Please try again", error)
+
+    }).finally(() => {
+      hideDeleteModal()
+    })
+  }
+
+  const showCreateModal = () => {
     setState(setRooms, {showCreateRoomModal: true})
   }
 
-  const hideModal = () => {
+  const hideCreateModal = () => {
     setState(setRooms, {showCreateRoomModal: false, newRomName: ""})
+  }
+
+  const showDeleteModal = (roomId) => {
+    setState(setRooms, {showDeleteRoomModal: true, roomToDeleteId: roomId})
+  }
+
+  const hideDeleteModal = () => {
+    setState(setRooms, {showDeleteRoomModal: false, roomToDeleteId: ""})
   }
 
   useEffect(refresh, [])
@@ -88,7 +111,7 @@ export default function Rooms() {
       return moment(room2.creation_time) - moment(room1.creation_time)
     }).map(room => {
       return (
-        <RoomListElem key={room.id} room={room}/>
+        <RoomListElem key={room.id} room={room} showDeleteModal={showDeleteModal}/>
       )
     });
   }
@@ -115,7 +138,7 @@ export default function Rooms() {
 
         {emptyRoomText}
 
-        <Button variant="outline-success" size="lg" className="mt-4 mb-4" onClick={showModal}>
+        <Button variant="outline-success" size="lg" className="mt-4 mb-4" onClick={showCreateModal}>
           Create a new room
         </Button>
 
@@ -134,10 +157,21 @@ export default function Rooms() {
         title={"How would you like to call you room ?"}
         body={modalBody}
         secondaryActionName={"Cancel"}
-        secondaryAction={hideModal}
-        onHideAction={hideModal}
+        secondaryAction={hideCreateModal}
+        onHideAction={hideCreateModal}
         primaryActionName={"Create room"}
         primaryAction={createRoom}
+      />
+
+      <CustomModal
+        show={rooms.showDeleteRoomModal}
+        body={"Do you really want to delete this room ?"}
+        secondaryActionName={"Cancel"}
+        secondaryAction={hideDeleteModal}
+        onHideAction={hideDeleteModal}
+        primaryActionName={"Delete room"}
+        primaryAction={deleteRoom}
+        primaryVariant={"danger"}
       />
     </div>
   )

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shared-spotify/appmodels"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/mongoclient"
@@ -16,6 +17,7 @@ import (
 const defaultRoomName = "Room #%s"
 
 var failedToGetRoom = errors.New("Failed to get room")
+var failedToDeleteRoom = errors.New("Failed to delete room")
 var failedToGetRooms = errors.New("Failed to get rooms")
 var roomDoesNotExistError = errors.New("Room does not exists")
 var roomIsNotAccessibleError = errors.New("Room is not accessible to user")
@@ -31,21 +33,50 @@ var failedToCreatePlaylistError = errors.New("An error occurred while creating t
 var roomNotProcessed = make(map[string]*appmodels.Room)
 
 func addRoomNotProcessed(room *appmodels.Room) {
+	datadog.Increment(1, datadog.RoomCount,
+		datadog.RoomIdTag.Tag(room.Id),
+		datadog.RoomNameTag.Tag(room.Name),
+	)
+
 	roomNotProcessed[room.Id] = room
 }
 
-func removeRoomNotProcessed(room *appmodels.Room) {
+func updateRoomNotProcessed(room *appmodels.Room, success bool) {
+	// we set processing result
+	roomNotProcessed[room.Id].MusicLibrary.SetProcessingSuccess(&success)
+
+	if !success {
+		datadog.Increment(1, datadog.RoomProcessedFailed,
+			datadog.RoomIdTag.Tag(room.Id),
+			datadog.RoomNameTag.Tag(room.Name),
+		)
+		return
+	}
+
+	// we insert the room result in mongo
 	err := mongoclient.InsertRoom(room)
 
 	if err != nil {
 		// if we fail to insert the result in mongo, we declare processing as failed
 		success := false
 		roomNotProcessed[room.Id].MusicLibrary.SetProcessingSuccess(&success)
+		datadog.Increment(1, datadog.RoomProcessedFailed,
+			datadog.RoomIdTag.Tag(room.Id),
+			datadog.RoomNameTag.Tag(room.Name),
+		)
 
 	} else {
 		// otherwise we delete the room from the rooms being processed
-		delete(roomNotProcessed, room.Id)
+		deleteRoomNotProcessed(room)
+		datadog.Increment(1, datadog.RoomProcessedCount,
+			datadog.RoomIdTag.Tag(room.Id),
+			datadog.RoomNameTag.Tag(room.Name),
+		)
 	}
+}
+
+func deleteRoomNotProcessed(room *appmodels.Room) {
+	delete(roomNotProcessed, room.Id)
 }
 
 func getRoom(roomId string) (*appmodels.Room, error) {
@@ -214,6 +245,8 @@ func RoomHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodGet:
 		GetRoom(w, r)
+	case http.MethodDelete:
+		DeleteRoom(w, r)
 	default:
 		http.Error(w, "", http.StatusMethodNotAllowed)
 	}
@@ -238,6 +271,34 @@ func GetRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputils.SendJson(w, roomWithOwnerInfo)
+}
+
+func DeleteRoom(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	roomId := vars["roomId"]
+
+	room, user, err := getRoomAndCheckUser(roomId, r)
+
+	if err != nil {
+		handleError(err, w, r, user)
+		return
+	}
+
+	logger.WithUser(user.GetUserId()).Infof("User %s requested to delete room %s", user.GetUserId(), roomId)
+
+	// If room has been processed, we delete it in mongo
+	if room.HasRoomBeenProcessed() {
+		err = mongoclient.DeleteRoomForUser(room, user)
+
+		if err != nil {
+			handleError(failedToDeleteRoom, w, r, user)
+			return
+		}
+	}
+
+	deleteRoomNotProcessed(room)
+
+	httputils.SendOk(w)
 }
 
 /*
@@ -277,6 +338,7 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 	if room.IsUserInRoom(user) {
 		// if user is already in room, just send ok
 		httputils.SendOk(w)
+		return
 	}
 
 	if *room.Locked {

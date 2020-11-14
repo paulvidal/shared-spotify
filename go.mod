@@ -3,7 +3,7 @@ module github.com/shared-spotify
 go 1.15
 
 require (
-	github.com/DataDog/datadog-go v4.1.0+incompatible // indirect
+	github.com/DataDog/datadog-go v4.2.0+incompatible
 	github.com/Shopify/sarama v1.27.2 // indirect
 	github.com/aws/aws-sdk-go v1.35.14 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect

@@ -69,6 +69,10 @@ func (room *Room) IsOwner(user *spotifyclient.User) bool {
 	return room.Owner.IsEqual(user)
 }
 
+func (room *Room) HasRoomBeenProcessed() bool {
+	return room.MusicLibrary != nil && room.MusicLibrary.HasProcessingFinished()
+}
+
 func (room *Room) GetPlaylists() map[string]*Playlist {
 	return room.MusicLibrary.CommonPlaylists.Playlists
 }

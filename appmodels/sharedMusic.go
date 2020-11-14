@@ -67,7 +67,7 @@ func CreateSharedMusicLibrary(totalUsers int) *SharedMusicLibrary {
  */
 
 // Will process the common library and find all the common songs
-func (musicLibrary *SharedMusicLibrary) Process(users []*spotifyclient.User, callback func()) {
+func (musicLibrary *SharedMusicLibrary) Process(users []*spotifyclient.User, callback func(success bool)) {
 	logger.Logger.Infof("Starting processing of room for all users")
 	
 	// We mark the processing status as started
@@ -115,7 +115,7 @@ func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *spotifyclient.Us
 	musicLibrary.MusicProcessingChannel <- MusicProcessingResult{user, tracks, err}
 }
 
-func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(callback func()) {
+func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(callback func(success bool)) {
 	// Recovery for the goroutine
 	defer func() {
 		if err := recover(); err != nil {
@@ -124,11 +124,8 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 				err, string(debug.Stack()))
 			fmt.Println(string(debug.Stack()))
 
-			success := false
-			musicLibrary.SetProcessingSuccess(&success)
-
 			// we notify that the processing is over
-			callback()
+			callback(false)
 		}
 	}()
 
@@ -180,8 +177,6 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 		}
 	}
 
-	musicLibrary.SetProcessingSuccess(&success)
-
 	// we notify that the processing is over
-	callback()
+	callback(success)
 }
