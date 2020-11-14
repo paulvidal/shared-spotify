@@ -12,7 +12,6 @@ import LoaderScreen from "../../../../components/LoaderScreen";
 import {getTotalTrackCount} from "../../../../utils/trackUtils";
 import setState from "../../../../utils/stateUtils";
 
-
 export default function Playlists() {
   const router = useRouter()
   const { roomId } = router.query
