@@ -35,8 +35,8 @@ export default function Room() {
     users: [],
     locked: false,
     shared_music_library: null,
-    awaiting_new_refresh: true,
-    stop_refresh: false,
+    refreshing: false,
+    errorRefresh: false,
     loading: true,
     showConfirmationModal: false
   });
@@ -51,15 +51,21 @@ export default function Room() {
       .then(resp => {
         setState(setRoom, {
           ...resp.data,
+          refreshing: false,
+          errorRefresh: false,
           loading: false
         })
       })
       .catch(error => {
+        let hasAlreadySeenRefreshedError = room.errorRefresh
         setState(setRoom, {
-          stop_refresh: true,
+          refreshing: false,
+          errorRefresh: true,
           loading: false
         })
-        showErrorToastWithError("Failed to get room info", error)
+        if (!hasAlreadySeenRefreshedError) {
+          showErrorToastWithError("Failed to get room info", error)
+        }
       })
   }
 
@@ -92,24 +98,20 @@ export default function Room() {
     )
   }
 
-  // we refresh the page on a daily basis waiting for users to join
-  if (room.awaiting_new_refresh) {
+  // Handle refresh of the page
+  let timeout = null
 
-    if (room.shared_music_library != null && room.shared_music_library.processing_status.success == null) {
-      // Force a refresh of the page while we are processing the musics more often to get the progress
-      setTimeout(() => {
-        setState(setRoom, {awaiting_new_refresh: true})
-        refresh()
-      }, REFRESH_TIMEOUT_PLAYLIST_CREATION)
+  if (!room.shared_music_library) {
+    timeout = GENERAL_REFRESH_TIMEOUT
 
-    } else if (!room.stop_refresh && !room.locked) {
-      setTimeout(() => {
-        setState(setRoom, {awaiting_new_refresh: true})
-        refresh()
-      }, GENERAL_REFRESH_TIMEOUT)
-    }
+  } else if (room.shared_music_library.processing_status.success == null) {
+    // Force a refresh of the page while we are processing the musics more often to get the progress
+    timeout = REFRESH_TIMEOUT_PLAYLIST_CREATION
+  }
 
-    setState(setRoom, {awaiting_new_refresh: false})
+  if (timeout && !room.refreshing) {
+    setState(setRoom, {refreshing: true})
+    setTimeout(refresh, timeout)
   }
 
   let userList = room.users.map(user => {

@@ -241,8 +241,6 @@ func CreateRoom(w http.ResponseWriter, r *http.Request) {
 */
 
 func RoomHandler(w http.ResponseWriter, r *http.Request) {
-	logger.Logger.Info("test here")
-
 	switch r.Method {
 
 	case http.MethodGet:
