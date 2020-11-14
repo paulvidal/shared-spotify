@@ -43,6 +43,7 @@ func startServer() {
 	options := cors.Options{
 		AllowedOrigins: []string{spotifyclient.FrontendUrl},
 		AllowCredentials: true,
+		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodOptions},
 	}
 	handler := cors.New(options).Handler(r)
 

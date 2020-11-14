@@ -5,6 +5,8 @@ import {useRouter} from "next/router";
 import {getUrl} from "../utils/urlUtils";
 import styles from "../styles/rooms/Rooms.module.scss";
 import moment from "moment";
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {faTrash} from "@fortawesome/free-solid-svg-icons";
 
 export default function RoomListElem(props) {
   const router = useRouter()
@@ -37,15 +39,17 @@ export default function RoomListElem(props) {
   }
 
   return (
-    <Card className="mt-2 col-11 col-md-5">
+    <Card className={"mt-2 col-11 col-md-5 " + styles.room_card}>
       <Card.Body>
         <Card.Title>
           {props.room.name}
           {open}
         </Card.Title>
 
+        {/* TODO: only one nested element here react bug*/}
         <Card.Text>
-          Friends: {props.room.users.map(user => user.name).join(", ")}
+          <p className="mb-0">Members: {props.room.users.map(user => user.name).join(", ")}</p>
+          <p className={styles.creation_date}>Created on {moment(props.room.creation_time).format("MMMM Do YYYY")}</p>
         </Card.Text>
 
         <div>
@@ -53,9 +57,9 @@ export default function RoomListElem(props) {
             Enter room  ➡️
           </Button>
 
-          <p className={"float-right " + styles.creation_date}>
-            Created on {moment(props.room.creation_time).format("MMMM Do YYYY")}
-          </p>
+          <div className={"float-right " + styles.trash_icon} onClick={() => props.showDeleteModal(props.room.id)}>
+            <FontAwesomeIcon icon={faTrash} />
+          </div>
         </div>
       </Card.Body>
     </Card>

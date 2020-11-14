@@ -7,54 +7,36 @@ import {isEmpty} from "lodash"
 import {getUrl} from "../utils/urlUtils";
 import CustomHead from "../components/Head";
 import Header from "../components/Header";
+import {useRouter} from "next/router";
+import setState from "../utils/stateUtils";
+import LoaderScreen from "../components/LoaderScreen";
 
 export default function Home() {
+  const router = useRouter()
   const axiosClient = axios.create({
     withCredentials: true
   })
 
-  const [userInfos, setUserInfos] = useState({});
+  const [home, setHome] = useState({
+    loading: true,
+  });
 
   const refresh = () => {
     axiosClient.get(getUrl('/user'))
-      .then(resp => setUserInfos(resp.data))
-      .catch(error => {})
+      .then(resp => {
+        router.push('/rooms')
+      })
+      .catch(error => {
+        setState(setHome, {loading: false})
+      })
   }
 
   useEffect(refresh, [])
 
-  let greetings;
-
-  if (!isEmpty(userInfos)) {
-    greetings = (
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <strong className="text-success">Shared Spotify</strong>
-        </h1>
-
-        <h1 className={styles.name_title}>
-          {userInfos.name}
-        </h1>
-
-        <Link href="/rooms">
-          <Button variant="outline-success" size="lg" className="mt-5">
-            Start sharing music ➡️
-          </Button>
-        </Link>
-      </main>
-    )
-
-  } else {
-    greetings = (
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <strong className="text-success">Shared Spotify</strong>
-        </h1>
-
-        <Button href={getUrl('/login')} variant="outline-success" size="lg" className="mt-5">
-          Connect spotify account
-        </Button>
-      </main>
+  // Use a loader screen if nothing is ready
+  if (home.loading) {
+    return (
+      <LoaderScreen/>
     )
   }
 
@@ -64,7 +46,15 @@ export default function Home() {
 
       <Header />
 
-      {greetings}
+      <main className={styles.main}>
+        <h1 className={styles.title}>
+          Welcome to <strong className="text-success">Shared Spotify</strong>
+        </h1>
+
+        <Button href={getUrl('/login')} variant="outline-success" size="lg" className="mt-5">
+          Connect spotify account
+        </Button>
+      </main>
 
       <footer className={styles.footer}>
         Powered by{' '}

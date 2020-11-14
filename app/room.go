@@ -17,6 +17,7 @@ import (
 const defaultRoomName = "Room #%s"
 
 var failedToGetRoom = errors.New("Failed to get room")
+var failedToDeleteRoom = errors.New("Failed to delete room")
 var failedToGetRooms = errors.New("Failed to get rooms")
 var roomDoesNotExistError = errors.New("Room does not exists")
 var roomIsNotAccessibleError = errors.New("Room is not accessible to user")
@@ -66,12 +67,16 @@ func updateRoomNotProcessed(room *appmodels.Room, success bool) {
 
 	} else {
 		// otherwise we delete the room from the rooms being processed
-		delete(roomNotProcessed, room.Id)
+		deleteRoomNotProcessed(room)
 		datadog.Increment(1, datadog.RoomProcessedCount,
 			datadog.RoomIdTag.Tag(room.Id),
 			datadog.RoomNameTag.Tag(room.Name),
 		)
 	}
+}
+
+func deleteRoomNotProcessed(room *appmodels.Room) {
+	delete(roomNotProcessed, room.Id)
 }
 
 func getRoom(roomId string) (*appmodels.Room, error) {
@@ -236,10 +241,14 @@ func CreateRoom(w http.ResponseWriter, r *http.Request) {
 */
 
 func RoomHandler(w http.ResponseWriter, r *http.Request) {
+	logger.Logger.Info("test here")
+
 	switch r.Method {
 
 	case http.MethodGet:
 		GetRoom(w, r)
+	case http.MethodDelete:
+		DeleteRoom(w, r)
 	default:
 		http.Error(w, "", http.StatusMethodNotAllowed)
 	}
@@ -264,6 +273,34 @@ func GetRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputils.SendJson(w, roomWithOwnerInfo)
+}
+
+func DeleteRoom(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	roomId := vars["roomId"]
+
+	room, user, err := getRoomAndCheckUser(roomId, r)
+
+	if err != nil {
+		handleError(err, w, r, user)
+		return
+	}
+
+	logger.WithUser(user.GetUserId()).Infof("User %s requested to delete room %s", user.GetUserId(), roomId)
+
+	// If room has been processed, we delete it in mongo
+	if room.HasRoomBeenProcessed() {
+		err = mongoclient.DeleteRoomForUser(room, user)
+
+		if err != nil {
+			handleError(failedToDeleteRoom, w, r, user)
+			return
+		}
+	}
+
+	deleteRoomNotProcessed(room)
+
+	httputils.SendOk(w)
 }
 
 /*

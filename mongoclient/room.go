@@ -134,6 +134,35 @@ func GetRoomsForUser(user *spotifyclient.User) ([]*appmodels.Room, error) {
 	return rooms, nil
 }
 
+func DeleteRoomForUser(room *appmodels.Room, user *spotifyclient.User) error {
+	filter := bson.D{{
+		"_id",
+		room.Id,
+	}}
+
+	update := bson.D{{
+		"$pull",
+		bson.D{{
+			"users",
+			bson.D{{
+				"_id",
+				user.GetId(),
+			}},
+		}},
+	}}
+
+	_, err := getDatabase().Collection(roomCollection).UpdateOne(context.TODO(), filter, update)
+
+	if err != nil {
+		logger.Logger.Error("Failed to delete room for user in mongo ", err)
+		return err
+	}
+
+	logger.Logger.Info("Room was delete successfully in mongo for user ", user)
+
+	return nil
+}
+
 func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist, room *appmodels.Room) map[string]*MongoPlaylist {
 	mongoPlaylists := make(map[string]*MongoPlaylist)
 

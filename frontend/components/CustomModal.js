@@ -14,6 +14,7 @@ export default function CustomModal(props) {
   }
 
   let footer;
+  let variantPrimary = props.primaryVariant || "success"
 
   if (props.secondaryAction || props.primaryAction) {
     footer = (
@@ -22,7 +23,7 @@ export default function CustomModal(props) {
           {props.secondaryActionName}
         </Button>
 
-        <Button variant="success" onClick={props.primaryAction}>
+        <Button variant={variantPrimary} onClick={props.primaryAction}>
           {props.primaryActionName}
         </Button>
       </Modal.Footer>
