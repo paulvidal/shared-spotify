@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shared-spotify/appmodels"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/zmb3/spotify"
@@ -56,6 +57,12 @@ func GetPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 		handleError(processingFailedError, w, r, user)
 		return
 	}
+
+	datadog.Increment(1, datadog.RoomPlaylistAllRequest,
+		datadog.UserIdTag.Tag(user.GetId()),
+		datadog.RoomIdTag.Tag(roomId),
+		datadog.RoomNameTag.Tag(room.Name),
+	)
 
 	playlists := room.MusicLibrary.CommonPlaylists.GetPlaylistsMetadata()
 	httputils.SendJson(w, playlists)
@@ -143,7 +150,7 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	playlistType, err := room.MusicLibrary.GetPlaylist(playlistId)
+	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {
 		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
@@ -152,7 +159,14 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	httputils.SendJson(w, playlistType)
+	datadog.Increment(1, datadog.RoomPlaylistRequest,
+		datadog.UserIdTag.Tag(user.GetId()),
+		datadog.RoomIdTag.Tag(roomId),
+		datadog.RoomNameTag.Tag(room.Name),
+		datadog.PlaylistTypeTag.Tag(playlist.Type),
+	)
+
+	httputils.SendJson(w, playlist)
 }
 
 /*
@@ -246,6 +260,13 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 		handleError(failedToCreatePlaylistError, w, r, user)
 		return
 	}
+
+	datadog.Increment(1, datadog.RoomPlaylistAdd,
+		datadog.UserIdTag.Tag(user.GetId()),
+		datadog.RoomIdTag.Tag(roomId),
+		datadog.RoomNameTag.Tag(room.Name),
+		datadog.PlaylistTypeTag.Tag(playlist.Type),
+	)
 
 	httputils.SendJson(w, newPlaylist)
 }
