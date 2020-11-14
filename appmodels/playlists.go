@@ -8,26 +8,30 @@ import (
 	"github.com/zmb3/spotify"
 )
 
-const playlistNameShared = "Shared songs"
-const playlistNameDance = "Dance shared songs"
-const playlistNamePopular = "Most popular shared songs"
-const playlistNameGenre = "Genre [%s] shared songs"
+const playlistNameShared = "Songs in common"
+const playlistNameDance = "Dance songs in common"
+const playlistNamePopular = "Most popular songs in common"
+const playlistNameUnpopular = "Unpopular songs in common"
+const playlistNameGenre = "Genre [%s] songs in common"
 
 const playlistTypeShared = "shared"
 const playlistTypePopular = "popular"
+const playlistTypeUnpopular = "unpopular"
 const playlistTypeDance = "dance"
 const playlistTypeGenre = "genre"
 
 const playlistRankShared = 1
 const playlistRankPopular = 2
-const playlistRankDance = 3
-const playlistRankGenre = 4
+const playlistRankUnpopular = 3
+const playlistRankDance = 4
+const playlistRankGenre = 5
 
 const minNumberOfUserForCommonMusic = 2
 
 const genreTrackCountThreshold = 5 // min count to have a playlist to be included
 
 const popularityThreshold = 60 // out of 100
+const unpopularThreshold = 25 // out of 100
 
 type CommonPlaylists struct {
 	// all playlists in a map with key playlist generated id
@@ -204,7 +208,7 @@ func (playlists *CommonPlaylists) GeneratePlaylists() error {
 	*/
 
 	// Generate the popular songs playlist
-	playlists.GeneratePopularPlaylistType(sharedTrackPlaylist)
+	playlists.GeneratePopularityPlaylistType(sharedTrackPlaylist)
 
 	// TODO: activate back dance playlists once it work
 	//playlists.GenerateDancePlaylist(sharedTrackPlaylist)
@@ -276,26 +280,34 @@ func (playlists *CommonPlaylists) GenerateCommonPlaylistType() *Playlist {
 	return commonPlaylistType
 }
 
-func (playlists *CommonPlaylists) GeneratePopularPlaylistType(sharedTrackPlaylist *Playlist) {
+func (playlists *CommonPlaylists) GeneratePopularityPlaylistType(sharedTrackPlaylist *Playlist) {
 	popularTracksInCommon := make(map[int][]*spotify.FullTrack)
+	unpopularTracksInCommon := make(map[int][]*spotify.FullTrack)
 
 	for sharedCount, tracks := range sharedTrackPlaylist.TracksPerSharedCount {
 		popularTracksInCommonForSharedCount := make([]*spotify.FullTrack, 0)
+		unpopularTracksInCommonForSharedCount := make([]*spotify.FullTrack, 0)
 
 		for _, track := range tracks {
 			if track.Popularity >= popularityThreshold {
 				logger.Logger.Debugf("Found popular track for %d person: %s by %v", sharedCount, track.Name, track.Artists)
 				popularTracksInCommonForSharedCount = append(popularTracksInCommonForSharedCount, track)
+
+			} else if track.Popularity != 0 && track.Popularity <= unpopularThreshold {
+				logger.Logger.Debugf("Found unpopular track for %d person: %s by %v", sharedCount, track.Name, track.Artists)
+				unpopularTracksInCommonForSharedCount = append(unpopularTracksInCommonForSharedCount, track)
 			}
 		}
 
 		popularTracksInCommon[sharedCount] = popularTracksInCommonForSharedCount
+		unpopularTracksInCommon[sharedCount] = unpopularTracksInCommonForSharedCount
 	}
 
-	id := utils.GenerateStrongHash()
-	commonPlaylistType := &Playlist{
+	// Popular playlist
+	popularId := utils.GenerateStrongHash()
+	popularCommonPlaylistType := &Playlist{
 		PlaylistMetadata{
-			id,
+			popularId,
 			playlistNamePopular,
 			playlistTypePopular,
 			playlistRankPopular,
@@ -305,7 +317,23 @@ func (playlists *CommonPlaylists) GeneratePopularPlaylistType(sharedTrackPlaylis
 		playlists.SharedTracksRankAboveMinThreshold,
 		playlists.Users,
 	}
-	playlists.Playlists[id] = commonPlaylistType
+	playlists.Playlists[popularId] = popularCommonPlaylistType
+
+	// Unpopular playlist
+	unpopularId := utils.GenerateStrongHash()
+	unpopularCommonPlaylistType := &Playlist{
+		PlaylistMetadata{
+			unpopularId,
+			playlistNameUnpopular,
+			playlistTypeUnpopular,
+			playlistRankUnpopular,
+			getTracksInCommonCount(unpopularTracksInCommon),
+		},
+		unpopularTracksInCommon,
+		playlists.SharedTracksRankAboveMinThreshold,
+		playlists.Users,
+	}
+	playlists.Playlists[unpopularId] = unpopularCommonPlaylistType
 }
 
 func (playlists *CommonPlaylists) GenerateDancePlaylist(sharedTrackPlaylist *Playlist) {

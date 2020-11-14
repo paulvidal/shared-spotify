@@ -252,7 +252,7 @@ export default function Playlist() {
     } else {
       addButton = (
         (
-          <Button variant="outline-success" size="lg" className="mb-4" onClick={showModal}>
+          <Button variant="success" size="lg" className="mb-4" onClick={showModal}>
             Add to my playlists
           </Button>
         )
