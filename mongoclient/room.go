@@ -35,7 +35,10 @@ func InsertRoom(room *appmodels.Room) error {
 	err := InsertUsers(room.Users)
 
 	newUserCount := len(room.Users)
-	datadog.Increment(newUserCount, datadog.RoomUsers, datadog.RoomIdTag.Tag(room.Id))
+	datadog.Increment(newUserCount, datadog.RoomUsers,
+		datadog.RoomIdTag.Tag(room.Id),
+		datadog.RoomNameTag.Tag(room.Name),
+	)
 
 	if err != nil {
 		return err
@@ -50,7 +53,7 @@ func InsertRoom(room *appmodels.Room) error {
 	}
 
 	// we insert the room
-	mongoPlaylists := convertPlaylistsToMongoPlaylists(playlists, room.Id)
+	mongoPlaylists := convertPlaylistsToMongoPlaylists(playlists, room)
 
 	mongoRoom := MongoRoom{
 		room,
@@ -64,7 +67,7 @@ func InsertRoom(room *appmodels.Room) error {
 		return err
 	}
 
-	logger.Logger.Info("Room was inserted successfully in mongo", insertResult.InsertedID)
+	logger.Logger.Info("Room was inserted successfully in mongo ", insertResult.InsertedID)
 
 	return nil
 }
@@ -131,7 +134,7 @@ func GetRoomsForUser(user *spotifyclient.User) ([]*appmodels.Room, error) {
 	return rooms, nil
 }
 
-func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist, roomId string) map[string]*MongoPlaylist {
+func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist, room *appmodels.Room) map[string]*MongoPlaylist {
 	mongoPlaylists := make(map[string]*MongoPlaylist)
 
 	for playlistId, playlist := range playlists {
@@ -151,7 +154,8 @@ func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist, 
 		}
 
 		datadog.Increment(totalTracks, datadog.TrackForRoom,
-			datadog.RoomIdTag.Tag(roomId),
+			datadog.RoomIdTag.Tag(room.Id),
+			datadog.RoomNameTag.Tag(room.Name),
 			datadog.PlaylistTypeTag.Tag(playlist.Type),
 		)
 

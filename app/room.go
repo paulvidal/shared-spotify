@@ -32,7 +32,10 @@ var failedToCreatePlaylistError = errors.New("An error occurred while creating t
 var roomNotProcessed = make(map[string]*appmodels.Room)
 
 func addRoomNotProcessed(room *appmodels.Room) {
-	datadog.Increment(1, datadog.RoomCount, datadog.RoomIdTag.Tag(room.Id))
+	datadog.Increment(1, datadog.RoomCount,
+		datadog.RoomIdTag.Tag(room.Id),
+		datadog.RoomNameTag.Tag(room.Name),
+	)
 
 	roomNotProcessed[room.Id] = room
 }
@@ -42,7 +45,10 @@ func updateRoomNotProcessed(room *appmodels.Room, success bool) {
 	roomNotProcessed[room.Id].MusicLibrary.SetProcessingSuccess(&success)
 
 	if !success {
-		datadog.Increment(1, datadog.RoomProcessedFailed, datadog.RoomIdTag.Tag(room.Id))
+		datadog.Increment(1, datadog.RoomProcessedFailed,
+			datadog.RoomIdTag.Tag(room.Id),
+			datadog.RoomNameTag.Tag(room.Name),
+		)
 		return
 	}
 
@@ -53,12 +59,18 @@ func updateRoomNotProcessed(room *appmodels.Room, success bool) {
 		// if we fail to insert the result in mongo, we declare processing as failed
 		success := false
 		roomNotProcessed[room.Id].MusicLibrary.SetProcessingSuccess(&success)
-		datadog.Increment(1, datadog.RoomProcessedFailed, datadog.RoomIdTag.Tag(room.Id))
+		datadog.Increment(1, datadog.RoomProcessedFailed,
+			datadog.RoomIdTag.Tag(room.Id),
+			datadog.RoomNameTag.Tag(room.Name),
+		)
 
 	} else {
 		// otherwise we delete the room from the rooms being processed
 		delete(roomNotProcessed, room.Id)
-		datadog.Increment(1, datadog.RoomProcessedCount, datadog.RoomIdTag.Tag(room.Id))
+		datadog.Increment(1, datadog.RoomProcessedCount,
+			datadog.RoomIdTag.Tag(room.Id),
+			datadog.RoomNameTag.Tag(room.Name),
+		)
 	}
 }
 

@@ -22,7 +22,7 @@ func Increment(count int, metric string, tags ...string) {
 		return
 	}
 
-	err := StatsdClient.Incr(metric, tags, float64(count))
+	err := StatsdClient.Count(metric, int64(count), tags, 1)
 
 	if err != nil {
 		logger.Logger.Errorf("Failed to increment metric %s with tags %s by %f ", metric, tags, count, err)

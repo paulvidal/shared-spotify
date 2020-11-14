@@ -23,4 +23,5 @@ const TrackForRoom = "rooms.tracks.common.count"
 const RoomUsers = "rooms.users.count"
 
 var RoomIdTag = Tag{"room_id"}
+var RoomNameTag = Tag{"room_name"}
 var PlaylistTypeTag = Tag{"playlist_type"}
