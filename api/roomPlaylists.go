@@ -1,9 +1,9 @@
-package app
+package api
 
 import (
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/shared-spotify/appmodels"
+	"github.com/shared-spotify/app"
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
@@ -92,7 +92,7 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request)  {
 	*room.Locked = true
 
 	// we create the music library
-	room.MusicLibrary = appmodels.CreateSharedMusicLibrary(len(room.Users))
+	room.MusicLibrary = app.CreateSharedMusicLibrary(len(room.Users))
 
 	// we now process the library of the users (all this is done async)
 	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.GetUserIds())
@@ -155,7 +155,7 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
 	if err != nil {
 		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
-		handleError(appmodels.ErrorPlaylistTypeNotFound, w, r, user)
+		handleError(app.ErrorPlaylistTypeNotFound, w, r, user)
 		return
 	}
 
@@ -234,7 +234,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 	if err != nil {
 		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
-		handleError(appmodels.ErrorPlaylistTypeNotFound, w, r, user)
+		handleError(app.ErrorPlaylistTypeNotFound, w, r, user)
 		return
 	}
 

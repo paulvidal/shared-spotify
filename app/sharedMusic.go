@@ -1,10 +1,10 @@
-package appmodels
+package app
 
 import (
 	"errors"
 	"fmt"
 	"github.com/shared-spotify/logger"
-	"github.com/shared-spotify/spotifyclient"
+	"github.com/shared-spotify/musicclient/spotify"
 	"github.com/zmb3/spotify"
 	"runtime/debug"
 )
@@ -48,7 +48,7 @@ func (musicLibrary *SharedMusicLibrary) GetPlaylist(id string) (*Playlist, error
 }
 
 type MusicProcessingResult struct {
-	User   *spotifyclient.User
+	User   *spotify.User
 	Tracks []*spotify.FullTrack
 	Error  error
 }
@@ -67,7 +67,7 @@ func CreateSharedMusicLibrary(totalUsers int) *SharedMusicLibrary {
  */
 
 // Will process the common library and find all the common songs
-func (musicLibrary *SharedMusicLibrary) Process(users []*spotifyclient.User, callback func(success bool)) {
+func (musicLibrary *SharedMusicLibrary) Process(users []*spotify.User, callback func(success bool)) {
 	logger.Logger.Infof("Starting processing of room for all users")
 	
 	// We mark the processing status as started
@@ -87,7 +87,7 @@ func (musicLibrary *SharedMusicLibrary) Process(users []*spotifyclient.User, cal
 	go musicLibrary.addSongsToLibraryAndFindMostCommonSongs(callback)
 }
 
-func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *spotifyclient.User)  {
+func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *spotify.User)  {
 	// Recovery for the goroutine
 	defer func() {
 		if err := recover(); err != nil {

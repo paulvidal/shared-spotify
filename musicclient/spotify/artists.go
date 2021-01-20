@@ -1,7 +1,7 @@
-package spotifyclient
+package spotify
 
 import (
-"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/logger"
 "github.com/zmb3/spotify"
 )
 

@@ -1,9 +1,9 @@
-package appmodels
+package app
 
 import (
 	"fmt"
 	"github.com/shared-spotify/logger"
-	"github.com/shared-spotify/spotifyclient"
+	"github.com/shared-spotify/musicclient/spotify"
 	"github.com/shared-spotify/utils"
 	"github.com/zmb3/spotify"
 )
@@ -43,11 +43,11 @@ type CommonPlaylists struct {
 
 type CommonPlaylistComputation struct {
 	// all users in a map with key user id
-	Users map[string]*spotifyclient.User `json:"-"`
+	Users map[string]*spotify.User `json:"-"`
 	// all tracks for a user in a map with key track id
 	TracksPerUser map[string][]*spotify.FullTrack `json:"-"`
 	// all users sharing track in a map with key track id
-	SharedTracksRank map[string][]*spotifyclient.User `json:"-"`
+	SharedTracksRank map[string][]*spotify.User `json:"-"`
 	// all user ids sharing track above the min threshold minNumberOfUserForCommonMusic in a map with key track id
 	SharedTracksRankAboveMinThreshold map[string][]string `json:"-"`
 	// all tracks of all users in a map with key track id
@@ -72,9 +72,9 @@ type PlaylistMetadata struct {
 
 type Playlist struct {
 	PlaylistMetadata                                        `bson:"inline"`
-	TracksPerSharedCount   map[int][]*spotify.FullTrack     `json:"tracks_per_shared_count"`
-	UserIdsPerSharedTracks map[string][]string              `json:"user_ids_per_shared_tracks"`
-	Users                  map[string]*spotifyclient.User   `json:"users"`
+	TracksPerSharedCount   map[int][]*spotify.FullTrack `json:"tracks_per_shared_count"`
+	UserIdsPerSharedTracks map[string][]string          `json:"user_ids_per_shared_tracks"`
+	Users                  map[string]*spotify.User     `json:"users"`
 }
 
 func (playlist *Playlist) GetAllTracks() []*spotify.FullTrack {
@@ -99,9 +99,9 @@ func (playlists *CommonPlaylists) GetPlaylistsMetadata() PlaylistsMetadata {
 
 func CreateCommonPlaylists() *CommonPlaylists {
 	computation := CommonPlaylistComputation{
-		make(map[string]*spotifyclient.User),
+		make(map[string]*spotify.User),
 		make(map[string][]*spotify.FullTrack),
-		make(map[string][]*spotifyclient.User),
+		make(map[string][]*spotify.User),
 		make(map[string][]string),
 		make(map[string]*spotify.FullTrack),
 		nil,
@@ -115,7 +115,7 @@ func CreateCommonPlaylists() *CommonPlaylists {
 	}
 }
 
-func (playlists *CommonPlaylists) getAUser() *spotifyclient.User {
+func (playlists *CommonPlaylists) getAUser() *spotify.User {
 	for _, user := range playlists.Users {
 		return user
 	}
@@ -123,7 +123,7 @@ func (playlists *CommonPlaylists) getAUser() *spotifyclient.User {
 	return nil
 }
 
-func (playlists *CommonPlaylists) addTracks(user *spotifyclient.User, tracks []*spotify.FullTrack) {
+func (playlists *CommonPlaylists) addTracks(user *spotify.User, tracks []*spotify.FullTrack) {
 	// Remember the user
 	playlists.Users[user.GetId()] = user
 
@@ -134,7 +134,7 @@ func (playlists *CommonPlaylists) addTracks(user *spotifyclient.User, tracks []*
 	trackAlreadyInserted := make(map[string]bool)
 
 	for _, track := range tracks {
-		trackISCR, ok := spotifyclient.GetTrackISRC(track)
+		trackISCR, ok := spotify.GetTrackISRC(track)
 
 		if !ok {
 			logger.WithUser(user.GetUserId()).Error("ISRC does not exist, track=", track)
@@ -151,7 +151,7 @@ func (playlists *CommonPlaylists) addTracks(user *spotifyclient.User, tracks []*
 		users, ok := playlists.SharedTracksRank[trackISCR]
 
 		if !ok {
-			users = make([]*spotifyclient.User, 1)
+			users = make([]*spotify.User, 1)
 			users[0] = user
 		} else {
 			users = append(users, user)
@@ -343,7 +343,7 @@ func (playlists *CommonPlaylists) GenerateDancePlaylist(sharedTrackPlaylist *Pla
 		danceTracksInCommonForSharedCount := make([]*spotify.FullTrack, 0)
 
 		for _, track := range tracks {
-			isrc, _ := spotifyclient.GetTrackISRC(track)
+			isrc, _ := spotify.GetTrackISRC(track)
 			audioFeatures := playlists.AudioFeaturesPerTrack[isrc]
 
 			if audioFeatures.Danceability >= 0.7 {
@@ -403,7 +403,7 @@ func (playlists *CommonPlaylists) GenerateGenrePlaylist(sharedTrackPlaylist *Pla
 		genreTracksInCommonForSharedCount := make([]*spotify.FullTrack, 0)
 
 		for _, track := range tracks {
-			isrc, _ := spotifyclient.GetTrackISRC(track)
+			isrc, _ := spotify.GetTrackISRC(track)
 			artists := playlists.ArtistsPerTrack[isrc]
 
 			genreFound := false

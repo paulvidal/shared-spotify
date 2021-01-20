@@ -3,12 +3,12 @@ package main
 import (
 	"github.com/gorilla/handlers"
 	"github.com/rs/cors"
-	"github.com/shared-spotify/app"
+	"github.com/shared-spotify/api"
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/env"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/mongoclient"
-	"github.com/shared-spotify/spotifyclient"
+	"github.com/shared-spotify/musicclient/spotify"
 	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
@@ -27,21 +27,21 @@ func startServer() {
 	// Create the router
 	r := muxtrace.NewRouter()
 
-	r.HandleFunc("/login", spotifyclient.Authenticate)
-	r.HandleFunc("/callback", spotifyclient.CallbackHandler)
+	r.HandleFunc("/login", spotify.Authenticate)
+	r.HandleFunc("/callback", spotify.CallbackHandler)
 
-	r.HandleFunc("/user", spotifyclient.GetUser)
+	r.HandleFunc("/user", spotify.GetUser)
 
-	r.HandleFunc("/rooms", app.RoomsHandler)
-	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}", app.RoomHandler)
-	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}/users", app.RoomUsersHandler)
-	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}/playlists", app.RoomPlaylistsHandler)
-	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}/playlists/{playlistId:[a-zA-Z0-9]+}", app.RoomPlaylistHandler)
-	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}/playlists/{playlistId:[a-zA-Z0-9]+}/add", app.RoomAddPlaylistHandler)
+	r.HandleFunc("/rooms", api.RoomsHandler)
+	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}", api.RoomHandler)
+	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}/users", api.RoomUsersHandler)
+	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}/playlists", api.RoomPlaylistsHandler)
+	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}/playlists/{playlistId:[a-zA-Z0-9]+}", api.RoomPlaylistHandler)
+	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}/playlists/{playlistId:[a-zA-Z0-9]+}/add", api.RoomAddPlaylistHandler)
 
 	// Setup cors policies
 	options := cors.Options{
-		AllowedOrigins: []string{spotifyclient.FrontendUrl},
+		AllowedOrigins: []string{spotify.FrontendUrl},
 		AllowCredentials: true,
 		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodOptions},
 	}

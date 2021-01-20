@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
-	"github.com/shared-spotify/spotifyclient"
+	"github.com/shared-spotify/musicclient/spotify"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -12,10 +12,10 @@ import (
 const userCollection = "users"
 
 type MongoUser struct {
-	*spotifyclient.User `bson:"inline"`
+	*spotify.User `bson:"inline"`
 }
 
-func InsertUsers(users []*spotifyclient.User) error {
+func InsertUsers(users []*spotify.User) error {
 	usersToInsert := make([]interface{}, 0)
 
 	for _, user := range users {
@@ -74,9 +74,9 @@ func InsertUsers(users []*spotifyclient.User) error {
 	return nil
 }
 
-func GetUsers(userIds []string) (map[string]*spotifyclient.User, error) {
+func GetUsers(userIds []string) (map[string]*spotify.User, error) {
 	mongoUsers := make([]*MongoUser, 0)
-	usersPerId := make(map[string]*spotifyclient.User)
+	usersPerId := make(map[string]*spotify.User)
 
 	filter := bson.D{{
 		"_id",

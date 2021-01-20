@@ -1,4 +1,4 @@
-package spotifyclient
+package spotify
 
 import (
 	"encoding/base64"
@@ -248,8 +248,8 @@ func encryptToken(token *oauth2.Token) (*http.Cookie, error) {
 	}
 
 	cookie := http.Cookie{
-		Name: tokenCookieName,
-		Value: base64EncryptedToken,
+		Name:    tokenCookieName,
+		Value:   base64EncryptedToken,
 		Expires: expiration,
 		// we send the cookie cross domain, so we need all this
 		Domain: urlParsed.Host,

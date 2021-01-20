@@ -1,4 +1,4 @@
-package spotifyclient
+package spotify
 
 import (
 	"github.com/zmb3/spotify"
@@ -11,8 +11,8 @@ type UserInfos struct {
 }
 
 type User struct {
-	UserInfos              `bson:"inline"`
-	Client *spotify.Client `json:"-"` // we ignore this field
+	UserInfos `bson:"inline"`
+	Client    *spotify.Client `json:"-"` // we ignore this field
 }
 
 func (user *User) GetId() string {

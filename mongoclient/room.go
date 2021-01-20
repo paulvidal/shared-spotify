@@ -3,10 +3,10 @@ package mongoclient
 import (
 	"context"
 	"errors"
-	"github.com/shared-spotify/appmodels"
+	"github.com/shared-spotify/app"
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
-	"github.com/shared-spotify/spotifyclient"
+	"github.com/shared-spotify/musicclient/spotify"
 	"github.com/zmb3/spotify"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,18 +17,18 @@ const roomCollection = "rooms"
 var NotFound = errors.New("Not found")
 
 type MongoRoom struct {
-	*appmodels.Room                       `bson:"inline"`
+	*app.Room `bson:"inline"`
 	Playlists map[string]*MongoPlaylist   `bson:"playlists"`
 }
 
 type MongoPlaylist struct {
-	appmodels.PlaylistMetadata                             `bson:"inline"`
-	TrackIdsPerSharedCount map[int][]string                `bson:"track_ids_per_shared_count"`
-	UserIdsPerSharedTracks map[string][]string             `bson:"user_ids_per_shared_tracks"`
-	Users                  map[string]*spotifyclient.User  `bson:"users"`
+	app.PlaylistMetadata   `bson:"inline"`
+	TrackIdsPerSharedCount map[int][]string         `bson:"track_ids_per_shared_count"`
+	UserIdsPerSharedTracks map[string][]string      `bson:"user_ids_per_shared_tracks"`
+	Users                  map[string]*spotify.User `bson:"users"`
 }
 
-func InsertRoom(room *appmodels.Room) error {
+func InsertRoom(room *app.Room) error {
 	playlists := room.GetPlaylists()
 
 	// we insert the users
@@ -72,7 +72,7 @@ func InsertRoom(room *appmodels.Room) error {
 	return nil
 }
 
-func GetRoom(roomId string) (*appmodels.Room, error) {
+func GetRoom(roomId string) (*app.Room, error) {
 	var mongoRoom MongoRoom
 
 	filter := bson.D{{
@@ -104,9 +104,9 @@ func GetRoom(roomId string) (*appmodels.Room, error) {
 	return room, err
 }
 
-func GetRoomsForUser(user *spotifyclient.User) ([]*appmodels.Room, error) {
+func GetRoomsForUser(user *spotify.User) ([]*app.Room, error) {
 	mongoRooms := make([]*MongoRoom, 0)
-	rooms := make([]*appmodels.Room, 0)
+	rooms := make([]*app.Room, 0)
 
 	filter := bson.D{{
 		"users._id",
@@ -134,7 +134,7 @@ func GetRoomsForUser(user *spotifyclient.User) ([]*appmodels.Room, error) {
 	return rooms, nil
 }
 
-func DeleteRoomForUser(room *appmodels.Room, user *spotifyclient.User) error {
+func DeleteRoomForUser(room *app.Room, user *spotify.User) error {
 	filter := bson.D{{
 		"_id",
 		room.Id,
@@ -163,7 +163,7 @@ func DeleteRoomForUser(room *appmodels.Room, user *spotifyclient.User) error {
 	return nil
 }
 
-func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist, room *appmodels.Room) map[string]*MongoPlaylist {
+func convertPlaylistsToMongoPlaylists(playlists map[string]*app.Playlist, room *app.Room) map[string]*MongoPlaylist {
 	mongoPlaylists := make(map[string]*MongoPlaylist)
 
 	for playlistId, playlist := range playlists {
@@ -194,8 +194,8 @@ func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist, 
 	return mongoPlaylists
 }
 
-func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) (map[string]*appmodels.Playlist, error) {
-	playlists := make(map[string]*appmodels.Playlist)
+func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) (map[string]*app.Playlist, error) {
+	playlists := make(map[string]*app.Playlist)
 
 	// we get the tracks
 	allTrackIds := make([]string, 0)
@@ -226,7 +226,7 @@ func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) 
 			tracksPerSharedCount[sharedCount] = tracks
 		}
 
-		playlists[playlistId] = &appmodels.Playlist{
+		playlists[playlistId] = &app.Playlist{
 			PlaylistMetadata:     mongoPlaylist.PlaylistMetadata,
 			TracksPerSharedCount: tracksPerSharedCount,
 			UserIdsPerSharedTracks: mongoPlaylist.UserIdsPerSharedTracks,
@@ -241,14 +241,14 @@ func getTrackIds(tracks []*spotify.FullTrack) []string {
 	trackIds := make([]string, 0)
 
 	for _, track := range tracks {
-		isrc, _ := spotifyclient.GetTrackISRC(track)
+		isrc, _ := spotify.GetTrackISRC(track)
 		trackIds = append(trackIds, isrc)
 	}
 
 	return trackIds
 }
 
-func getAllTracksForPlaylists(playlists map[string]*appmodels.Playlist) []*spotify.FullTrack {
+func getAllTracksForPlaylists(playlists map[string]*app.Playlist) []*spotify.FullTrack {
 	allTracks := make([]*spotify.FullTrack, 0)
 
 	for _, playlist := range playlists {

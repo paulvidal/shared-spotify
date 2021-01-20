@@ -3,7 +3,7 @@ package mongoclient
 import (
 	"context"
 	"github.com/shared-spotify/logger"
-	"github.com/shared-spotify/spotifyclient"
+	"github.com/shared-spotify/musicclient/spotify"
 	"github.com/zmb3/spotify"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -20,7 +20,7 @@ func InsertTracks(tracks []*spotify.FullTrack) error {
 	tracksToInsert := make([]interface{}, 0)
 
 	for _, track := range tracks {
-		id, _ := spotifyclient.GetTrackISRC(track)
+		id, _ := spotify.GetTrackISRC(track)
 		tracksToInsert = append(tracksToInsert, MongoTrack{id, track})
 	}
 
@@ -101,7 +101,7 @@ func GetTracks(trackIds []string) (map[string]*spotify.FullTrack, error) {
 
 	// we convert the tracks back to their original format
 	for _, mongoTrack := range mongoTracks {
-		isrc, _ := spotifyclient.GetTrackISRC(mongoTrack.FullTrack)
+		isrc, _ := spotify.GetTrackISRC(mongoTrack.FullTrack)
 		tracksPerId[isrc] = mongoTrack.FullTrack
 	}
 
