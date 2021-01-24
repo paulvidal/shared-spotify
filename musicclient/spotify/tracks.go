@@ -1,6 +1,7 @@
 package spotify
 
 import (
+	"fmt"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
@@ -10,18 +11,11 @@ import (
 var maxPage = 50
 
 const maxWaitBetweenCalls = 100 * time.Millisecond
-
-func GetTrackISRC(track *spotify.FullTrack) (string, bool) {
-	// Unique id representing a track
-	// https://en.wikipedia.org/wiki/International_Standard_Recording_Code
-	trackId, ok := track.ExternalIDs["isrc"]
-
-	return trackId, ok
-}
+const maxWaitBetweenSearchCalls = 10 * time.Millisecond
 
 func GetAllSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 	// Get the liked songs
-	savedTracks, err := GetSavedSongs(user)
+	savedTracks, err := getSavedSongs(user)
 
 	if err != nil {
 		logger.Logger.Errorf("Failed to fetch all tracks for user %s %v", user.GetUserId(), err)
@@ -29,7 +23,7 @@ func GetAllSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 	}
 
 	// Get the playlist songs
-	playlistTracks, err := GetAllPlaylistSongs(user)
+	playlistTracks, err := getAllPlaylistSongs(user)
 
 	if err != nil {
 		logger.Logger.Errorf("Failed to fetch all tracks for user %s %v", user.GetUserId(), err)
@@ -45,7 +39,7 @@ func GetAllSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 }
 
 // This method gets all the songs "liked" by a user
-func GetSavedSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
+func getSavedSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 	client := user.SpotifyClient
 
 	allTracks := make([]*spotify.FullTrack, 0)
@@ -89,7 +83,7 @@ func GetSavedSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 }
 
 // This method gets all the songs from the playlists of the user
-func GetAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
+func getAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 	client := user.SpotifyClient
 
 	allTracks := make([]*spotify.FullTrack, 0)
@@ -190,4 +184,37 @@ func getSongsForPlaylist(user *clientcommon.User, playlistId string) ([]*spotify
 	}
 
 	return allTracks, nil
+}
+
+func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullTrack, error) {
+	client := user.SpotifyClient
+
+	tracks := make([]*spotify.FullTrack, 0)
+
+	for _, isrc := range isrcs {
+		isrcQuery := fmt.Sprintf("isrc:%s", isrc)
+		results, err := client.Search(isrcQuery, spotify.SearchTypeTrack)
+
+		if err != nil {
+			logger.WithUser(user.GetUserId()).Error("Failed to query track by isrc on spotify", err)
+			continue
+		}
+
+		trackResults := results.Tracks.Tracks
+
+		if len(trackResults) == 0 {
+			logger.WithUser(user.GetUserId()).Warningf("No track found on spotify for isrc: %s", isrc)
+			continue
+		}
+
+		// Always take the first one, we don't care as we compare later via ISRC
+		track := trackResults[0]
+
+		tracks = append(tracks, &track)
+
+		// TODO: remove this, we need rate limit in another way
+		time.Sleep(maxWaitBetweenSearchCalls)
+	}
+
+	return tracks, nil
 }

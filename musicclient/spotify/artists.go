@@ -20,7 +20,7 @@ func GetArtists(user *clientcommon.User, tracks []*spotify.FullTrack) (map[strin
 
 	for _, track := range tracks {
 		for _, artist := range track.Artists {
-			trackISCR, _ := GetTrackISRC(track)
+			trackISCR, _ := clientcommon.GetTrackISRC(track)
 			artistId := artist.ID
 
 			// we only add the artistId if we have not seen it already

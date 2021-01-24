@@ -7,8 +7,15 @@ import (
 	"github.com/shared-spotify/musicclient/applemusic"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	spotifyclient "github.com/shared-spotify/musicclient/spotify"
+	"github.com/zmb3/spotify"
 	"net/http"
 )
+
+// The goal of this client is to provide a general abstraction regardless of the underlying music service
+// used by the user
+//
+// We use the spotify objects for now as the reference objects - e.g. FullTrack object
+// Eventually, we should create out own data model so we can get rid of spotify and have real abstraction
 
 /**
   Create user abstraction
@@ -98,4 +105,67 @@ func createUserFromRequestAppleMusic(r *http.Request) (*clientcommon.User, error
 	}
 
 	return user, nil
+}
+
+/**
+  Songs util
+*/
+
+/**
+  Get all songs abstraction
+*/
+
+func GetAllSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
+	var allSongs []*spotify.FullTrack
+
+	if user.IsSpotify() {
+		songs, err := spotifyclient.GetAllSongs(user)
+
+		if err != nil {
+			return nil, err
+		}
+
+		allSongs = songs
+
+	} else if user.IsAppleMusic() {
+		// we first query the songs
+		appleMusicSongs, err := applemusic.GetAllSongs(user)
+
+		if err != nil {
+			return nil, err
+		}
+
+		isrcs := make([]string, 0)
+
+		for _, song := range appleMusicSongs {
+			isrcs = append(isrcs, song.Attributes.ISRC)
+		}
+
+		// we then convert the data to spotify tracks
+		songs, err := spotifyclient.GetTrackForISRCs(user, isrcs)
+
+		if err != nil {
+			return nil, err
+		}
+
+		allSongs = songs
+	}
+
+	return allSongs, nil
+}
+
+/**
+  Get additional information abstractions
+*/
+
+func GetAlbums(user *clientcommon.User, tracks []*spotify.FullTrack) (map[string]*spotify.FullAlbum, error) {
+	return spotifyclient.GetAlbums(user, tracks)
+}
+
+func GetArtists(user *clientcommon.User, tracks []*spotify.FullTrack) (map[string][]*spotify.FullArtist, error) {
+	return spotifyclient.GetArtists(user, tracks)
+}
+
+func GetAudioFeatures(user *clientcommon.User, tracks []*spotify.FullTrack) (map[string]*spotify.AudioFeatures, error) {
+	return spotifyclient.GetAudioFeatures(user, tracks)
 }

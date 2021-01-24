@@ -7,7 +7,6 @@ import (
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient/clientcommon"
-	spotifyclient "github.com/shared-spotify/musicclient/spotify"
 	"github.com/zmb3/spotify"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -242,7 +241,7 @@ func getTrackIds(tracks []*spotify.FullTrack) []string {
 	trackIds := make([]string, 0)
 
 	for _, track := range tracks {
-		isrc, _ := spotifyclient.GetTrackISRC(track)
+		isrc, _ := clientcommon.GetTrackISRC(track)
 		trackIds = append(trackIds, isrc)
 	}
 

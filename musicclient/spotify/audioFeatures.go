@@ -18,7 +18,7 @@ func GetAudioFeatures(user *clientcommon.User, tracks []*spotify.FullTrack) (map
 	TrackISCRPerTrackIds := make(map[spotify.ID]string)
 
 	for _, track := range tracks {
-		trackISCR, _ := GetTrackISRC(track)
+		trackISCR, _ := clientcommon.GetTrackISRC(track)
 		trackId := track.ID
 
 		trackIds = append(trackIds, track.ID)

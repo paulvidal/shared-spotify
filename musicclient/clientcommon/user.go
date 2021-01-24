@@ -28,3 +28,15 @@ func (user *User) GetUserId() string {
 func (user *User) IsEqual(otherUser *User) bool {
 	return otherUser.Id == user.Id
 }
+
+/**
+  Determine music provider
+ */
+
+func (user *User) IsSpotify() bool {
+	return user.AppleMusicClient == nil
+}
+
+func (user *User) IsAppleMusic() bool {
+	return user.AppleMusicClient != nil
+}

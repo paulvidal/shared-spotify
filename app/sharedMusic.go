@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
-	spotifyclient "github.com/shared-spotify/musicclient/spotify"
 	"github.com/zmb3/spotify"
 	"runtime/debug"
 )
@@ -102,7 +102,7 @@ func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *clientcommon.Use
 
 	logger.WithUser(user.GetUserId()).Infof("Fetching songs for user %s", user.GetUserId())
 
-	tracks, err := spotifyclient.GetAllSongs(user)
+	tracks, err := musicclient.GetAllSongs(user)
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Errorf("Failed to fetch all songs for user %s %v",

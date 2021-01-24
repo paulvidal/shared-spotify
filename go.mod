@@ -29,7 +29,7 @@ require (
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/echo/v4 v4.1.17 // indirect
 	github.com/miekg/dns v1.1.35 // indirect
-	github.com/minchao/go-apple-music v0.0.0-20201209151130-c560d5e6b1cd
+	github.com/minchao/go-apple-music v0.0.0-20210121005645-8895087fad1d
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/philhofer/fwd v1.1.0 // indirect
 	github.com/rs/cors v1.7.0

@@ -3,8 +3,8 @@ package app
 import (
 	"fmt"
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
-	spotifyclient "github.com/shared-spotify/musicclient/spotify"
 	"github.com/shared-spotify/utils"
 	"github.com/zmb3/spotify"
 )
@@ -135,7 +135,7 @@ func (playlists *CommonPlaylists) addTracks(user *clientcommon.User, tracks []*s
 	trackAlreadyInserted := make(map[string]bool)
 
 	for _, track := range tracks {
-		trackISCR, ok := spotifyclient.GetTrackISRC(track)
+		trackISCR, ok := clientcommon.GetTrackISRC(track)
 
 		if !ok {
 			logger.WithUser(user.GetUserId()).Error("ISRC does not exist, track=", track)
@@ -175,7 +175,7 @@ func (playlists *CommonPlaylists) GeneratePlaylists() error {
 
 	// get audio features among common songs
 	user := playlists.getAUser()
-	audioFeatures, err := spotifyclient.GetAudioFeatures(user, allSharedTracks)
+	audioFeatures, err := musicclient.GetAudioFeatures(user, allSharedTracks)
 
 	if err != nil {
 		return err
@@ -185,7 +185,7 @@ func (playlists *CommonPlaylists) GeneratePlaylists() error {
 	playlists.AudioFeaturesPerTrack = audioFeatures
 
 	// get artists among common songs
-	artists, err := spotifyclient.GetArtists(user, allSharedTracks)
+	artists, err := musicclient.GetArtists(user, allSharedTracks)
 
 	if err != nil {
 		return err
@@ -195,7 +195,7 @@ func (playlists *CommonPlaylists) GeneratePlaylists() error {
 	playlists.ArtistsPerTrack = artists
 
 	// get the albums among common songs
-	albums, err := spotifyclient.GetAlbums(user, allSharedTracks)
+	albums, err := musicclient.GetAlbums(user, allSharedTracks)
 
 	if err != nil {
 		return err
@@ -344,7 +344,7 @@ func (playlists *CommonPlaylists) GenerateDancePlaylist(sharedTrackPlaylist *Pla
 		danceTracksInCommonForSharedCount := make([]*spotify.FullTrack, 0)
 
 		for _, track := range tracks {
-			isrc, _ := spotifyclient.GetTrackISRC(track)
+			isrc, _ := clientcommon.GetTrackISRC(track)
 			audioFeatures := playlists.AudioFeaturesPerTrack[isrc]
 
 			if audioFeatures.Danceability >= 0.7 {
@@ -404,7 +404,7 @@ func (playlists *CommonPlaylists) GenerateGenrePlaylist(sharedTrackPlaylist *Pla
 		genreTracksInCommonForSharedCount := make([]*spotify.FullTrack, 0)
 
 		for _, track := range tracks {
-			isrc, _ := spotifyclient.GetTrackISRC(track)
+			isrc, _ := clientcommon.GetTrackISRC(track)
 			artists := playlists.ArtistsPerTrack[isrc]
 
 			genreFound := false

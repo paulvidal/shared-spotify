@@ -19,7 +19,7 @@ func GetAlbums(user *clientcommon.User, tracks []*spotify.FullTrack) (map[string
 	TrackISCRsPerAlbumId := make(map[spotify.ID][]string)
 
 	for _, track := range tracks {
-		trackISCR, _ := GetTrackISRC(track)
+		trackISCR, _ := clientcommon.GetTrackISRC(track)
 		albumId := track.Album.ID
 
 		// we only add the albumId if we have not seen it already
