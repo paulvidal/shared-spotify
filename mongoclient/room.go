@@ -19,7 +19,7 @@ var NotFound = errors.New("Not found")
 
 type MongoRoom struct {
 	*app.Room `bson:"inline"`
-	Playlists map[string]*MongoPlaylist   `bson:"playlists"`
+	Playlists map[string]*MongoPlaylist `bson:"playlists"`
 }
 
 type MongoPlaylist struct {
@@ -228,10 +228,10 @@ func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) 
 		}
 
 		playlists[playlistId] = &app.Playlist{
-			PlaylistMetadata:     mongoPlaylist.PlaylistMetadata,
-			TracksPerSharedCount: tracksPerSharedCount,
+			PlaylistMetadata:       mongoPlaylist.PlaylistMetadata,
+			TracksPerSharedCount:   tracksPerSharedCount,
 			UserIdsPerSharedTracks: mongoPlaylist.UserIdsPerSharedTracks,
-			Users: mongoPlaylist.Users,
+			Users:                  mongoPlaylist.Users,
 		}
 	}
 

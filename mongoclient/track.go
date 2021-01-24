@@ -13,7 +13,7 @@ const trackCollection = "tracks"
 
 type MongoTrack struct {
 	TrackId            string `bson:"_id"`
-	*spotify.FullTrack        `bson:"inline"`
+	*spotify.FullTrack `bson:"inline"`
 }
 
 func InsertTracks(tracks []*spotify.FullTrack) error {

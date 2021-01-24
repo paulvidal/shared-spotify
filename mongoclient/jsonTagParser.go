@@ -9,7 +9,7 @@ import (
 /*
   All copied from https://github.com/mongodb/mongo-go-driver/blob/master/bson/bsoncodec/struct_tag_parser.go#L128
   As for now it is not available in the library
- */
+*/
 var JSONFallbackStructTagParser bsoncodec.StructTagParserFunc = func(sf reflect.StructField) (bsoncodec.StructTags, error) {
 	key := strings.ToLower(sf.Name)
 	tag, ok := sf.Tag.Lookup("bson")

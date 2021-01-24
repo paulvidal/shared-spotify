@@ -70,7 +70,7 @@ func GetPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 }
 
 // Here, we launch the process of finding the musics for the users in the room
-func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request)  {
+func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 
@@ -118,7 +118,7 @@ func RoomPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
+func GetPlaylist(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 	playlistId := vars["playlistId"]
@@ -188,7 +188,7 @@ type AddPlaylistRequestBody struct {
 	MinSharedCount int `json:"min_shared_count"`
 }
 
-func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
+func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 	playlistId := vars["playlistId"]
@@ -273,8 +273,8 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 }
 
 type NewPlaylist struct {
-	Name        string `json:"name"`
-	SpotifyUrl  string `json:"spotify_url"`
+	Name       string `json:"name"`
+	SpotifyUrl string `json:"spotify_url"`
 }
 
 func CreateNewPlaylist(roomName string, playlistName string) *NewPlaylist {

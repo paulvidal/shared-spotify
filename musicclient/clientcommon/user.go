@@ -12,7 +12,7 @@ type UserInfos struct {
 }
 
 type User struct {
-	*UserInfos        `bson:"inline"`
+	*UserInfos       `bson:"inline"`
 	SpotifyClient    *spotify.Client    `json:"-"` // we ignore this field
 	AppleMusicClient *applemusic.Client `json:"-"` // we ignore this field
 }

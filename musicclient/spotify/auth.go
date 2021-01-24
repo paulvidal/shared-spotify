@@ -41,7 +41,7 @@ var auth = spotify.NewAuthenticator(
 
 func CreateUserFromToken(token *oauth2.Token) (*clientcommon.User, error) {
 	client := auth.NewClient(token)
-	client.AutoRetry = true  // enable auto retries when rate limited
+	client.AutoRetry = true // enable auto retries when rate limited
 
 	privateUser, err := client.CurrentUser()
 
@@ -75,7 +75,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	// We extract the referer if it exists, to redirect to it once th auth is finished
 	var redirectUrl string
-	referer:= r.Header.Get("Referer")
+	referer := r.Header.Get("Referer")
 	refererParsedUrl, err := url.Parse(referer)
 
 	if err != nil || referer == "" {
@@ -220,9 +220,9 @@ func EncryptToken(token *oauth2.Token) (*http.Cookie, error) {
 		Value:   base64EncryptedToken,
 		Expires: expiration,
 		// we send the cookie cross domain, so we need all this
-		Domain: urlParsed.Host,
-		Path: "/",
-		Secure: secure,
+		Domain:   urlParsed.Host,
+		Path:     "/",
+		Secure:   secure,
 		SameSite: sameSite,
 	}
 

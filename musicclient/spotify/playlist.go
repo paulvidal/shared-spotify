@@ -11,7 +11,7 @@ const playlistPublic = false
 const maxTrackPerPlaylistAddCall = 100
 const spotifyExternalLinkName = "spotify"
 
-func  CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spotify.FullTrack) (*string, error) {
+func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spotify.FullTrack) (*string, error) {
 	// we create the playlist
 	fullPlaylist, err := user.SpotifyClient.CreatePlaylistForUser(user.GetId(), playlistName,
 		playlistDescription, playlistPublic)

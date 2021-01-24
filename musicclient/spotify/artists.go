@@ -59,7 +59,7 @@ func GetArtists(user *clientcommon.User, tracks []*spotify.FullTrack) (map[strin
 		}
 
 		artists = append(artists, artistsPart...)
-		logger.Logger.Infof("Fetched %d artists successfully",  upperBound-i)
+		logger.Logger.Infof("Fetched %d artists successfully", upperBound-i)
 	}
 
 	for _, artist := range artists {

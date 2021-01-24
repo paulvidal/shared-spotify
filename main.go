@@ -46,9 +46,9 @@ func startServer() {
 
 	// Setup cors policies
 	options := cors.Options{
-		AllowedOrigins: []string{clientcommon.FrontendUrl},
+		AllowedOrigins:   []string{clientcommon.FrontendUrl},
 		AllowCredentials: true,
-		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodOptions},
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodOptions},
 	}
 	handler := cors.New(options).Handler(r)
 
@@ -63,7 +63,7 @@ func startServer() {
 	defer profiler.Stop()
 
 	// Launch the server
-	err := http.ListenAndServe(":" + Port, handler)
+	err := http.ListenAndServe(":"+Port, handler)
 	if err != nil {
 		logger.Logger.Fatal("Failed to start server ", err)
 	}
@@ -73,7 +73,7 @@ func connectToMongo() {
 	mongoclient.Initialise()
 }
 
-func startTracing()  {
+func startTracing() {
 	// Activate datadog tracer
 	rules := []tracer.SamplingRule{tracer.RateRule(1)}
 	tracer.Start(
@@ -100,7 +100,7 @@ func startTracing()  {
 	logger.Logger.Warning("Datadog profiler started")
 }
 
-func startMetricClient()  {
+func startMetricClient() {
 	datadog.Initialise()
 }
 

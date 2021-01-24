@@ -42,7 +42,7 @@ func GetAudioFeatures(user *clientcommon.User, tracks []*spotify.FullTrack) (map
 		}
 
 		audioFeatures = append(audioFeatures, audioFeaturesPart...)
-		logger.Logger.Infof("Fetched %d track audio features successfully",  upperBound-i)
+		logger.Logger.Infof("Fetched %d track audio features successfully", upperBound-i)
 	}
 
 	for _, audioFeature := range audioFeatures {

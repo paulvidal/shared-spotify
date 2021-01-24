@@ -44,9 +44,9 @@ func GetLoginTypeCookie(loginType string) (*http.Cookie, error) {
 		Value:   loginType,
 		Expires: expiration,
 		// we send the cookie cross domain, so we need all this
-		Domain: urlParsed.Host,
-		Path: "/",
-		Secure: secure,
+		Domain:   urlParsed.Host,
+		Path:     "/",
+		Secure:   secure,
 		SameSite: sameSite,
 	}, nil
 }

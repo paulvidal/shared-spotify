@@ -32,7 +32,7 @@ const minNumberOfUserForCommonMusic = 2
 const genreTrackCountThreshold = 5 // min count to have a playlist to be included
 
 const popularityThreshold = 60 // out of 100
-const unpopularThreshold = 25 // out of 100
+const unpopularThreshold = 25  // out of 100
 
 type CommonPlaylists struct {
 	// all playlists in a map with key playlist generated id
@@ -72,7 +72,7 @@ type PlaylistMetadata struct {
 }
 
 type Playlist struct {
-	PlaylistMetadata                                        `bson:"inline"`
+	PlaylistMetadata       `bson:"inline"`
 	TracksPerSharedCount   map[int][]*spotify.FullTrack  `json:"tracks_per_shared_count"`
 	UserIdsPerSharedTracks map[string][]string           `json:"user_ids_per_shared_tracks"`
 	Users                  map[string]*clientcommon.User `json:"users"`
@@ -253,7 +253,7 @@ func (playlists *CommonPlaylists) GenerateCommonPlaylistType() *Playlist {
 			for _, user := range users {
 				userIds = append(userIds, user.GetId())
 			}
-			playlists.SharedTracksRankAboveMinThreshold[trackId] = userIds 
+			playlists.SharedTracksRankAboveMinThreshold[trackId] = userIds
 
 			logger.Logger.Debugf("Common track found for %d person: %s by %v", userCount, track.Name, track.Artists)
 		}

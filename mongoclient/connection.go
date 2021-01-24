@@ -34,10 +34,10 @@ func Initialise() {
 		Client().
 		ApplyURI(MongoUrl).
 		SetRegistry(
-			bson.NewRegistryBuilder().  // Add th new struct codec
-				RegisterDefaultDecoder(reflect.Struct, structcodec).
-				RegisterDefaultEncoder(reflect.Struct, structcodec).
-				Build()).
+											bson.NewRegistryBuilder(). // Add th new struct codec
+															RegisterDefaultDecoder(reflect.Struct, structcodec).
+															RegisterDefaultEncoder(reflect.Struct, structcodec).
+															Build()).
 		SetMonitor(mongotrace.NewMonitor(mongotrace.WithAnalytics(true))) // enable tracing of mongo calls
 
 	// Connect to MongoDB

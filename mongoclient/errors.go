@@ -26,5 +26,5 @@ func isDup(err mongo.WriteError) bool {
 		err.Code == 11001 ||
 		err.Code == 12582 ||
 		err.Code == 16460 &&
-		strings.Contains(err.Message, " E11000 ")
+			strings.Contains(err.Message, " E11000 ")
 }

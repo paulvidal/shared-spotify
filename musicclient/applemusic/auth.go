@@ -16,7 +16,6 @@ import (
 	"time"
 )
 
-
 type AppleLogin struct {
 	UserId            string `json:"user_id"`
 	UserEmail         string `json:"user_email"`
@@ -39,7 +38,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger.Logger.Info(userId, userEmail, userName, musickitToken, musicKitUserToken)
 
-	appleLogin :=  AppleLogin{
+	appleLogin := AppleLogin{
 		userId,
 		userEmail,
 		userName,
@@ -89,7 +88,7 @@ func CreateUserFromToken(appleLogin *AppleLogin) (*clientcommon.User, error) {
 	appleMusicClient := applemusic.NewClient(tp.Client())
 
 	// make a dummy request to make sure token is valid
-	_, _, err := appleMusicClient.Me.GetStorefront(context.Background(),nil)
+	_, _, err := appleMusicClient.Me.GetStorefront(context.Background(), nil)
 
 	if err != nil {
 		logger.Logger.Warning("Invalid apple music user token ", err)
@@ -171,9 +170,9 @@ func EncryptToken(appleLogin *AppleLogin) (*http.Cookie, error) {
 		Value:   base64EncryptedToken,
 		Expires: expiration,
 		// we send the cookie cross domain, so we need all this
-		Domain: urlParsed.Host,
-		Path: "/",
-		Secure: secure,
+		Domain:   urlParsed.Host,
+		Path:     "/",
+		Secure:   secure,
 		SameSite: sameSite,
 	}
 

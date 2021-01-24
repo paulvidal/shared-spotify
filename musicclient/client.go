@@ -12,7 +12,7 @@ import (
 
 /**
   Create user abstraction
- */
+*/
 
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := CreateUserFromRequest(r)
