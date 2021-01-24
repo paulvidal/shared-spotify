@@ -2,12 +2,13 @@ package spotify
 
 import (
 	"github.com/shared-spotify/logger"
-"github.com/zmb3/spotify"
+	"github.com/shared-spotify/musicclient/clientcommon"
+	"github.com/zmb3/spotify"
 )
 
 const maxArtistsPerApiCall = 50
 
-func (user *User) GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify.FullArtist, error) {
+func GetArtists(user *clientcommon.User, tracks []*spotify.FullTrack) (map[string][]*spotify.FullArtist, error) {
 	logger.Logger.Infof("Fetching artists for %d tracks", len(tracks))
 
 	artistsPerTrack := make(map[string][]*spotify.FullArtist)
@@ -50,7 +51,7 @@ func (user *User) GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify
 			upperBound = len(artistIds)
 		}
 
-		artistsPart, err := user.Client.GetArtists(artistIds[i:upperBound]...)
+		artistsPart, err := user.SpotifyClient.GetArtists(artistIds[i:upperBound]...)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get artists - %v", err)

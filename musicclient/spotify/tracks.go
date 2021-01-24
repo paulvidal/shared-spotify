@@ -2,6 +2,7 @@ package spotify
 
 import (
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
 	"time"
 )
@@ -18,9 +19,9 @@ func GetTrackISRC(track *spotify.FullTrack) (string, bool) {
 	return trackId, ok
 }
 
-func (user *User) GetAllSongs() ([]*spotify.FullTrack, error) {
+func GetAllSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 	// Get the liked songs
-	savedTracks, err := user.GetSavedSongs()
+	savedTracks, err := GetSavedSongs(user)
 
 	if err != nil {
 		logger.Logger.Errorf("Failed to fetch all tracks for user %s %v", user.GetUserId(), err)
@@ -28,7 +29,7 @@ func (user *User) GetAllSongs() ([]*spotify.FullTrack, error) {
 	}
 
 	// Get the playlist songs
-	playlistTracks, err := user.GetAllPlaylistSongs()
+	playlistTracks, err := GetAllPlaylistSongs(user)
 
 	if err != nil {
 		logger.Logger.Errorf("Failed to fetch all tracks for user %s %v", user.GetUserId(), err)
@@ -44,8 +45,8 @@ func (user *User) GetAllSongs() ([]*spotify.FullTrack, error) {
 }
 
 // This method gets all the songs "liked" by a user
-func (user *User) GetSavedSongs() ([]*spotify.FullTrack, error) {
-	client := user.Client
+func GetSavedSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
+	client := user.SpotifyClient
 
 	allTracks := make([]*spotify.FullTrack, 0)
 	savedTrackPage, err := client.CurrentUsersTracksOpt(&spotify.Options{Limit: &maxPage})
@@ -88,8 +89,8 @@ func (user *User) GetSavedSongs() ([]*spotify.FullTrack, error) {
 }
 
 // This method gets all the songs from the playlists of the user
-func (user *User) GetAllPlaylistSongs() ([]*spotify.FullTrack, error) {
-	client := user.Client
+func GetAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
+	client := user.SpotifyClient
 
 	allTracks := make([]*spotify.FullTrack, 0)
 
@@ -115,7 +116,7 @@ func (user *User) GetAllPlaylistSongs() ([]*spotify.FullTrack, error) {
 			}
 
 			playlistId := simplePlaylist.ID.String()
-			tracks, err := user.getSongsForPlaylist(playlistId)
+			tracks, err := getSongsForPlaylist(user, playlistId)
 
 			if err != nil {
 				return nil, err
@@ -147,8 +148,8 @@ func (user *User) GetAllPlaylistSongs() ([]*spotify.FullTrack, error) {
 	return allTracks, nil
 }
 
-func (user *User) getSongsForPlaylist(playlistId string) ([]*spotify.FullTrack, error) {
-	client := user.Client
+func getSongsForPlaylist(user *clientcommon.User, playlistId string) ([]*spotify.FullTrack, error) {
+	client := user.SpotifyClient
 
 	allTracks := make([]*spotify.FullTrack, 0)
 	playlistTrackPage, err := client.GetPlaylistTracksOpt(spotify.ID(playlistId), &spotify.Options{Limit: &maxPage}, "")

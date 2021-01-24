@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
-	"github.com/shared-spotify/musicclient/spotify"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -12,10 +12,10 @@ import (
 const userCollection = "users"
 
 type MongoUser struct {
-	*spotify.User `bson:"inline"`
+	*clientcommon.User `bson:"inline"`
 }
 
-func InsertUsers(users []*spotify.User) error {
+func InsertUsers(users []*clientcommon.User) error {
 	usersToInsert := make([]interface{}, 0)
 
 	for _, user := range users {
@@ -74,9 +74,9 @@ func InsertUsers(users []*spotify.User) error {
 	return nil
 }
 
-func GetUsers(userIds []string) (map[string]*spotify.User, error) {
+func GetUsers(userIds []string) (map[string]*clientcommon.User, error) {
 	mongoUsers := make([]*MongoUser, 0)
-	usersPerId := make(map[string]*spotify.User)
+	usersPerId := make(map[string]*clientcommon.User)
 
 	filter := bson.D{{
 		"_id",
@@ -93,7 +93,11 @@ func GetUsers(userIds []string) (map[string]*spotify.User, error) {
 		return nil, err
 	}
 
+	logger.Logger.Info("here16")
+
 	err = cursor.All(context.TODO(), &mongoUsers)
+
+	logger.Logger.Info("here13")
 
 	if err != nil {
 		logger.Logger.Error("Failed to find users in mongo ", err)

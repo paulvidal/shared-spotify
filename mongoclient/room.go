@@ -6,7 +6,8 @@ import (
 	"github.com/shared-spotify/app"
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
-	"github.com/shared-spotify/musicclient/spotify"
+	"github.com/shared-spotify/musicclient/clientcommon"
+	spotifyclient "github.com/shared-spotify/musicclient/spotify"
 	"github.com/zmb3/spotify"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -23,9 +24,9 @@ type MongoRoom struct {
 
 type MongoPlaylist struct {
 	app.PlaylistMetadata   `bson:"inline"`
-	TrackIdsPerSharedCount map[int][]string         `bson:"track_ids_per_shared_count"`
-	UserIdsPerSharedTracks map[string][]string      `bson:"user_ids_per_shared_tracks"`
-	Users                  map[string]*spotify.User `bson:"users"`
+	TrackIdsPerSharedCount map[int][]string              `bson:"track_ids_per_shared_count"`
+	UserIdsPerSharedTracks map[string][]string           `bson:"user_ids_per_shared_tracks"`
+	Users                  map[string]*clientcommon.User `bson:"users"`
 }
 
 func InsertRoom(room *app.Room) error {
@@ -104,7 +105,7 @@ func GetRoom(roomId string) (*app.Room, error) {
 	return room, err
 }
 
-func GetRoomsForUser(user *spotify.User) ([]*app.Room, error) {
+func GetRoomsForUser(user *clientcommon.User) ([]*app.Room, error) {
 	mongoRooms := make([]*MongoRoom, 0)
 	rooms := make([]*app.Room, 0)
 
@@ -134,7 +135,7 @@ func GetRoomsForUser(user *spotify.User) ([]*app.Room, error) {
 	return rooms, nil
 }
 
-func DeleteRoomForUser(room *app.Room, user *spotify.User) error {
+func DeleteRoomForUser(room *app.Room, user *clientcommon.User) error {
 	filter := bson.D{{
 		"_id",
 		room.Id,
@@ -241,7 +242,7 @@ func getTrackIds(tracks []*spotify.FullTrack) []string {
 	trackIds := make([]string, 0)
 
 	for _, track := range tracks {
-		isrc, _ := spotify.GetTrackISRC(track)
+		isrc, _ := spotifyclient.GetTrackISRC(track)
 		trackIds = append(trackIds, isrc)
 	}
 

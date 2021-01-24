@@ -2,6 +2,7 @@ package spotify
 
 import (
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
 )
 
@@ -10,9 +11,9 @@ const playlistPublic = false
 const maxTrackPerPlaylistAddCall = 100
 const spotifyExternalLinkName = "spotify"
 
-func (user *User) CreatePlaylist(playlistName string, tracks []*spotify.FullTrack) (*string, error) {
+func  CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spotify.FullTrack) (*string, error) {
 	// we create the playlist
-	fullPlaylist, err := user.Client.CreatePlaylistForUser(user.GetId(), playlistName,
+	fullPlaylist, err := user.SpotifyClient.CreatePlaylistForUser(user.GetId(), playlistName,
 		playlistDescription, playlistPublic)
 
 	if err != nil {
@@ -38,7 +39,7 @@ func (user *User) CreatePlaylist(playlistName string, tracks []*spotify.FullTrac
 			upperBound = len(trackIds)
 		}
 
-		_, err := user.Client.AddTracksToPlaylist(fullPlaylist.ID, trackIds[i:upperBound]...)
+		_, err := user.SpotifyClient.AddTracksToPlaylist(fullPlaylist.ID, trackIds[i:upperBound]...)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to add songs to playlist - %v", err)

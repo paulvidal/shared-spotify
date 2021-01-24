@@ -16,6 +16,7 @@
     "@fortawesome/react-fontawesome": "^0.1.12",
     "axios": "^0.21.1",
     "bootstrap": "^4.5.3",
+    "jwt-decode": "^3.1.2",
     "lodash": "^4.17.20",
     "moment": "^2.29.1",
     "next": "^10.0.5",

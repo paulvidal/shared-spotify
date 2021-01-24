@@ -2,12 +2,13 @@ package spotify
 
 import (
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
 )
 
 const maxAudioFeaturePerApiCall = 100
 
-func (user *User) GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spotify.AudioFeatures, error) {
+func GetAudioFeatures(user *clientcommon.User, tracks []*spotify.FullTrack) (map[string]*spotify.AudioFeatures, error) {
 	logger.Logger.Infof("Fetching audio features for %d tracks", len(tracks))
 
 	audioFeaturesPerTrack := make(map[string]*spotify.AudioFeatures)
@@ -33,7 +34,7 @@ func (user *User) GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spo
 			upperBound = len(trackIds)
 		}
 
-		audioFeaturesPart, err := user.Client.GetAudioFeatures(trackIds[i:upperBound]...)
+		audioFeaturesPart, err := user.SpotifyClient.GetAudioFeatures(trackIds[i:upperBound]...)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get audio features for tracks - %v", err)

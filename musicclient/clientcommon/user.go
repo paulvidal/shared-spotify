@@ -1,6 +1,7 @@
-package spotify
+package clientcommon
 
 import (
+	"github.com/minchao/go-apple-music"
 	"github.com/zmb3/spotify"
 )
 
@@ -11,8 +12,9 @@ type UserInfos struct {
 }
 
 type User struct {
-	UserInfos `bson:"inline"`
-	Client    *spotify.Client `json:"-"` // we ignore this field
+	*UserInfos        `bson:"inline"`
+	SpotifyClient    *spotify.Client    `json:"-"` // we ignore this field
+	AppleMusicClient *applemusic.Client `json:"-"` // we ignore this field
 }
 
 func (user *User) GetId() string {

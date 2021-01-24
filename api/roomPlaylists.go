@@ -7,6 +7,7 @@ import (
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
+	spotifyclient "github.com/shared-spotify/musicclient/spotify"
 	"github.com/zmb3/spotify"
 	"net/http"
 )
@@ -250,7 +251,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 		}
 	}
 
-	spotifyUrl, err := user.CreatePlaylist(newPlaylist.Name, tracks)
+	spotifyUrl, err := spotifyclient.CreatePlaylist(user, newPlaylist.Name, tracks)
 
 	if spotifyUrl != nil {
 		newPlaylist.SpotifyUrl = *spotifyUrl

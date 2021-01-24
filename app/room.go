@@ -1,18 +1,18 @@
 package app
 
 import (
-	"github.com/shared-spotify/musicclient/spotify"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"time"
 )
 
 type Room struct {
-	Id           string              `json:"id" bson:"_id"`
-	Name         string              `json:"name"`
-	Owner        *spotify.User       `json:"owner"`
-	Users        []*spotify.User     `json:"users"`
-	CreationTime time.Time           `json:"creation_time"`
-	Locked       *bool               `json:"locked"`
-	MusicLibrary *SharedMusicLibrary `json:"shared_music_library"`
+	Id           string               `json:"id" bson:"_id"`
+	Name         string               `json:"name"`
+	Owner        *clientcommon.User   `json:"owner"`
+	Users        []*clientcommon.User `json:"users"`
+	CreationTime time.Time            `json:"creation_time"`
+	Locked       *bool                `json:"locked"`
+	MusicLibrary *SharedMusicLibrary  `json:"shared_music_library"`
 }
 
 type RoomWithOwnerInfo struct {
@@ -20,13 +20,13 @@ type RoomWithOwnerInfo struct {
 	IsOwner bool `json:"is_owner"`
 }
 
-func CreateRoom(roomId string, roomName string, owner *spotify.User) *Room {
+func CreateRoom(roomId string, roomName string, owner *clientcommon.User) *Room {
 	locked := false
 	room := &Room{
 		roomId,
 		roomName,
 		owner,
-		make([]*spotify.User, 0),
+		make([]*clientcommon.User, 0),
 		time.Now(),
 		&locked,
 		nil,
@@ -38,7 +38,7 @@ func CreateRoom(roomId string, roomName string, owner *spotify.User) *Room {
 	return room
 }
 
-func (room *Room) AddUser(user *spotify.User) {
+func (room *Room) AddUser(user *clientcommon.User) {
 	// If the user is already in the room, do not add it
 	if room.IsUserInRoom(user) {
 		return
@@ -47,7 +47,7 @@ func (room *Room) AddUser(user *spotify.User) {
 	room.Users = append(room.Users, user)
 }
 
-func (room *Room) IsUserInRoom(user *spotify.User) bool {
+func (room *Room) IsUserInRoom(user *clientcommon.User) bool {
 	for _, roomUser := range room.Users {
 		if roomUser.IsEqual(user) {
 			return true
@@ -65,7 +65,7 @@ func (room *Room) GetUserIds() []string {
 	return userNames
 }
 
-func (room *Room) IsOwner(user *spotify.User) bool {
+func (room *Room) IsOwner(user *clientcommon.User) bool {
 	return room.Owner.IsEqual(user)
 }
 

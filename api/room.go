@@ -9,7 +9,8 @@ import (
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/mongoclient"
-	"github.com/shared-spotify/musicclient/spotify"
+	"github.com/shared-spotify/musicclient"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/shared-spotify/utils"
 	"net/http"
 )
@@ -98,14 +99,14 @@ func getRoom(roomId string) (*app.Room, error) {
 	return room, nil
 }
 
-func getRoomAndCheckUser(roomId string, r *http.Request) (*app.Room, *spotify.User, error) {
+func getRoomAndCheckUser(roomId string, r *http.Request) (*app.Room, *clientcommon.User, error) {
 	room, err := getRoom(roomId)
 
 	if err != nil {
 		return nil, nil, err
 	}
 
-	user, err := spotify.CreateUserFromRequest(r)
+	user, err := musicclient.CreateUserFromRequest(r)
 
 	if err != nil {
 		return nil, nil, authenticationError
@@ -118,7 +119,7 @@ func getRoomAndCheckUser(roomId string, r *http.Request) (*app.Room, *spotify.Us
 	return room, user, nil
 }
 
-func handleError(err error, w http.ResponseWriter, r *http.Request, user *spotify.User) {
+func handleError(err error, w http.ResponseWriter, r *http.Request, user *clientcommon.User) {
 	userId := "unknown"
 
 	if user != nil {
@@ -166,7 +167,7 @@ func RoomsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetRooms(w http.ResponseWriter, r *http.Request) {
-	user, err := spotify.CreateUserFromRequest(r)
+	user, err := musicclient.CreateUserFromRequest(r)
 
 	if err != nil {
 		handleError(authenticationError, w, r, user)
@@ -201,7 +202,7 @@ type NewRoom struct {
 }
 
 func CreateRoom(w http.ResponseWriter, r *http.Request) {
-	user, err := spotify.CreateUserFromRequest(r)
+	user, err := musicclient.CreateUserFromRequest(r)
 
 	if err != nil {
 		handleError(authenticationError, w, r, user)
@@ -316,7 +317,7 @@ func RoomUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddRoomUser(w http.ResponseWriter, r *http.Request) {
-	user, err := spotify.CreateUserFromRequest(r)
+	user, err := musicclient.CreateUserFromRequest(r)
 
 	if err != nil {
 		handleError(authenticationError, w, r, user)

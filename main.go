@@ -8,6 +8,9 @@ import (
 	"github.com/shared-spotify/env"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/mongoclient"
+	"github.com/shared-spotify/musicclient"
+	"github.com/shared-spotify/musicclient/applemusic"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/shared-spotify/musicclient/spotify"
 	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -28,9 +31,11 @@ func startServer() {
 	r := muxtrace.NewRouter()
 
 	r.HandleFunc("/login", spotify.Authenticate)
-	r.HandleFunc("/callback", spotify.CallbackHandler)
 
-	r.HandleFunc("/user", spotify.GetUser)
+	r.HandleFunc("/callback", spotify.CallbackHandler)
+	r.HandleFunc("/callback/apple", applemusic.CallbackHandler)
+
+	r.HandleFunc("/user", musicclient.GetUser)
 
 	r.HandleFunc("/rooms", api.RoomsHandler)
 	r.HandleFunc("/rooms/{roomId:[a-zA-Z0-9]+}", api.RoomHandler)
@@ -41,7 +46,7 @@ func startServer() {
 
 	// Setup cors policies
 	options := cors.Options{
-		AllowedOrigins: []string{spotify.FrontendUrl},
+		AllowedOrigins: []string{clientcommon.FrontendUrl},
 		AllowCredentials: true,
 		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodOptions},
 	}
@@ -86,7 +91,7 @@ func startTracing()  {
 		profiler.WithService(Service),
 		profiler.WithEnv(env.GetEnv()),
 		profiler.WithVersion(ReleaseVersion),
-	);
+	)
 
 	if err != nil {
 		logger.Logger.Fatal("Failed to start profiler ", err)

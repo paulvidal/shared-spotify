@@ -4,7 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/shared-spotify/logger"
-	"github.com/shared-spotify/musicclient/spotify"
+	"github.com/shared-spotify/musicclient/clientcommon"
+	spotifyclient "github.com/shared-spotify/musicclient/spotify"
 	"github.com/zmb3/spotify"
 	"runtime/debug"
 )
@@ -48,7 +49,7 @@ func (musicLibrary *SharedMusicLibrary) GetPlaylist(id string) (*Playlist, error
 }
 
 type MusicProcessingResult struct {
-	User   *spotify.User
+	User   *clientcommon.User
 	Tracks []*spotify.FullTrack
 	Error  error
 }
@@ -67,7 +68,7 @@ func CreateSharedMusicLibrary(totalUsers int) *SharedMusicLibrary {
  */
 
 // Will process the common library and find all the common songs
-func (musicLibrary *SharedMusicLibrary) Process(users []*spotify.User, callback func(success bool)) {
+func (musicLibrary *SharedMusicLibrary) Process(users []*clientcommon.User, callback func(success bool)) {
 	logger.Logger.Infof("Starting processing of room for all users")
 	
 	// We mark the processing status as started
@@ -87,7 +88,7 @@ func (musicLibrary *SharedMusicLibrary) Process(users []*spotify.User, callback 
 	go musicLibrary.addSongsToLibraryAndFindMostCommonSongs(callback)
 }
 
-func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *spotify.User)  {
+func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *clientcommon.User)  {
 	// Recovery for the goroutine
 	defer func() {
 		if err := recover(); err != nil {
@@ -101,7 +102,7 @@ func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *spotify.User)  {
 
 	logger.WithUser(user.GetUserId()).Infof("Fetching songs for user %s",user.GetUserId())
 
-	tracks, err := user.GetAllSongs()
+	tracks, err := spotifyclient.GetAllSongs(user)
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Errorf("Failed to fetch all songs for user %s %v",
