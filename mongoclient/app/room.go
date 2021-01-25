@@ -1,4 +1,4 @@
-package mongoclient
+package app
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"github.com/shared-spotify/app"
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
 	"go.mongodb.org/mongo-driver/bson"
@@ -32,7 +33,7 @@ func InsertRoom(room *app.Room) error {
 	playlists := room.GetPlaylists()
 
 	// we insert the users
-	err := InsertUsers(room.Users)
+	err := mongoclient.InsertUsers(room.Users)
 
 	newUserCount := len(room.Users)
 	datadog.Increment(newUserCount, datadog.RoomUsers,
@@ -46,7 +47,7 @@ func InsertRoom(room *app.Room) error {
 
 	// we insert the tracks
 	tracks := getAllTracksForPlaylists(playlists)
-	err = InsertTracks(tracks)
+	err = mongoclient.InsertTracks(tracks)
 
 	if err != nil {
 		return err
@@ -60,7 +61,7 @@ func InsertRoom(room *app.Room) error {
 		mongoPlaylists,
 	}
 
-	insertResult, err := getDatabase().Collection(roomCollection).InsertOne(context.TODO(), mongoRoom)
+	insertResult, err := mongoclient.GetDatabase().Collection(roomCollection).InsertOne(context.TODO(), mongoRoom)
 
 	if err != nil {
 		logger.Logger.Error("Failed to insert room in mongo ", err)
@@ -80,7 +81,7 @@ func GetRoom(roomId string) (*app.Room, error) {
 		roomId,
 	}}
 
-	err := getDatabase().Collection(roomCollection).FindOne(context.TODO(), filter).Decode(&mongoRoom)
+	err := mongoclient.GetDatabase().Collection(roomCollection).FindOne(context.TODO(), filter).Decode(&mongoRoom)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -113,7 +114,7 @@ func GetRoomsForUser(user *clientcommon.User) ([]*app.Room, error) {
 		user.GetId(),
 	}}
 
-	cursor, err := getDatabase().Collection(roomCollection).Find(context.TODO(), filter)
+	cursor, err := mongoclient.GetDatabase().Collection(roomCollection).Find(context.TODO(), filter)
 
 	if err != nil {
 		logger.Logger.Error("Failed to find rooms for user in mongo ", err)
@@ -151,7 +152,7 @@ func DeleteRoomForUser(room *app.Room, user *clientcommon.User) error {
 		}},
 	}}
 
-	_, err := getDatabase().Collection(roomCollection).UpdateOne(context.TODO(), filter, update)
+	_, err := mongoclient.GetDatabase().Collection(roomCollection).UpdateOne(context.TODO(), filter, update)
 
 	if err != nil {
 		logger.Logger.Error("Failed to delete room for user in mongo ", err)
@@ -205,7 +206,7 @@ func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) 
 		}
 	}
 
-	trackPerId, err := GetTracks(allTrackIds)
+	trackPerId, err := mongoclient.GetTracks(allTrackIds)
 
 	if err != nil {
 		logger.Logger.Error("Failed to get tracks when converting mongo playlist to playlists ", err)

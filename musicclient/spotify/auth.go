@@ -242,6 +242,7 @@ func AuthenticatedGenericClient() *spotify.Client {
 	}
 
 	client := spotify.Authenticator{}.NewClient(token)
+	client.AutoRetry = true // enable auto retries when rate limited
 
 	return &client
 }

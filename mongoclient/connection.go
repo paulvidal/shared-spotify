@@ -60,6 +60,6 @@ func Initialise() {
 	logger.Logger.Warningf("Connection to mongo successful, with url %s", MongoUrl)
 }
 
-func getDatabase() *mongo.Database {
+func GetDatabase() *mongo.Database {
 	return MongoClient.Database(database)
 }

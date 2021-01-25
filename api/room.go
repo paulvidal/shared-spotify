@@ -8,7 +8,7 @@ import (
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
-	"github.com/shared-spotify/mongoclient"
+	mongoclientapp "github.com/shared-spotify/mongoclient/app"
 	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/shared-spotify/utils"
@@ -55,7 +55,7 @@ func updateRoomNotProcessed(room *app.Room, success bool) {
 	}
 
 	// we insert the room result in mongo
-	err := mongoclient.InsertRoom(room)
+	err := mongoclientapp.InsertRoom(room)
 
 	if err != nil {
 		// if we fail to insert the result in mongo, we declare processing as failed
@@ -86,9 +86,9 @@ func getRoom(roomId string) (*app.Room, error) {
 		return roomNotProcessed, nil
 	}
 
-	room, err := mongoclient.GetRoom(roomId)
+	room, err := mongoclientapp.GetRoom(roomId)
 
-	if err == mongoclient.NotFound {
+	if err == mongoclientapp.NotFound {
 		return nil, roomDoesNotExistError
 	}
 
@@ -176,7 +176,7 @@ func GetRooms(w http.ResponseWriter, r *http.Request) {
 
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to get rooms", user.GetUserId())
 
-	rooms, err := mongoclient.GetRoomsForUser(user)
+	rooms, err := mongoclientapp.GetRoomsForUser(user)
 
 	if err != nil {
 		handleError(failedToGetRooms, w, r, user)
@@ -289,7 +289,7 @@ func DeleteRoom(w http.ResponseWriter, r *http.Request) {
 
 	// If room has been processed, we delete it in mongo
 	if room.HasRoomBeenProcessed() {
-		err = mongoclient.DeleteRoomForUser(room, user)
+		err = mongoclientapp.DeleteRoomForUser(room, user)
 
 		if err != nil {
 			handleError(failedToDeleteRoom, w, r, user)

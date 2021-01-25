@@ -216,5 +216,10 @@ func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullT
 		time.Sleep(maxWaitBetweenSearchCalls)
 	}
 
+	logger.WithUser(user.GetUserId()).Infof(
+		"Converted %d apple music songs to %d spotify tracks",
+		len(isrcs),
+		len(tracks))
+
 	return tracks, nil
 }

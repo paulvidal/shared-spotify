@@ -19,6 +19,10 @@ type MongoTrack struct {
 func InsertTracks(tracks []*spotify.FullTrack) error {
 	tracksToInsert := make([]interface{}, 0)
 
+	if len(tracks) == 0 {
+		return nil
+	}
+
 	for _, track := range tracks {
 		id, _ := clientcommon.GetTrackISRC(track)
 		tracksToInsert = append(tracksToInsert, MongoTrack{id, track})
@@ -42,7 +46,7 @@ func InsertTracks(tracks []*spotify.FullTrack) error {
 	}
 
 	ordered := false // to prevent duplicates from making the whole operation fail, we will just ignore them
-	result, err := getDatabase().Collection(trackCollection).InsertMany(
+	result, err := GetDatabase().Collection(trackCollection).InsertMany(
 		ctx,
 		tracksToInsert,
 		&options.InsertManyOptions{Ordered: &ordered})
@@ -85,7 +89,7 @@ func GetTracks(trackIds []string) (map[string]*spotify.FullTrack, error) {
 		}},
 	}}
 
-	cursor, err := getDatabase().Collection(trackCollection).Find(context.TODO(), filter)
+	cursor, err := GetDatabase().Collection(trackCollection).Find(context.TODO(), filter)
 
 	if err != nil {
 		logger.Logger.Error("Failed to find tracks in mongo ", err)

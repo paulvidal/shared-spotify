@@ -40,7 +40,7 @@ func InsertUsers(users []*clientcommon.User) error {
 	}
 
 	ordered := false // to prevent duplicates from making the whole operation fail, we will just ignore them
-	result, err := getDatabase().Collection(userCollection).InsertMany(
+	result, err := GetDatabase().Collection(userCollection).InsertMany(
 		ctx,
 		usersToInsert,
 		&options.InsertManyOptions{Ordered: &ordered})
@@ -86,18 +86,14 @@ func GetUsers(userIds []string) (map[string]*clientcommon.User, error) {
 		}},
 	}}
 
-	cursor, err := getDatabase().Collection(userCollection).Find(context.TODO(), filter)
+	cursor, err := GetDatabase().Collection(userCollection).Find(context.TODO(), filter)
 
 	if err != nil {
 		logger.Logger.Error("Failed to find users in mongo ", err)
 		return nil, err
 	}
 
-	logger.Logger.Info("here16")
-
 	err = cursor.All(context.TODO(), &mongoUsers)
-
-	logger.Logger.Info("here13")
 
 	if err != nil {
 		logger.Logger.Error("Failed to find users in mongo ", err)

@@ -62,7 +62,8 @@ func GetLibrarySongs(user *clientcommon.User) ([]*applemusic.Song, error) {
 		}
 
 		// Add all the songs
-		for _, song := range librarySongs.Data {
+		for _, s := range librarySongs.Data {
+			song := s
 			allLibrarySongs = append(allLibrarySongs, &song)
 		}
 
@@ -73,14 +74,14 @@ func GetLibrarySongs(user *clientcommon.User) ([]*applemusic.Song, error) {
 		offset += 1
 	}
 
-	logger.WithUser(user.GetUserId()).Infof("Found %d apple library songs", len(allLibrarySongs))
-
 	allTracks, err := getFullSongsForLibrarySongs(user, allLibrarySongs)
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Error("Failed to convert apple library songs to catalog songs ", err)
 		return nil, err
 	}
+
+	logger.WithUser(user.GetUserId()).Infof("Found %d apple library songs", len(allTracks))
 
 	return allTracks, nil
 }
@@ -106,7 +107,8 @@ func GetAllLibraryPlaylistSongs(user *clientcommon.User) ([]*applemusic.Song, er
 		}
 
 		// Add all the playlists
-		for _, playlist := range playlists.Data {
+		for _, p := range playlists.Data {
+			playlist := p
 			allLibraryPlaylists = append(allLibraryPlaylists, &playlist)
 		}
 
@@ -117,7 +119,7 @@ func GetAllLibraryPlaylistSongs(user *clientcommon.User) ([]*applemusic.Song, er
 		offset += 1
 	}
 
-	logger.WithUser(user.GetUserId()).Infof("User %d has a total of %s apple playlists", user.GetUserId(), len(allLibraryPlaylists))
+	logger.WithUser(user.GetUserId()).Infof("User %s has a total of %d apple playlists", user.GetUserId(), len(allLibraryPlaylists))
 
 	// We fetch all the songs for each library playlist
 
@@ -128,12 +130,11 @@ func GetAllLibraryPlaylistSongs(user *clientcommon.User) ([]*applemusic.Song, er
 
 		// Do not take into account playlists which the user did not create
 		// (we find this by checking edit and delete permissions)
-		if !playlist.Attributes.CanEdit || !playlist.Attributes.CanDelete {
+		if !playlist.Attributes.CanEdit{
 			logger.WithUser(user.GetUserId()).Warningf(
-				"Skipped apple playlist %s as user had not write access edit=%s delete=%s",
+				"Skipped apple playlist %s as user had not write access edit=%b",
 				playlist.Attributes.Name,
-				playlist.Attributes.CanEdit,
-				playlist.Attributes.CanDelete)
+				playlist.Attributes.CanEdit)
 			continue
 		}
 
@@ -151,12 +152,22 @@ func GetAllLibraryPlaylistSongs(user *clientcommon.User) ([]*applemusic.Song, er
 			len(librarySongs),
 			playlist.Attributes.Name)
 
-		for _, librarySong := range librarySongs {
+		for _, l := range librarySongs {
+			librarySong := l
 			allIncompleteSongs = append(allIncompleteSongs, &librarySong)
 		}
 	}
 
-	return getFullSongsForIncompleteSongs(user, allIncompleteSongs)
+	allTracks, err := getFullSongsForIncompleteSongs(user, allIncompleteSongs)
+
+	if err != nil {
+		logger.WithUser(user.GetUserId()).Error("Failed to convert apple playlist library songs to catalog songs ", err)
+		return nil, err
+	}
+
+	logger.WithUser(user.GetUserId()).Infof("Found %d apple playlist library songs", len(allTracks))
+
+	return allTracks, nil
 }
 
 // Allow us to transform incomplete songs into catalog songs where we can get all info related to a song such as ISRC
@@ -193,7 +204,7 @@ func getFullSongs(user *clientcommon.User, songIds []string) ([]*applemusic.Song
 		return nil, err
 	}
 
-	logger.WithUser(user.GetUserId()).Infof("Found %s storefronts for apple user", len(storefronts.Data))
+	logger.WithUser(user.GetUserId()).Infof("Found %d storefronts for apple user", len(storefronts.Data))
 
 	// We always take the first one, users should generally only have 1
 	storefront := storefronts.Data[0].Id
@@ -218,7 +229,8 @@ func getFullSongs(user *clientcommon.User, songIds []string) ([]*applemusic.Song
 			return nil, err
 		}
 
-		for _, song := range songs.Data {
+		for _, s := range songs.Data {
+			song := s
 			allSongs = append(allSongs, &song)
 		}
 
