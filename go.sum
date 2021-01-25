@@ -175,8 +175,8 @@ github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWb
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/opentracing/opentracing-go v1.2.0 h1:uEJPy/1a5RIPAJ0Ov+OIO8OxWu77jEv+1B0VhjKrZUs=
 github.com/opentracing/opentracing-go v1.2.0/go.mod h1:GxEUsuufX4nBwe+T+Wl9TAgYrxe9dPLANfrWvHYVTgc=
-github.com/paulvidal/go-apple-music v0.0.0-20210124225748-d7f34a0138e2 h1:g+JlLbv8q6lbpzCBd7C1vo5vSzck6rcRdC2eDQCMcUU=
-github.com/paulvidal/go-apple-music v0.0.0-20210124225748-d7f34a0138e2/go.mod h1:6K+ZdDUKt2WRHDAj1s4vU2F5Cs6Xnbk7EvmshX0ZD+g=
+github.com/paulvidal/go-apple-music v0.0.0-20210125193953-1c5f6976aa16 h1:fY+UvWsw6eA10Cgw5cQ6hi6LpgDC+0n3VczG5GNsQ+o=
+github.com/paulvidal/go-apple-music v0.0.0-20210125193953-1c5f6976aa16/go.mod h1:6K+ZdDUKt2WRHDAj1s4vU2F5Cs6Xnbk7EvmshX0ZD+g=
 github.com/pelletier/go-toml v1.7.0/go.mod h1:vwGMzjaWMwyfHwgIBhI2YUM4fB6nL6lVAvS1LBMMhTE=
 github.com/philhofer/fwd v1.1.0 h1:PAdZw9+/BCf4gc/kA2L/PbGPkFe72Kl2GLZXTG8HpU8=
 github.com/philhofer/fwd v1.1.0/go.mod h1:gk3iGcWd9+svBvR0sR+KPcfE+RNWozjowpeBVG3ZVNU=

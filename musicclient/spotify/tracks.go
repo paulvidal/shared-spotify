@@ -11,7 +11,7 @@ import (
 var maxPage = 50
 
 const maxWaitBetweenCalls = 100 * time.Millisecond
-const maxWaitBetweenSearchCalls = 10 * time.Millisecond
+const maxWaitBetweenSearchCalls = 40 * time.Millisecond
 
 func GetAllSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 	// Get the liked songs
@@ -50,7 +50,7 @@ func getSavedSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 		return nil, err
 	}
 
-	logger.Logger.Infof("PlaylistMetadata has %d total tracks for user %s", savedTrackPage.Total, user.GetUserId())
+	logger.Logger.Infof("Playlist has %d total tracks for user %s", savedTrackPage.Total, user.GetUserId())
 
 	for page := 1; ; page++ {
 		logger.Logger.Infof("Page %d has %d tracks for user %s", page, len(savedTrackPage.Tracks),
@@ -154,7 +154,7 @@ func getSongsForPlaylist(user *clientcommon.User, playlistId string) ([]*spotify
 		return nil, err
 	}
 
-	logger.Logger.Infof("PlaylistMetadata %s has %d total tracks for user %s", playlistId, playlistTrackPage.Total,
+	logger.Logger.Infof("Playlist %s has %d total tracks for user %s", playlistId, playlistTrackPage.Total,
 		user.GetUserId())
 
 	for page := 1; ; page++ {

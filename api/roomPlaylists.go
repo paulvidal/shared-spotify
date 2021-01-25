@@ -7,7 +7,7 @@ import (
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
-	spotifyclient "github.com/shared-spotify/musicclient/spotify"
+	"github.com/shared-spotify/musicclient"
 	"github.com/zmb3/spotify"
 	"net/http"
 )
@@ -154,7 +154,7 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request) {
 	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {
-		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
+		logger.Logger.Error("Playlist %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
 		handleError(app.ErrorPlaylistTypeNotFound, w, r, user)
 		return
@@ -233,7 +233,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {
-		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
+		logger.Logger.Error("Playlist %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
 		handleError(app.ErrorPlaylistTypeNotFound, w, r, user)
 		return
@@ -251,7 +251,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	spotifyUrl, err := spotifyclient.CreatePlaylist(user, newPlaylist.Name, tracks)
+	spotifyUrl, err := musicclient.CreatePlaylist(user, newPlaylist.Name, tracks)
 
 	if spotifyUrl != nil {
 		newPlaylist.SpotifyUrl = *spotifyUrl

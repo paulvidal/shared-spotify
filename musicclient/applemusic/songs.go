@@ -5,6 +5,7 @@ import (
 	applemusic "github.com/minchao/go-apple-music"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient/clientcommon"
+	"net/http"
 )
 
 const maxPage = 50
@@ -132,7 +133,7 @@ func GetAllLibraryPlaylistSongs(user *clientcommon.User) ([]*applemusic.Song, er
 		// (we find this by checking edit and delete permissions)
 		if !playlist.Attributes.CanEdit{
 			logger.WithUser(user.GetUserId()).Warningf(
-				"Skipped apple playlist %s as user had not write access edit=%b",
+				"Skipped apple playlist %s as user had not write access edit=%t",
 				playlist.Attributes.Name,
 				playlist.Attributes.CanEdit)
 			continue
@@ -144,11 +145,26 @@ func GetAllLibraryPlaylistSongs(user *clientcommon.User) ([]*applemusic.Song, er
 			nil)
 
 		if err != nil {
-			logger.WithUser(user.GetUserId()).Error("Failed to fetch apple library playlist songs", err)
-			return nil, err
+			success := true
+
+			if errResponse, ok := err.(*applemusic.ErrorResponse); ok {
+
+				// we need to make sure status 404 does not throw an error
+				if errResponse.Response.StatusCode != http.StatusNotFound {
+					success = false
+				}
+
+			} else {
+				success = false
+			}
+
+			if !success {
+				logger.WithUser(user.GetUserId()).Error("Failed to fetch apple library playlist songs", err)
+				return nil, err
+			}
 		}
 
-		logger.WithUser(user.GetUserId()).Infof("Found %s apple songs for playlists %s",
+		logger.WithUser(user.GetUserId()).Infof("Found %d apple songs for playlists %s",
 			len(librarySongs),
 			playlist.Attributes.Name)
 
@@ -175,7 +191,10 @@ func getFullSongsForIncompleteSongs(user *clientcommon.User, librarySongs []*app
 	songByIds := make([]string, 0)
 
 	for _, librarySong := range librarySongs {
-		songByIds = append(songByIds, librarySong.Attributes.PlayParams.CatalogId)
+		// playParams can be null
+		if librarySong.Attributes.PlayParams != nil {
+			songByIds = append(songByIds, librarySong.Attributes.PlayParams.CatalogId)
+		}
 	}
 
 	return getFullSongs(user, songByIds)
@@ -195,19 +214,11 @@ func getFullSongsForLibrarySongs(user *clientcommon.User, librarySongs []*applem
 func getFullSongs(user *clientcommon.User, songIds []string) ([]*applemusic.Song, error) {
 	client := user.AppleMusicClient
 
-	storefronts, _, err := client.Me.GetStorefront(
-		context.Background(),
-		&applemusic.PageOptions{Offset: 0, Limit: maxPage})
+	storefront, err := GetStorefront(user)
 
 	if err != nil {
-		logger.WithUser(user.GetUserId()).Error("Failed to fetch storefront for apple user ", err)
 		return nil, err
 	}
-
-	logger.WithUser(user.GetUserId()).Infof("Found %d storefronts for apple user", len(storefronts.Data))
-
-	// We always take the first one, users should generally only have 1
-	storefront := storefronts.Data[0].Id
 
 	allSongs := make([]*applemusic.Song, 0)
 
@@ -220,8 +231,8 @@ func getFullSongs(user *clientcommon.User, songIds []string) ([]*applemusic.Song
 
 		songs, _, err := client.Catalog.GetSongsByIds(
 			context.Background(),
-			storefront,
-			songIds,
+			*storefront,
+			songIds[i:upperBound],
 			nil)
 
 		if err != nil {

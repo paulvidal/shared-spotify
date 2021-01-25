@@ -11,7 +11,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/klauspost/compress v1.11.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/minchao/go-apple-music v0.0.0-20210121005645-8895087fad1d
+	github.com/minchao/go-apple-music v0.0.0-20210125035215-7b2ae7443f3a
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/philhofer/fwd v1.1.0 // indirect
@@ -30,4 +30,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )
 
-replace github.com/minchao/go-apple-music => github.com/paulvidal/go-apple-music v0.0.0-20210124225748-d7f34a0138e2
+replace github.com/minchao/go-apple-music => github.com/paulvidal/go-apple-music v0.0.0-20210125193953-1c5f6976aa16

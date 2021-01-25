@@ -108,10 +108,6 @@ func createUserFromRequestAppleMusic(r *http.Request) (*clientcommon.User, error
 }
 
 /**
-  Songs util
-*/
-
-/**
   Get all songs abstraction
 */
 
@@ -168,4 +164,33 @@ func GetArtists(user *clientcommon.User, tracks []*spotify.FullTrack) (map[strin
 
 func GetAudioFeatures(user *clientcommon.User, tracks []*spotify.FullTrack) (map[string]*spotify.AudioFeatures, error) {
 	return spotifyclient.GetAudioFeatures(user, tracks)
+}
+
+/**
+  Create playlists
+*/
+
+func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spotify.FullTrack) (*string, error) {
+	var link *string
+
+	if user.IsSpotify() {
+		externalLink, err := spotifyclient.CreatePlaylist(user, playlistName, tracks)
+
+		if err != nil {
+			return nil, err
+		}
+
+		link = externalLink
+
+	} else if user.IsAppleMusic() {
+		externalLink, err := applemusic.CreatePlaylist(user, playlistName, tracks)
+
+		if err != nil {
+			return nil, err
+		}
+
+		link = externalLink
+	}
+
+	return link, nil
 }

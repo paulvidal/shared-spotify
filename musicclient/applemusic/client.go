@@ -20,6 +20,14 @@ func Run() {
 		fmt.Println(s)
 	}
 
+	s, _, err := client.Catalog.GetSongsByIds(ctx, "fr", []string{"FRZID0900480"}, nil)
+
+	fmt.Println("yo")
+	fmt.Println(s)
+	fmt.Println(err)
+
+	return
+
 	/**
 	Playlists
 	*/
