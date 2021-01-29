@@ -58,8 +58,8 @@ export default function Home() {
 
       let name = "";
 
-      if (response.user) {
-        name = response.user.firstName + " " + response.user.lastName
+      if (response.user && response.user.name) {
+        name = response.user.name.firstName + " " + response.user.name.lastName
       }
 
       setState(setLogin, {
