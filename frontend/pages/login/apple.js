@@ -163,11 +163,9 @@ export default function Home() {
       <Header />
 
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          Sign in with Apple
-        </h1>
+        <h1>Sign in with Apple</h1>
 
-        <p className="mt-4">
+        <p className="mt-4 text-center">
           Please click on the button if you are not redirected automatically to login
         </p>
 
