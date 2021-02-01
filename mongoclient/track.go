@@ -46,40 +46,46 @@ func InsertTracks(tracks []*spotify.FullTrack) error {
 		return err
 	}
 
-	ordered := false
-	upsert := true
+	defer mongoSession.EndSession(ctx)
 
-	writes := make([]mongo.WriteModel, 0)
-	for _, track := range tracksToInsert {
-		writes = append(writes, &mongo.ReplaceOneModel{Upsert: &upsert, Filter: bson.D{{
-			"_id",
-			track.TrackId,
-		}}, Replacement: track})
-	}
+	err = mongo.WithSession(ctx, mongoSession, func(sessionContext mongo.SessionContext) error {
+		ordered := false
+		upsert := true
 
-	_, err = GetDatabase().Collection(trackCollection).BulkWrite(
-		ctx, writes, &options.BulkWriteOptions{Ordered: &ordered})
+		writes := make([]mongo.WriteModel, 0)
+		for _, track := range tracksToInsert {
+			writes = append(writes, &mongo.ReplaceOneModel{Upsert: &upsert, Filter: bson.D{{
+				"_id",
+				track.TrackId,
+			}}, Replacement: track})
+		}
+
+		_, err = GetDatabase().Collection(trackCollection).BulkWrite(
+			ctx, writes, &options.BulkWriteOptions{Ordered: &ordered})
+
+		if err != nil {
+			logger.Logger.Error("Failed to insert tracks in mongo ", err)
+			return err
+		}
+
+		err = mongoSession.CommitTransaction(ctx)
+
+		if err != nil {
+			logger.Logger.Error("Failed to commit mongo transaction to insert tracks ", err)
+			return err
+		}
+
+		return nil
+	})
 
 	if err != nil {
-		logger.Logger.Error("Failed to insert tracks in mongo ", err)
-		abortErr := mongoSession.AbortTransaction(ctx)
-
-		if abortErr != nil {
+		if abortErr := mongoSession.AbortTransaction(ctx); abortErr != nil {
 			logger.Logger.Error("Failed to abort mongo transaction to insert tracks ", err)
 			return abortErr
 		}
 
 		return err
 	}
-
-	err = mongoSession.CommitTransaction(ctx)
-
-	if err != nil {
-		logger.Logger.Error("Failed to commit mongo transaction to insert tracks ", err)
-		return err
-	}
-
-	mongoSession.EndSession(ctx)
 
 	logger.Logger.Infof("%d tracks were inserted successfully in mongo ", len(tracksToInsert))
 
