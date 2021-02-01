@@ -6,6 +6,7 @@ import (
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -17,7 +18,7 @@ type MongoTrack struct {
 }
 
 func InsertTracks(tracks []*spotify.FullTrack) error {
-	tracksToInsert := make([]interface{}, 0)
+	tracksToInsert := make([]MongoTrack, 0)
 
 	if len(tracks) == 0 {
 		return nil
@@ -45,13 +46,21 @@ func InsertTracks(tracks []*spotify.FullTrack) error {
 		return err
 	}
 
-	ordered := false // to prevent duplicates from making the whole operation fail, we will just ignore them
-	result, err := GetDatabase().Collection(trackCollection).InsertMany(
-		ctx,
-		tracksToInsert,
-		&options.InsertManyOptions{Ordered: &ordered})
+	ordered := false
+	upsert := true
 
-	if err != nil && !IsOnlyDuplicateError(err) {
+	writes := make([]mongo.WriteModel, 0)
+	for _, track := range tracksToInsert {
+		writes = append(writes, &mongo.ReplaceOneModel{Upsert: &upsert, Filter: bson.D{{
+			"_id",
+			track.TrackId,
+		}}, Replacement: track})
+	}
+
+	_, err = GetDatabase().Collection(trackCollection).BulkWrite(
+		ctx, writes, &options.BulkWriteOptions{Ordered: &ordered})
+
+	if err != nil {
 		logger.Logger.Error("Failed to insert tracks in mongo ", err)
 		abortErr := mongoSession.AbortTransaction(ctx)
 
@@ -72,7 +81,7 @@ func InsertTracks(tracks []*spotify.FullTrack) error {
 
 	mongoSession.EndSession(ctx)
 
-	logger.Logger.Info("Tracks were inserted successfully in mongo ", result.InsertedIDs)
+	logger.Logger.Infof("%d tracks were inserted successfully in mongo ", len(tracksToInsert))
 
 	return nil
 }
