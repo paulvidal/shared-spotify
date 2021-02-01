@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/shared-spotify/utils"
@@ -163,6 +164,19 @@ func (playlists *CommonPlaylists) addTracks(user *clientcommon.User, tracks []*s
 		playlists.SharedTracksRank[trackISCR] = users
 		playlists.SharedTracks[trackISCR] = track
 		trackAlreadyInserted[trackISCR] = true
+	}
+
+	// insert the ISRC to spotify ID mapping to keep a record and be quicker next time
+	isrcMapping := make([]mongoclient.IsrcMapping, 0)
+	for _, track := range tracks {
+		isrc, _ := clientcommon.GetTrackISRC(track)
+		isrcMapping = append(isrcMapping, mongoclient.IsrcMapping{Isrc: isrc, SpotifyId: track.ID.String()})
+	}
+
+	err := mongoclient.InsertIsrcMapping(isrcMapping)
+
+	if err != nil {
+		logger.Logger.Errorf("Failed to insert %d isrc mapping", len(isrcMapping))
 	}
 }
 
@@ -449,7 +463,7 @@ func (playlists *CommonPlaylists) GenerateGenrePlaylist(sharedTrackPlaylist *Pla
 	}
 }
 
-// Helper to get hte max number of tracks in common
+// Helper to get the max number of tracks in common
 func getTracksInCommonCount(trackList map[int][]*spotify.FullTrack) int {
 	tracksInCommonCount := 0
 
