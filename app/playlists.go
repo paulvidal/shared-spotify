@@ -188,8 +188,7 @@ func (playlists *CommonPlaylists) GeneratePlaylists() error {
 	allSharedTracks := sharedTrackPlaylist.GetAllTracks()
 
 	// get audio features among common songs
-	user := playlists.getAUser()
-	audioFeatures, err := musicclient.GetAudioFeatures(user, allSharedTracks)
+	audioFeatures, err := musicclient.GetAudioFeatures(allSharedTracks)
 
 	if err != nil {
 		return err
@@ -199,7 +198,7 @@ func (playlists *CommonPlaylists) GeneratePlaylists() error {
 	playlists.AudioFeaturesPerTrack = audioFeatures
 
 	// get artists among common songs
-	artists, err := musicclient.GetArtists(user, allSharedTracks)
+	artists, err := musicclient.GetArtists(allSharedTracks)
 
 	if err != nil {
 		return err
@@ -209,7 +208,7 @@ func (playlists *CommonPlaylists) GeneratePlaylists() error {
 	playlists.ArtistsPerTrack = artists
 
 	// get the albums among common songs
-	albums, err := musicclient.GetAlbums(user, allSharedTracks)
+	albums, err := musicclient.GetAlbums(allSharedTracks)
 
 	if err != nil {
 		return err

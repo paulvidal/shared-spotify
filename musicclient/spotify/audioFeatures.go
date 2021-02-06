@@ -8,7 +8,7 @@ import (
 
 const maxAudioFeaturePerApiCall = 100
 
-func GetAudioFeatures(user *clientcommon.User, tracks []*spotify.FullTrack) (map[string]*spotify.AudioFeatures, error) {
+func GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spotify.AudioFeatures, error) {
 	logger.Logger.Infof("Fetching audio features for %d tracks", len(tracks))
 
 	audioFeaturesPerTrack := make(map[string]*spotify.AudioFeatures)
@@ -34,7 +34,10 @@ func GetAudioFeatures(user *clientcommon.User, tracks []*spotify.FullTrack) (map
 			upperBound = len(trackIds)
 		}
 
-		audioFeaturesPart, err := user.SpotifyClient.GetAudioFeatures(trackIds[i:upperBound]...)
+		// we change client often to spread the load
+		client := GetSpotifyGenericClient()
+
+		audioFeaturesPart, err := client.GetAudioFeatures(trackIds[i:upperBound]...)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get audio features for tracks - %v", err)

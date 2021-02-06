@@ -187,11 +187,12 @@ func getSongsForPlaylist(user *clientcommon.User, playlistId string) ([]*spotify
 }
 
 func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullTrack, error) {
-	client := user.SpotifyClient
-
 	tracks := make([]*spotify.FullTrack, 0)
 
 	for _, isrc := range isrcs {
+		// we change client often to spread the load
+		client := GetSpotifyGenericClient()
+
 		isrcQuery := fmt.Sprintf("isrc:%s", isrc)
 		results, err := client.Search(isrcQuery, spotify.SearchTypeTrack)
 

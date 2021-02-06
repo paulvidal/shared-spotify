@@ -8,7 +8,7 @@ import (
 
 const maxArtistsPerApiCall = 50
 
-func GetArtists(user *clientcommon.User, tracks []*spotify.FullTrack) (map[string][]*spotify.FullArtist, error) {
+func GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify.FullArtist, error) {
 	logger.Logger.Infof("Fetching artists for %d tracks", len(tracks))
 
 	artistsPerTrack := make(map[string][]*spotify.FullArtist)
@@ -51,7 +51,10 @@ func GetArtists(user *clientcommon.User, tracks []*spotify.FullTrack) (map[strin
 			upperBound = len(artistIds)
 		}
 
-		artistsPart, err := user.SpotifyClient.GetArtists(artistIds[i:upperBound]...)
+		// we change client often to spread the load
+		client := GetSpotifyGenericClient()
+
+		artistsPart, err := client.GetArtists(artistIds[i:upperBound]...)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get artists - %v", err)

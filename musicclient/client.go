@@ -154,16 +154,16 @@ func GetAllSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
   Get additional information abstractions
 */
 
-func GetAlbums(user *clientcommon.User, tracks []*spotify.FullTrack) (map[string]*spotify.FullAlbum, error) {
-	return spotifyclient.GetAlbums(user, tracks)
+func GetAlbums(tracks []*spotify.FullTrack) (map[string]*spotify.FullAlbum, error) {
+	return spotifyclient.GetAlbums(tracks)
 }
 
-func GetArtists(user *clientcommon.User, tracks []*spotify.FullTrack) (map[string][]*spotify.FullArtist, error) {
-	return spotifyclient.GetArtists(user, tracks)
+func GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify.FullArtist, error) {
+	return spotifyclient.GetArtists(tracks)
 }
 
-func GetAudioFeatures(user *clientcommon.User, tracks []*spotify.FullTrack) (map[string]*spotify.AudioFeatures, error) {
-	return spotifyclient.GetAudioFeatures(user, tracks)
+func GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spotify.AudioFeatures, error) {
+	return spotifyclient.GetAudioFeatures(tracks)
 }
 
 /**
