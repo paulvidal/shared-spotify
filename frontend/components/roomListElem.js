@@ -46,19 +46,16 @@ export default function RoomListElem(props) {
           {open}
         </Card.Title>
 
-        {/* TODO: only one nested element here react bug*/}
-        <Card.Text>
-          <p className="mb-0">Members: {props.room.users.map(user => user.name).join(", ")}</p>
-          <p className={styles.creation_date}>Created on {moment(props.room.creation_time).format("MMMM Do YYYY")}</p>
-        </Card.Text>
+        <p className="mb-0">Members: {props.room.users.map(user => user.name).join(", ")}</p>
+        <p className={styles.creation_date}>Created on {moment(props.room.creation_time).format("MMMM Do YYYY")}</p>
 
-        <div>
+        <div className="mt-3">
           <Button variant="success" className="float-left" onClick={addUserToRoom}>
             Enter room  ➡️
           </Button>
 
           <div className={"float-right " + styles.trash_icon} onClick={() => props.showDeleteModal(props.room.id)}>
-            <FontAwesomeIcon icon={faTrash} />
+            <FontAwesomeIcon icon={faTrash} className={styles.trash_icon_size}/>
           </div>
         </div>
       </Card.Body>
