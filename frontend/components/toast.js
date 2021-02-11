@@ -1,7 +1,7 @@
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import {getUrl} from "../utils/urlUtils";
-import Link from 'next/link'
+import {useRouter} from "next/router";
+import {encodeParams} from "../utils/urlUtils";
 
 function Toast() {
   return (
@@ -31,7 +31,7 @@ function showSuccessToast(msg) {
   });
 }
 
-function showErrorToastWithError(msg, error) {
+function showErrorToastWithError(msg, error, router) {
   let errorMsg = error.message;
   let loginUrl;
 
@@ -46,12 +46,14 @@ function showErrorToastWithError(msg, error) {
         textDecoration: "underline"
       }
 
+      const params = {
+        redirect_uri: window.location.pathname
+      }
+
       loginUrl = (
-        <Link href={getUrl('/login')}>
-          <div>
-            ➡️ <a className="text-white" style={style}>Click here to login</a>
-          </div>
-        </Link>
+        <div onClick={() => router.push('/login?' + encodeParams(params))}>
+          ➡️ <a className="text-white" style={style}>Click here to login</a>
+        </div>
       )
     }
   }

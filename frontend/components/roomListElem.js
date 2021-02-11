@@ -21,7 +21,7 @@ export default function RoomListElem(props) {
         router.push('/rooms/' + props.room.id)
       })
       .catch(error => {
-        showErrorToastWithError("Failed to join the room", error)
+        showErrorToastWithError("Failed to join the room", error, router)
       })
   }
 

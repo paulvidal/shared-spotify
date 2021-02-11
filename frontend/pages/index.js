@@ -54,12 +54,16 @@ export default function Home() {
           Welcome to <strong className="text-success">Shared Spotify</strong>
         </h1>
 
-        <Button href={getUrl('/login')} variant="outline-success" size="lg" className="mt-5">
-          Connect Spotify account
-        </Button>
+        {/*<Button href={getUrl('/login')} variant="outline-success" size="lg" className="mt-5">*/}
+        {/*  Connect Spotify account*/}
+        {/*</Button>*/}
 
-        <Button variant="outline-success" size="lg" className="mt-3" onClick={appleLoginRedirect}>
-          Connect Apple music account
+        {/*<Button variant="outline-success" size="lg" className="mt-3" onClick={appleLoginRedirect}>*/}
+        {/*  Connect Apple music account*/}
+        {/*</Button>*/}
+
+        <Button variant="success" size="lg" className="mt-5" onClick={() => router.push('/login')}>
+          Connect music account
         </Button>
       </main>
 

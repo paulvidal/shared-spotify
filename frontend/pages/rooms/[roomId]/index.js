@@ -64,7 +64,7 @@ export default function Room() {
           loading: false
         })
         if (!hasAlreadySeenRefreshedError) {
-          showErrorToastWithError("Failed to get room info", error)
+          showErrorToastWithError("Failed to get room info", error, router)
         }
       })
   }
@@ -85,7 +85,7 @@ export default function Room() {
         refresh()
       })
       .catch(error => {
-        showErrorToastWithError("Failed to find common musics", error)
+        showErrorToastWithError("Failed to find common musics", error, router)
       })
   }
 

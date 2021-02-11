@@ -1,18 +1,26 @@
 import {useEffect, useState} from 'react';
 import axios from 'axios';
-import {Button} from 'react-bootstrap';
-import styles from '../../styles/Home.module.scss'
-import {getUrl, encodeParams} from "../../utils/urlUtils";
+import Button from 'react-bootstrap/Button';
+import styles from '../../styles/login/Login.module.scss'
 import CustomHead from "../../components/Head";
 import Header from "../../components/Header";
 import {useRouter} from "next/router";
-import setState from "../../utils/stateUtils";
-import LoaderScreen from "../../components/LoaderScreen";
+import {encodeParams, getUrl} from "../../utils/urlUtils";
 import jwt_decode from "jwt-decode";
+import setState from "../../utils/stateUtils";
 import {showErrorToastWithError} from "../../components/toast";
+import LoaderScreen from "../../components/LoaderScreen";
 
-export default function Home() {
+export default function Login() {
   const router = useRouter()
+  const { redirect_uri } = router.query
+
+  let redirectUri = "";
+
+  if (redirect_uri) {
+    redirectUri = redirect_uri;
+  }
+
   const axiosClient = axios.create({
     withCredentials: true
   })
@@ -26,14 +34,22 @@ export default function Home() {
     musicKitUserToken: null
   });
 
-  const sendTokens = () => {
+  const signInSpotify = () => {
+    const params = {
+      redirect_uri: redirectUri
+    }
+
+    window.location.assign(getUrl('/login?' + encodeParams(params)))
+  }
+
+  const sendAppleTokens = () => {
     const params = {
       user_id: login.userId,
       user_email: login.userEmail,
       user_name: login.userName,
       musickit_token: login.musicKitToken,
       musickit_user_token: login.musicKitUserToken,
-      redirect_url: "" // TODO: specify for when we want to redirect
+      redirect_uri: redirectUri
     };
 
     // Redirect to the server for the redirect
@@ -71,7 +87,7 @@ export default function Home() {
       signInMusicKit()
 
     }).catch(err => {
-      showErrorToastWithError("Sign in with apple failed", err)
+      showErrorToastWithError("Sign in with apple failed", err, router)
       console.error(err);
     });
   };
@@ -96,7 +112,7 @@ export default function Home() {
       })
 
     }).catch((err) => {
-      showErrorToastWithError("Apple music sign in failed", err)
+      showErrorToastWithError("Apple music sign in failed", err, router)
       console.error(err)
     })
   }
@@ -120,56 +136,71 @@ export default function Home() {
     )
   }
 
-  let button;
-
-  if (!login.userId) {
-    button = (
-      <Button variant="outline-success" size="lg" className="mt-3" onClick={signInApple}>
-        Login to Apple
+  // we show spotify and apple music buttons
+  let buttons = (
+    <div className="d-flex flex-column">
+      <Button variant="success" size="lg" className={styles.login_button + " mt-5"} onClick={signInSpotify}>
+        <div>
+          <img src="/spotify.svg" alt="Spotify Logo" className={styles.logo_spotify} />
+          <span className={styles.connect_spotify_text}>Connect with Spotify</span>
+        </div>
       </Button>
-    )
 
-    // Sign in with apple straight when script are loaded
-    document.addEventListener("musickitloaded", signInApple)
-
-  } else if (!login.musicKitUserToken) {
-    button = (
-      <Button variant="outline-success" size="lg" className="mt-3" onClick={signInMusicKit}>
-        Connect Apple music account
+      <Button variant="dark" size="lg" className={styles.login_button + " mt-2"} onClick={signInApple}>
+        <div>
+          <img src="/apple.svg" alt="Spotify Logo" className={styles.logo_apple} />
+          <span className={styles.connect_apple_text}>Connect with Apple Music</span>
+        </div>
       </Button>
-    )
+    </div>
+  )
+
+  // this is the case where we login using apple, as we need to do 2 sign in (apple and then apple music)
+  if (login.userId && !login.musicKitUserToken) {
+
+    // this button is a copy of the one above, make sure to keep it in sync
+    buttons = [
+      <p className="mt-5 text-center">
+        Thank you for signing in with Apple, we now need to link your account to Apple Music
+      </p>,
+
+      <Button variant="dark" size="lg" className="mt-3" onClick={signInMusicKit}>
+        <div>
+          <img src="/apple.svg" alt="Spotify Logo" className={styles.logo_apple} />
+          <span className={styles.connect_apple_text}>Link Apple Music Account</span>
+        </div>
+      </Button>
+    ]
 
     // Sign in with apple music straight when script are loaded
     document.addEventListener("musickitloaded", signInMusicKit)
 
-  } else {
-    button = (
-      <Button variant="outline-success" size="lg" className="mt-3" onClick={sendTokens}>
-        All good !
+  } else if (login.userId && login.musicKitUserToken) {
+    buttons = (
+      <Button variant="success" size="lg" className="mt-5" onClick={sendAppleTokens}>
+        Share music ➡️
       </Button>
     )
 
     // Once all is good, send tokens and redirect
-    sendTokens()
+    sendAppleTokens()
   }
 
   return (
     <div className={styles.container}>
       <CustomHead>
-        <script type="text/javascript" src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
-        <script type="text/javascript" src="https://js-cdn.music.apple.com/musickit/v1/musickit.js"></script>
+        <script type="text/javascript" src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js" async></script>
+        <script type="text/javascript" src="https://js-cdn.music.apple.com/musickit/v1/musickit.js" async></script>
       </CustomHead>
 
       <Header />
 
       <main className={styles.main}>
-        <h1>Sign in with Apple</h1>
+        <h1 className={styles.title}>
+          Login
+        </h1>
 
-        <p className="mt-4 text-center">
-          Please click on the button if you are not redirected automatically to login
-        </p>
-
-        { button }
+        {buttons}
       </main>
 
       <footer className={styles.footer}>

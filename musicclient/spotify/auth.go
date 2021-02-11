@@ -73,23 +73,19 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 	// you can set them manually here
 	auth.SetAuthInfo(ClientId, ClientSecret)
 
-	// We extract the referer if it exists, to redirect to it once th auth is finished
-	var redirectUrl string
-	referer := r.Header.Get("Referer")
-	refererParsedUrl, err := url.Parse(referer)
+	// We extract the redirect_uri if it exists, to redirect to it once th auth is finished
+	redirectUri := r.URL.Query().Get("redirect_uri")
+	redirect := clientcommon.FrontendUrl
 
-	if err != nil || referer == "" {
-		redirectUrl = clientcommon.FrontendUrl
-
-	} else {
-		redirectUrl = clientcommon.FrontendUrl + refererParsedUrl.RequestURI()
+	if redirect != "" {
+		redirect = clientcommon.FrontendUrl + redirectUri
 	}
 
-	logger.Logger.Info("Redirect Url for user after auth will be: ", redirectUrl)
+	logger.Logger.Info("Redirect Url for user after auth will be: ", redirect)
 
 	// we generate a random state and remember the redirect url so we use it once we are redirected
 	randomState := utils.GenerateStrongHash()
-	states.Add(randomState, redirectUrl)
+	states.Add(randomState, redirect)
 
 	// get the user to this URL - how you do that is up to you
 	// you should specify a unique state string to identify the session

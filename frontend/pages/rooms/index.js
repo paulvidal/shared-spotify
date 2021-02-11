@@ -40,7 +40,7 @@ export default function Rooms() {
       })
       .catch(error => {
         setState(setRooms, {loading: false})
-        showErrorToastWithError("Failed to get all rooms info", error)
+        showErrorToastWithError("Failed to get all rooms info", error, router)
       })
   }
 
@@ -53,7 +53,7 @@ export default function Rooms() {
       router.push('/rooms/' + roomId)
 
     }).catch(error => {
-      showErrorToastWithError("Room failed to create ! Please try again", error)
+      showErrorToastWithError("Room failed to create ! Please try again", error, router)
 
     }).finally(() => {
       hideCreateModal()
@@ -66,7 +66,7 @@ export default function Rooms() {
       refresh()
 
     }).catch(error => {
-      showErrorToastWithError("Failed to delete room ! Please try again", error)
+      showErrorToastWithError("Failed to delete room ! Please try again", error, router)
 
     }).finally(() => {
       hideDeleteModal()

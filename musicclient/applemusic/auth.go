@@ -70,14 +70,16 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, loginTypeCookie)
 
-	redirectUrl := queryValues.Get("redirect_url")
-	if redirectUrl == "" {
-		redirectUrl = clientcommon.FrontendUrl
+	redirectUri := queryValues.Get("redirect_uri")
+	redirect := clientcommon.FrontendUrl
+
+	if redirectUri != "" {
+		redirect = clientcommon.FrontendUrl + redirectUri
 	}
 
-	logger.Logger.Info("Redirecting to ", redirectUrl)
+	logger.Logger.Info("Redirecting to ", redirect)
 
-	http.Redirect(w, r, redirectUrl, http.StatusFound)
+	http.Redirect(w, r, redirect, http.StatusFound)
 }
 
 func CreateUserFromToken(appleLogin *AppleLogin) (*clientcommon.User, error) {

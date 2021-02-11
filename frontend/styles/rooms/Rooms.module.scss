@@ -21,6 +21,11 @@
   cursor: pointer;
 }
 
+.trash_icon_size {
+  height: 1rem;
+  width: 1rem;
+}
+
 @media (min-width: 768px) {
   .room_card {
     padding-left: 1rem;

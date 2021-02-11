@@ -46,7 +46,7 @@ export default function Playlists() {
       })
       .catch(error => {
         setState(setPlaylists, {loading: false})
-        showErrorToastWithError("Failed to get playlists", error)
+        showErrorToastWithError("Failed to get playlists", error, router)
       })
   }
 

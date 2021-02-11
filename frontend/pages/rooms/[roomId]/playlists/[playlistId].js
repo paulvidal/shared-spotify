@@ -96,7 +96,7 @@ export default function Playlist() {
       })
       .catch(error => {
         setState(setPlaylist, {loading: false})
-        showErrorToastWithError("Failed to get playlist " + playlistId, error)
+        showErrorToastWithError("Failed to get playlist " + playlistId, error, router)
       })
   }
 
@@ -140,7 +140,7 @@ export default function Playlist() {
     })
     .catch(error => {
       setState(setPlaylist, {creating_playlist: false})
-      showErrorToastWithError("Failed to create playlist in spotify", error)
+      showErrorToastWithError("Failed to create playlist in spotify", error, router)
     })
   }
 
