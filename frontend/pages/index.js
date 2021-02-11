@@ -29,11 +29,6 @@ export default function Home() {
       })
   }
 
-  const appleLoginRedirect = () => {
-    setState(setHome, {loading: true})
-    router.push('/login/apple')
-  }
-
   useEffect(refresh, [])
 
   // Use a loader screen if nothing is ready
@@ -53,14 +48,6 @@ export default function Home() {
         <h1 className={styles.title}>
           Welcome to <strong className="text-success">Shared Spotify</strong>
         </h1>
-
-        {/*<Button href={getUrl('/login')} variant="outline-success" size="lg" className="mt-5">*/}
-        {/*  Connect Spotify account*/}
-        {/*</Button>*/}
-
-        {/*<Button variant="outline-success" size="lg" className="mt-3" onClick={appleLoginRedirect}>*/}
-        {/*  Connect Apple music account*/}
-        {/*</Button>*/}
 
         <Button variant="success" size="lg" className="mt-5" onClick={() => router.push('/login')}>
           Connect music account
