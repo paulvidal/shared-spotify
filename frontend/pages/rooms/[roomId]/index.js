@@ -124,7 +124,7 @@ export default function Room() {
 
   if (room.locked) {
     lock = (
-      <p className="text-center">
+      <p className="text-center ml-2 mr-2">
         🔒 Locked<br/>
         (room is not accepting new members)
       </p>
@@ -186,7 +186,7 @@ export default function Room() {
     button = (
       <Link href={'/rooms/' + roomId + '/playlists'}>
         <Button variant="success" size="lg" className="mt-2 mb-2">
-          See common musics ➡️
+          See songs in common ➡️
         </Button>
       </Link>
     )

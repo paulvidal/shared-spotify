@@ -160,7 +160,7 @@ export default function Login() {
 
     // this button is a copy of the one above, make sure to keep it in sync
     buttons = [
-      <p className="mt-5 text-center">
+      <p className="mt-5 text-center ml-2 mr-2">
         Thank you for signing in with Apple, we now need to link your account to Apple Music
       </p>,
 
