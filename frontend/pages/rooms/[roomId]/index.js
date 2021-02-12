@@ -124,12 +124,17 @@ export default function Room() {
 
   if (room.locked) {
     lock = (
-      <p>🔒 Locked</p>
+      <p className="text-center">
+        🔒 Locked<br/>
+        (room is not accepting new members)
+      </p>
     )
 
   } else {
     lock = (
-      <p>🔓 Open</p>
+      <p className="text-center">
+        🔓 Open
+      </p>
     )
   }
 
@@ -194,12 +199,16 @@ export default function Room() {
     )
   }
 
-  let shareButton = (
-    <CopyToClipboard text={process.env.NEXT_PUBLIC_URL + '/rooms/' + roomId + '/share'}
-                     onCopy={() => showSuccessToast("Shareable link copied to clipboard")}>
-      <Button variant="outline-warning" className="mt-2 mb-2">Share room 🔗</Button>
-    </CopyToClipboard>
-  )
+  let shareButton;
+
+  if (!room.locked) {
+    shareButton = (
+      <CopyToClipboard text={process.env.NEXT_PUBLIC_URL + '/rooms/' + roomId + '/share'}
+                       onCopy={() => showSuccessToast("Invite link copied to clipboard")}>
+        <Button variant="outline-warning" className="mt-2 mb-2">Add friends to room 🔗</Button>
+      </CopyToClipboard>
+    )
+  }
 
   return (
     <div className={styles.container}>
