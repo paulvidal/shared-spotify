@@ -13,6 +13,7 @@ import (
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/shared-spotify/utils"
 	"net/http"
+	"sync"
 )
 
 const defaultRoomName = "Room #%s"
@@ -31,7 +32,7 @@ var failedToCreatePlaylistError = errors.New("An error occurred while creating t
 
 // we store in memory the rooms not processed so that if the server crashes, we do not need to manage recovery of
 // ongoing processing - it has the pitfall though that we won't preserve state for not processed room
-var roomNotProcessed = make(map[string]*app.Room)
+var roomNotProcessed = sync.Map{} // map[string]*app.Room
 
 func addRoomNotProcessed(room *app.Room) {
 	datadog.Increment(1, datadog.RoomCount,
@@ -39,12 +40,13 @@ func addRoomNotProcessed(room *app.Room) {
 		datadog.RoomNameTag.Tag(room.Name),
 	)
 
-	roomNotProcessed[room.Id] = room
+	roomNotProcessed.Store(room.Id, room)
 }
 
 func updateRoomNotProcessed(room *app.Room, success bool) {
 	// we set processing result
-	roomNotProcessed[room.Id].MusicLibrary.SetProcessingSuccess(&success)
+	roomNotProcessed, _ := roomNotProcessed.Load(room.Id)
+	roomNotProcessed.(*app.Room).MusicLibrary.SetProcessingSuccess(&success)
 
 	if !success {
 		datadog.Increment(1, datadog.RoomProcessedFailed,
@@ -60,7 +62,7 @@ func updateRoomNotProcessed(room *app.Room, success bool) {
 	if err != nil {
 		// if we fail to insert the result in mongo, we declare processing as failed
 		success := false
-		roomNotProcessed[room.Id].MusicLibrary.SetProcessingSuccess(&success)
+		roomNotProcessed.(*app.Room).MusicLibrary.SetProcessingSuccess(&success)
 		datadog.Increment(1, datadog.RoomProcessedFailed,
 			datadog.RoomIdTag.Tag(room.Id),
 			datadog.RoomNameTag.Tag(room.Name),
@@ -77,13 +79,13 @@ func updateRoomNotProcessed(room *app.Room, success bool) {
 }
 
 func deleteRoomNotProcessed(room *app.Room) {
-	delete(roomNotProcessed, room.Id)
+	roomNotProcessed.Delete(room.Id)
 }
 
 func getRoom(roomId string) (*app.Room, error) {
 	// we check if a room not processed exists first, and we use it if it exists
-	if roomNotProcessed, ok := roomNotProcessed[roomId]; ok {
-		return roomNotProcessed, nil
+	if roomNotProcessed, ok := roomNotProcessed.Load(roomId); ok {
+		return roomNotProcessed.(*app.Room), nil
 	}
 
 	room, err := mongoclientapp.GetRoom(roomId)
@@ -184,11 +186,15 @@ func GetRooms(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// we add to these rooms the not processed yet rooms
-	for _, room := range roomNotProcessed {
+	roomNotProcessed.Range(func(_, value interface{}) bool {
+		room := value.(*app.Room)
+
 		if room.IsUserInRoom(user) {
 			rooms = append(rooms, room)
 		}
-	}
+
+		return true
+	})
 
 	httputils.SendJson(w, &rooms)
 }
