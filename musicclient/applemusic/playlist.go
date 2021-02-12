@@ -2,7 +2,6 @@ package applemusic
 
 import (
 	"context"
-	"fmt"
 	applemusic "github.com/minchao/go-apple-music"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient/clientcommon"
@@ -141,8 +140,12 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			upperBound-i, playlistName, user.GetUserId())
 	}
 
+	// TODO: this method does not work
+	// 	check if we cannot fetch all the playlists and get the link for his playlist
+	//  for now, we default to redirecting to the user playlist library, but not the playlist
 	// get the spotify link to the playlist so we return it
-	externalLink := fmt.Sprintf("https://music.apple.com/library/playlist/%s", playlist.Id)
+	//externalLink := fmt.Sprintf("https://music.apple.com/library/playlist/%s", playlist.Id)
+	externalLink := "https://music.apple.com/library"
 
 	return &externalLink, nil
 }
