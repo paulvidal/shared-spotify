@@ -190,7 +190,7 @@ func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullT
 	tracks := make([]*spotify.FullTrack, 0)
 
 	for _, isrc := range isrcs {
-		// we change client often to spread the load
+		// we change client often to spread the load and not be rate limited
 		client := GetSpotifyGenericClient()
 
 		isrcQuery := fmt.Sprintf("isrc:%s", isrc)
