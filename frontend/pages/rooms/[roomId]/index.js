@@ -102,7 +102,10 @@ export default function Room() {
   // Handle refresh of the page
   let timeout = null
 
-  if (!room.shared_music_library) {
+  if (room.users && room.users.length === 0) {
+    timeout = null;  // do not refresh when the room is not found
+
+  } else if (!room.shared_music_library) {
     timeout = GENERAL_REFRESH_TIMEOUT
 
   } else if (room.shared_music_library.processing_status.success == null) {
