@@ -165,9 +165,9 @@ export default function Login() {
         Thank you for signing in with Apple, we now need to link your account to Apple Music
       </p>,
 
-      <Button variant="dark" size="lg" className="mt-3" onClick={signInMusicKit}>
+      <Button size="lg" className={styles.login_button_apple_music + " mt-3"} onClick={signInMusicKit}>
         <div>
-          <img src="/apple.svg" alt="Spotify Logo" className={styles.logo_apple} />
+          <img src="/applemusic.svg" alt="Apple music logo" className={styles.logo_apple} />
           <span className={styles.connect_apple_text}>Link Apple Music Account</span>
         </div>
       </Button>
