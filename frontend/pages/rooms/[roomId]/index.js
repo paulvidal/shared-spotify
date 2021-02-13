@@ -15,7 +15,7 @@ import CustomModal from "../../../components/CustomModal";
 import setState from "../../../utils/stateUtils";
 import Footer from "../../../components/Footer";
 
-const GENERAL_REFRESH_TIMEOUT = 6000;  // 6s
+const GENERAL_REFRESH_TIMEOUT = 10000;  // 10s
 const REFRESH_TIMEOUT_PLAYLIST_CREATION = 2000;  // 2s
 
 const MIN_USERS_TO_SHARE = 2;
