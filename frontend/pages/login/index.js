@@ -67,12 +67,7 @@ export default function Login() {
     });
 
     AppleID.auth.signIn().then(response => {
-      console.log("response sign in")
-      console.log(response)
-
       let decoded = jwt_decode(response.authorization.id_token)
-      console.log(decoded)
-
       let name = "";
 
       if (response.user && response.user.name) {
