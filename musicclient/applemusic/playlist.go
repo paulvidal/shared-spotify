@@ -8,7 +8,7 @@ import (
 	"github.com/zmb3/spotify"
 )
 
-const maxISRCPerApiCall = 25
+const maxISRCPerApiCall = 15
 const maxTrackPerPlaylistAddCall = 100
 
 func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spotify.FullTrack) (*string, error) {

@@ -11,7 +11,7 @@ import (
 const maxPage = 50
 const maxCatalogSongsPerApiCall = 300
 const maxPlaylistPerApiCall = 100
-const maxRetryGetSongsByIsrc = 5
+const maxRetryGetSongsByIsrc = 10
 
 
 func GetAllSongs(user *clientcommon.User) ([]*applemusic.Song, error) {
