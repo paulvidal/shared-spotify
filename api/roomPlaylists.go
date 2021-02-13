@@ -8,6 +8,7 @@ import (
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
 	"net/http"
 )
@@ -281,6 +282,6 @@ type NewPlaylist struct {
 }
 
 func CreateNewPlaylist(roomName string, playlistName string) *NewPlaylist {
-	spotifyPlaylistName := fmt.Sprintf("%s - %s by Shared Spotify", roomName, playlistName)
+	spotifyPlaylistName := fmt.Sprintf("%s - %s %s", roomName, playlistName, clientcommon.NameCredits)
 	return &NewPlaylist{spotifyPlaylistName, ""}
 }

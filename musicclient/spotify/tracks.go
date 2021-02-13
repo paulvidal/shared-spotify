@@ -6,6 +6,7 @@ import (
 	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
+	"strings"
 	"time"
 )
 
@@ -107,6 +108,13 @@ func getAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) 
 
 			// If the playlist is owned by someone else and was just "liked" by the user, do not include it
 			if simplePlaylist.Owner.ID != user.GetId() {
+				continue
+			}
+
+			// FIXME: be more robust to this later, as in case the playlist is renamed, it will still count
+			//    although we could say if the user renamed the playlists he want to keep the songs for it
+			// If the playlist has the name credits and was created by us, we don't include it
+			if strings.Contains(simplePlaylist.Name, clientcommon.NameCredits) {
 				continue
 			}
 
