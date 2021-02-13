@@ -13,6 +13,7 @@ import LoaderScreen from "../../components/LoaderScreen";
 import CustomModal from "../../components/CustomModal";
 import setState from "../../utils/stateUtils";
 import moment from "moment";
+import Footer from "../../components/Footer";
 
 export default function Rooms() {
   const router = useRouter()
@@ -145,10 +146,7 @@ export default function Rooms() {
         {roomsList}
       </main>
 
-      <footer className={styles.footer}>
-        Powered by{' '}
-        <img src="/spotify.svg" alt="Spotify Logo" className={styles.logo} />
-      </footer>
+      <Footer/>
 
       <Toast/>
 

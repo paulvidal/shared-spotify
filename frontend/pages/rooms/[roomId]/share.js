@@ -10,6 +10,7 @@ import CustomHead from "../../../components/Head";
 import Header from "../../../components/Header";
 import LoaderScreen from "../../../components/LoaderScreen";
 import setState from "../../../utils/stateUtils";
+import Footer from "../../../components/Footer";
 
 export default function RoomShare() {
   const router = useRouter()
@@ -98,10 +99,7 @@ export default function RoomShare() {
         {button}
       </main>
 
-      <footer className={styles.footer}>
-        Powered by{' '}
-        <img src="/spotify.svg" alt="Spotify Logo" className={styles.logo} />
-      </footer>
+      <Footer/>
 
       <Toast/>
     </div>

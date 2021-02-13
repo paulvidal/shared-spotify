@@ -11,6 +11,7 @@ import PlaylistElem from "../../../../components/playlistElem";
 import LoaderScreen from "../../../../components/LoaderScreen";
 import {getTotalTrackCount} from "../../../../utils/trackUtils";
 import setState from "../../../../utils/stateUtils";
+import Footer from "../../../../components/Footer";
 
 export default function Playlists() {
   const router = useRouter()
@@ -93,10 +94,7 @@ export default function Playlists() {
         {formattedPlaylists}
       </main>
 
-      <footer className={styles.footer}>
-        Powered by{' '}
-        <img src="/spotify.svg" alt="Spotify Logo" className={styles.logo} />
-      </footer>
+      <Footer/>
 
       <Toast/>
     </div>

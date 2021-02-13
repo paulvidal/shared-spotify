@@ -15,6 +15,7 @@ import {getTrackBackground, Range} from "react-range";
 import LoaderScreen from "../../../../components/LoaderScreen";
 import CustomModal from "../../../../components/CustomModal";
 import setState from "../../../../utils/stateUtils";
+import Footer from "../../../../components/Footer";
 
 const TIMEOUT_BEFORE_BUTTON_AVAILABLE = 2000  // 2s
 const IDEAL_DEFAULT_COUNT = 40
@@ -379,10 +380,7 @@ export default function Playlist() {
         {player}
       </main>
 
-      <footer className={styles.footer}>
-        Powered by{' '}
-        <img src="/spotify.svg" alt="Spotify Logo" className={styles.logo} />
-      </footer>
+      <Footer/>
 
       <Toast/>
 

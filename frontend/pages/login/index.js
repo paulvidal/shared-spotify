@@ -10,6 +10,7 @@ import jwt_decode from "jwt-decode";
 import setState from "../../utils/stateUtils";
 import {showErrorToastWithError} from "../../components/toast";
 import LoaderScreen from "../../components/LoaderScreen";
+import Footer from "../../components/Footer";
 
 export default function Login() {
   const router = useRouter()
@@ -203,10 +204,7 @@ export default function Login() {
         {buttons}
       </main>
 
-      <footer className={styles.footer}>
-        Powered by{' '}
-        <img src="/spotify.svg" alt="Spotify Logo" className={styles.logo} />
-      </footer>
+      <Footer/>
     </div>
   )
 }

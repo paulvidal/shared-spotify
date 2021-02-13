@@ -13,6 +13,7 @@ import Header from "../../../components/Header";
 import LoaderScreen from "../../../components/LoaderScreen";
 import CustomModal from "../../../components/CustomModal";
 import setState from "../../../utils/stateUtils";
+import Footer from "../../../components/Footer";
 
 const GENERAL_REFRESH_TIMEOUT = 6000;  // 6s
 const REFRESH_TIMEOUT_PLAYLIST_CREATION = 2000;  // 2s
@@ -228,10 +229,7 @@ export default function Room() {
         {userList}
       </main>
 
-      <footer className={styles.footer}>
-        Powered by{' '}
-        <img src="/spotify.svg" alt="Spotify Logo" className={styles.logo} />
-      </footer>
+      <Footer/>
 
       <Toast/>
 
