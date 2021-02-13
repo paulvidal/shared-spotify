@@ -1,8 +1,10 @@
 # Shared spotify
 
-A cool way to find shared common songs among friends on Spotify and create playlists out of those common songs.
+![logo](frontend/public/logo.png)
 
-Currently, only **Spotify** is supported. **Apple Music** support is in progress.
+A cool way to find common songs among friends on Spotify and create playlists out of those common songs.
+
+Currently, **Spotify** and **Apple Music** are supported.
 
 Website is available here at [sharedspotify.com](sharedspotify.com).
 
