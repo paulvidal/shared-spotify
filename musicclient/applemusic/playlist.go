@@ -57,11 +57,10 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			trackIsrcs = append(trackIsrcs, isrc)
 		}
 
-		songs, _, err := client.Catalog.GetSongsByIsrcs(
-			context.Background(),
+		songs, err := GetsongsByIsrc(
+			user,
 			*storefront,
-			trackIsrcs[i:upperBound],
-			nil)
+			trackIsrcs[i:upperBound])
 
 		if err != nil {
 			logger.WithUser(user.GetUserId()).Error("Failed to get apple songs by id to add to playlist ", err)

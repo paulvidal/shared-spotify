@@ -11,6 +11,7 @@ import (
 const maxPage = 50
 const maxCatalogSongsPerApiCall = 300
 const maxPlaylistPerApiCall = 100
+const maxRetryGetSongsByIsrc = 5
 
 
 func GetAllSongs(user *clientcommon.User) ([]*applemusic.Song, error) {
@@ -249,4 +250,28 @@ func getFullSongs(user *clientcommon.User, songIds []string) ([]*applemusic.Song
 	}
 
 	return allSongs, nil
+}
+
+
+func GetsongsByIsrc(user *clientcommon.User, storefront string, isrcs []string) (*applemusic.Songs, error) {
+	var songs *applemusic.Songs
+	var resp *applemusic.Response
+	var err error
+
+	for retry := 1; retry <= maxRetryGetSongsByIsrc; retry++ {
+		songs, resp, err = user.AppleMusicClient.Catalog.GetSongsByIsrcs(
+			context.Background(),
+			storefront,
+			isrcs,
+			nil)
+
+		// Apple randomly return 504 sometimes, so we need to retry
+		if resp != nil && resp.StatusCode != http.StatusGatewayTimeout {
+			return songs, err
+		}
+
+		logger.WithUser(user.GetUserId()).Errorf("Failed to get songs by ISRC - attempt count=%d - %v ", retry, err)
+	}
+	
+	return songs, err
 }
