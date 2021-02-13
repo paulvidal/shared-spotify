@@ -3,12 +3,13 @@ package spotify
 import (
 	"fmt"
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
 	"time"
 )
 
-var maxPage = 50
+var maxPerPage = 50
 
 const maxWaitBetweenCalls = 100 * time.Millisecond
 const maxWaitBetweenSearchCalls = 40 * time.Millisecond
@@ -43,7 +44,7 @@ func getSavedSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 	client := user.SpotifyClient
 
 	allTracks := make([]*spotify.FullTrack, 0)
-	savedTrackPage, err := client.CurrentUsersTracksOpt(&spotify.Options{Limit: &maxPage})
+	savedTrackPage, err := client.CurrentUsersTracksOpt(&spotify.Options{Limit: &maxPerPage})
 
 	if err != nil {
 		logger.Logger.Errorf("Failed to get tracks for user %s %v", user.GetUserId(), err)
@@ -88,7 +89,7 @@ func getAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) 
 
 	allTracks := make([]*spotify.FullTrack, 0)
 
-	simplePlaylistPage, err := client.CurrentUsersPlaylistsOpt(&spotify.Options{Limit: &maxPage})
+	simplePlaylistPage, err := client.CurrentUsersPlaylistsOpt(&spotify.Options{Limit: &maxPerPage})
 
 	if err != nil {
 		logger.Logger.Errorf("Failed to get playlists for user %s %v", user.GetUserId(), err)
@@ -146,7 +147,7 @@ func getSongsForPlaylist(user *clientcommon.User, playlistId string) ([]*spotify
 	client := user.SpotifyClient
 
 	allTracks := make([]*spotify.FullTrack, 0)
-	playlistTrackPage, err := client.GetPlaylistTracksOpt(spotify.ID(playlistId), &spotify.Options{Limit: &maxPage}, "")
+	playlistTrackPage, err := client.GetPlaylistTracksOpt(spotify.ID(playlistId), &spotify.Options{Limit: &maxPerPage}, "")
 
 	if err != nil {
 		logger.Logger.Errorf("Failed to get tracks for playlist %s for user %s %v", playlistId,
@@ -186,10 +187,47 @@ func getSongsForPlaylist(user *clientcommon.User, playlistId string) ([]*spotify
 	return allTracks, nil
 }
 
+func GetTracks(client *spotify.Client, spotifyIds []spotify.ID) ([]*spotify.FullTrack, error) {
+	allTracks := make([]*spotify.FullTrack, 0)
+
+	for i := 0; i < len(spotifyIds); i += maxPerPage {
+		upperBound := i + maxPerPage
+
+		if upperBound > len(spotifyIds) {
+			upperBound = len(spotifyIds)
+		}
+
+		tracks, err := client.GetTracks(spotifyIds[i:upperBound]...)
+
+		if err != nil {
+			return nil, err
+		}
+
+		allTracks = append(allTracks, tracks...)
+	}
+
+	return allTracks, nil
+}
+
 func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullTrack, error) {
 	tracks := make([]*spotify.FullTrack, 0)
 
+	isrcMapping, err := mongoclient.GetIsrcmappings(isrcs)
+	tracksToSearch := make([]spotify.ID, 0)
+
+	if err != nil {
+		// if we have a mongo error, we continue normally
+		isrcMapping = make(map[string]string)
+		logger.WithUser(user.GetUserId()).Warning("Failed to get isrc mappings ", err)
+	}
+
 	for _, isrc := range isrcs {
+		// if we already had the spotify id, we don't make the search call
+		if spotifyId, ok := isrcMapping[isrc]; ok {
+			tracksToSearch = append(tracksToSearch, spotify.ID(spotifyId))
+			continue
+		}
+
 		// we change client often to spread the load and not be rate limited
 		client := GetSpotifyGenericClient()
 
@@ -216,6 +254,19 @@ func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullT
 		// TODO: remove this, we need rate limit in another way
 		time.Sleep(maxWaitBetweenSearchCalls)
 	}
+
+	// search all the tracks for which we already had the spotify id
+	client := GetSpotifyGenericClient()
+	foundTracks, err := GetTracks(client, tracksToSearch)
+
+	if err != nil {
+		logger.WithUser(user.GetUserId()).Error("Failed to fetch spotify songs by Id ", err)
+		return nil, err
+	}
+
+	logger.WithUser(user.GetUserId()).Infof("Used ISRC cache for %d songs for a total of %d songs",
+		len(foundTracks), len(isrcs))
+	tracks = append(tracks, foundTracks...)
 
 	logger.WithUser(user.GetUserId()).Infof(
 		"Converted %d apple music songs to %d spotify tracks",
