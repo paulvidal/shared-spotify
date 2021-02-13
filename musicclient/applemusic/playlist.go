@@ -64,7 +64,7 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			nil)
 
 		if err != nil {
-			logger.WithUser(user.GetUserId()).Error("Failed to get apple songs by id to add to playlist", err)
+			logger.WithUser(user.GetUserId()).Error("Failed to get apple songs by id to add to playlist ", err)
 			return nil, err
 		}
 
@@ -146,4 +146,3 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 
 	return &externalLink, nil
 }
-

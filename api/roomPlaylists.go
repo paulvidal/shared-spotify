@@ -204,7 +204,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 	err = httputils.DeserialiseBody(r, &addPlaylistRequestBody)
 
 	if err != nil {
-		logger.Logger.Error("Failed to decode json body for add playlist for user")
+		logger.WithUser(user.GetUserId()).Error("Failed to decode json body for add playlist for user")
 		handleError(err, w, r, user)
 		return
 	}
@@ -233,7 +233,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {
-		logger.Logger.Error("Playlist %s was not found for room %s, user is %s",
+		logger.WithUser(user.GetUserId()).Error("Playlist %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
 		handleError(app.ErrorPlaylistTypeNotFound, w, r, user)
 		return
@@ -268,6 +268,9 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 		datadog.RoomNameTag.Tag(room.Name),
 		datadog.PlaylistTypeTag.Tag(playlist.Type),
 	)
+
+	logger.WithUser(user.GetUserId()).Infof("User %s created successfully his playlist %s for room %s",
+		user.GetUserId(), playlistId, roomId)
 
 	httputils.SendJson(w, newPlaylist)
 }
