@@ -22,6 +22,14 @@ export default function Home() {
     loading: true,
   });
 
+  let scrollBottom = () => {
+    // 1.2 is to make sure really go to the bottom of the page
+    scroll.scrollTo(document.body.scrollHeight * 1.2, {
+      duration: 2000,
+      smooth: true,
+    });
+  }
+
   const refresh = () => {
     axiosClient.get(getUrl('/user'))
       .then(resp => {
@@ -40,62 +48,6 @@ export default function Home() {
       <LoaderScreen/>
     )
   }
-
-  /*
-  * Autoscroll
-  */
-  let timer;
-  let autoscroll = false;
-  let lastScrollTop = 0;
-
-  let scrollTop = () => {
-    if (autoscroll) {
-      return;
-    }
-
-    autoscroll = true;
-
-    scroll.scrollTo(0, {
-      duration: 1500,
-      smooth: true,
-    });
-
-    autoscroll = false;
-  }
-
-  let scrollBottom = () => {
-    if (autoscroll) {
-      return;
-    }
-
-    autoscroll = true;
-
-    scroll.scrollTo(document.body.scrollHeight * 1.2, {
-      duration: 2000,
-      smooth: true,
-    });
-
-    autoscroll = false;
-  }
-
-  document.addEventListener("scroll", function(){
-    let st = window.pageYOffset || document.documentElement.scrollTop;
-    clearTimeout(timer)
-
-    if (st > lastScrollTop) {
-      timer = setTimeout(scrollBottom, 150)
-
-    } else {
-      timer = setTimeout(scrollTop, 150)
-    }
-
-    lastScrollTop = st <= 0 ? 0 : st; // For Mobile or negative scrolling
-    autoscroll = false
-  }, false);
-
-  /*
-  * Autoscroll ends
-  */
 
   return (
     <div className={styles.container}>
