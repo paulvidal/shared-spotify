@@ -34,10 +34,10 @@ func Initialise() {
 		Client().
 		ApplyURI(MongoUrl).
 		SetRegistry(
-			bson.NewRegistryBuilder().  // Add th new struct codec
-				RegisterDefaultDecoder(reflect.Struct, structcodec).
-				RegisterDefaultEncoder(reflect.Struct, structcodec).
-				Build()).
+											bson.NewRegistryBuilder(). // Add th new struct codec
+															RegisterDefaultDecoder(reflect.Struct, structcodec).
+															RegisterDefaultEncoder(reflect.Struct, structcodec).
+															Build()).
 		SetMonitor(mongotrace.NewMonitor(mongotrace.WithAnalytics(true))) // enable tracing of mongo calls
 
 	// Connect to MongoDB
@@ -60,6 +60,6 @@ func Initialise() {
 	logger.Logger.Warningf("Connection to mongo successful, with url %s", MongoUrl)
 }
 
-func getDatabase() *mongo.Database {
+func GetDatabase() *mongo.Database {
 	return MongoClient.Database(database)
 }

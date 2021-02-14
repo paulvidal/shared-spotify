@@ -1,5 +1,9 @@
 const DEFAULT_IMAGE_URL = "/user.png"
 
+function setDefaultPictureOnError(error) {
+  error.target.src = DEFAULT_IMAGE_URL
+}
+
 function getPictureUrl(user) {
   let imageUrl = user.image
 
@@ -11,5 +15,6 @@ function getPictureUrl(user) {
 }
 
 export {
+  setDefaultPictureOnError,
   getPictureUrl
 }

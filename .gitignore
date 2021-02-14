@@ -4,3 +4,4 @@
 venv
 *.py
 *.csv
+*.p8

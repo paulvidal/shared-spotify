@@ -1,12 +1,13 @@
-package mongoclient
+package app
 
 import (
 	"context"
 	"errors"
-	"github.com/shared-spotify/appmodels"
+	"github.com/shared-spotify/app"
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
-	"github.com/shared-spotify/spotifyclient"
+	"github.com/shared-spotify/mongoclient"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,22 +18,22 @@ const roomCollection = "rooms"
 var NotFound = errors.New("Not found")
 
 type MongoRoom struct {
-	*appmodels.Room                       `bson:"inline"`
-	Playlists map[string]*MongoPlaylist   `bson:"playlists"`
+	*app.Room `bson:"inline"`
+	Playlists map[string]*MongoPlaylist `bson:"playlists"`
 }
 
 type MongoPlaylist struct {
-	appmodels.PlaylistMetadata                             `bson:"inline"`
-	TrackIdsPerSharedCount map[int][]string                `bson:"track_ids_per_shared_count"`
-	UserIdsPerSharedTracks map[string][]string             `bson:"user_ids_per_shared_tracks"`
-	Users                  map[string]*spotifyclient.User  `bson:"users"`
+	app.PlaylistMetadata   `bson:"inline"`
+	TrackIdsPerSharedCount map[int][]string              `bson:"track_ids_per_shared_count"`
+	UserIdsPerSharedTracks map[string][]string           `bson:"user_ids_per_shared_tracks"`
+	Users                  map[string]*clientcommon.User `bson:"users"`
 }
 
-func InsertRoom(room *appmodels.Room) error {
+func InsertRoom(room *app.Room) error {
 	playlists := room.GetPlaylists()
 
 	// we insert the users
-	err := InsertUsers(room.Users)
+	err := mongoclient.InsertUsers(room.Users)
 
 	newUserCount := len(room.Users)
 	datadog.Increment(newUserCount, datadog.RoomUsers,
@@ -46,7 +47,7 @@ func InsertRoom(room *appmodels.Room) error {
 
 	// we insert the tracks
 	tracks := getAllTracksForPlaylists(playlists)
-	err = InsertTracks(tracks)
+	err = mongoclient.InsertTracks(tracks)
 
 	if err != nil {
 		return err
@@ -60,7 +61,7 @@ func InsertRoom(room *appmodels.Room) error {
 		mongoPlaylists,
 	}
 
-	insertResult, err := getDatabase().Collection(roomCollection).InsertOne(context.TODO(), mongoRoom)
+	insertResult, err := mongoclient.GetDatabase().Collection(roomCollection).InsertOne(context.TODO(), mongoRoom)
 
 	if err != nil {
 		logger.Logger.Error("Failed to insert room in mongo ", err)
@@ -72,7 +73,7 @@ func InsertRoom(room *appmodels.Room) error {
 	return nil
 }
 
-func GetRoom(roomId string) (*appmodels.Room, error) {
+func GetRoom(roomId string) (*app.Room, error) {
 	var mongoRoom MongoRoom
 
 	filter := bson.D{{
@@ -80,7 +81,7 @@ func GetRoom(roomId string) (*appmodels.Room, error) {
 		roomId,
 	}}
 
-	err := getDatabase().Collection(roomCollection).FindOne(context.TODO(), filter).Decode(&mongoRoom)
+	err := mongoclient.GetDatabase().Collection(roomCollection).FindOne(context.TODO(), filter).Decode(&mongoRoom)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -104,16 +105,16 @@ func GetRoom(roomId string) (*appmodels.Room, error) {
 	return room, err
 }
 
-func GetRoomsForUser(user *spotifyclient.User) ([]*appmodels.Room, error) {
+func GetRoomsForUser(user *clientcommon.User) ([]*app.Room, error) {
 	mongoRooms := make([]*MongoRoom, 0)
-	rooms := make([]*appmodels.Room, 0)
+	rooms := make([]*app.Room, 0)
 
 	filter := bson.D{{
 		"users._id",
 		user.GetId(),
 	}}
 
-	cursor, err := getDatabase().Collection(roomCollection).Find(context.TODO(), filter)
+	cursor, err := mongoclient.GetDatabase().Collection(roomCollection).Find(context.TODO(), filter)
 
 	if err != nil {
 		logger.Logger.Error("Failed to find rooms for user in mongo ", err)
@@ -134,7 +135,7 @@ func GetRoomsForUser(user *spotifyclient.User) ([]*appmodels.Room, error) {
 	return rooms, nil
 }
 
-func DeleteRoomForUser(room *appmodels.Room, user *spotifyclient.User) error {
+func DeleteRoomForUser(room *app.Room, user *clientcommon.User) error {
 	filter := bson.D{{
 		"_id",
 		room.Id,
@@ -151,7 +152,7 @@ func DeleteRoomForUser(room *appmodels.Room, user *spotifyclient.User) error {
 		}},
 	}}
 
-	_, err := getDatabase().Collection(roomCollection).UpdateOne(context.TODO(), filter, update)
+	_, err := mongoclient.GetDatabase().Collection(roomCollection).UpdateOne(context.TODO(), filter, update)
 
 	if err != nil {
 		logger.Logger.Error("Failed to delete room for user in mongo ", err)
@@ -163,7 +164,7 @@ func DeleteRoomForUser(room *appmodels.Room, user *spotifyclient.User) error {
 	return nil
 }
 
-func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist, room *appmodels.Room) map[string]*MongoPlaylist {
+func convertPlaylistsToMongoPlaylists(playlists map[string]*app.Playlist, room *app.Room) map[string]*MongoPlaylist {
 	mongoPlaylists := make(map[string]*MongoPlaylist)
 
 	for playlistId, playlist := range playlists {
@@ -194,8 +195,8 @@ func convertPlaylistsToMongoPlaylists(playlists map[string]*appmodels.Playlist, 
 	return mongoPlaylists
 }
 
-func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) (map[string]*appmodels.Playlist, error) {
-	playlists := make(map[string]*appmodels.Playlist)
+func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) (map[string]*app.Playlist, error) {
+	playlists := make(map[string]*app.Playlist)
 
 	// we get the tracks
 	allTrackIds := make([]string, 0)
@@ -205,7 +206,7 @@ func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) 
 		}
 	}
 
-	trackPerId, err := GetTracks(allTrackIds)
+	trackPerId, err := mongoclient.GetTracks(allTrackIds)
 
 	if err != nil {
 		logger.Logger.Error("Failed to get tracks when converting mongo playlist to playlists ", err)
@@ -226,11 +227,11 @@ func convertMongoPlaylistsToPlaylists(mongoPlaylists map[string]*MongoPlaylist) 
 			tracksPerSharedCount[sharedCount] = tracks
 		}
 
-		playlists[playlistId] = &appmodels.Playlist{
-			PlaylistMetadata:     mongoPlaylist.PlaylistMetadata,
-			TracksPerSharedCount: tracksPerSharedCount,
+		playlists[playlistId] = &app.Playlist{
+			PlaylistMetadata:       mongoPlaylist.PlaylistMetadata,
+			TracksPerSharedCount:   tracksPerSharedCount,
 			UserIdsPerSharedTracks: mongoPlaylist.UserIdsPerSharedTracks,
-			Users: mongoPlaylist.Users,
+			Users:                  mongoPlaylist.Users,
 		}
 	}
 
@@ -241,14 +242,14 @@ func getTrackIds(tracks []*spotify.FullTrack) []string {
 	trackIds := make([]string, 0)
 
 	for _, track := range tracks {
-		isrc, _ := spotifyclient.GetTrackISRC(track)
+		isrc, _ := clientcommon.GetTrackISRC(track)
 		trackIds = append(trackIds, isrc)
 	}
 
 	return trackIds
 }
 
-func getAllTracksForPlaylists(playlists map[string]*appmodels.Playlist) []*spotify.FullTrack {
+func getAllTracksForPlaylists(playlists map[string]*app.Playlist) []*spotify.FullTrack {
 	allTracks := make([]*spotify.FullTrack, 0)
 
 	for _, playlist := range playlists {

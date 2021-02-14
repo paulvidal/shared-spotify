@@ -1,13 +1,14 @@
-package spotifyclient
+package spotify
 
 import (
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
 )
 
 const maxAlbumsPerApiCall = 20
 
-func (user *User) GetAlbums(tracks []*spotify.FullTrack) (map[string]*spotify.FullAlbum, error) {
+func GetAlbums(tracks []*spotify.FullTrack) (map[string]*spotify.FullAlbum, error) {
 	logger.Logger.Infof("Fetching albums for %d tracks", len(tracks))
 
 	albumsPerTrack := make(map[string]*spotify.FullAlbum)
@@ -18,7 +19,7 @@ func (user *User) GetAlbums(tracks []*spotify.FullTrack) (map[string]*spotify.Fu
 	TrackISCRsPerAlbumId := make(map[spotify.ID][]string)
 
 	for _, track := range tracks {
-		trackISCR, _ := GetTrackISRC(track)
+		trackISCR, _ := clientcommon.GetTrackISRC(track)
 		albumId := track.Album.ID
 
 		// we only add the albumId if we have not seen it already
@@ -48,7 +49,10 @@ func (user *User) GetAlbums(tracks []*spotify.FullTrack) (map[string]*spotify.Fu
 			upperBound = len(albumIds)
 		}
 
-		albumsPart, err := user.Client.GetAlbums(albumIds[i:upperBound]...)
+		// we change client often to spread the load
+		client := GetSpotifyGenericClient()
+
+		albumsPart, err := client.GetAlbums(albumIds[i:upperBound]...)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get albums - %v", err)

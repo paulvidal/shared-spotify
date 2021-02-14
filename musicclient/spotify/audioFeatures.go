@@ -1,13 +1,14 @@
-package spotifyclient
+package spotify
 
 import (
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
 )
 
 const maxAudioFeaturePerApiCall = 100
 
-func (user *User) GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spotify.AudioFeatures, error) {
+func GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spotify.AudioFeatures, error) {
 	logger.Logger.Infof("Fetching audio features for %d tracks", len(tracks))
 
 	audioFeaturesPerTrack := make(map[string]*spotify.AudioFeatures)
@@ -17,7 +18,7 @@ func (user *User) GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spo
 	TrackISCRPerTrackIds := make(map[spotify.ID]string)
 
 	for _, track := range tracks {
-		trackISCR, _ := GetTrackISRC(track)
+		trackISCR, _ := clientcommon.GetTrackISRC(track)
 		trackId := track.ID
 
 		trackIds = append(trackIds, track.ID)
@@ -33,7 +34,10 @@ func (user *User) GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spo
 			upperBound = len(trackIds)
 		}
 
-		audioFeaturesPart, err := user.Client.GetAudioFeatures(trackIds[i:upperBound]...)
+		// we change client often to spread the load
+		client := GetSpotifyGenericClient()
+
+		audioFeaturesPart, err := client.GetAudioFeatures(trackIds[i:upperBound]...)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get audio features for tracks - %v", err)
@@ -41,7 +45,7 @@ func (user *User) GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spo
 		}
 
 		audioFeatures = append(audioFeatures, audioFeaturesPart...)
-		logger.Logger.Infof("Fetched %d track audio features successfully",  upperBound-i)
+		logger.Logger.Infof("Fetched %d track audio features successfully", upperBound-i)
 	}
 
 	for _, audioFeature := range audioFeatures {

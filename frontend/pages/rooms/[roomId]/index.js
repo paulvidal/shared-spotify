@@ -13,8 +13,9 @@ import Header from "../../../components/Header";
 import LoaderScreen from "../../../components/LoaderScreen";
 import CustomModal from "../../../components/CustomModal";
 import setState from "../../../utils/stateUtils";
+import Footer from "../../../components/Footer";
 
-const GENERAL_REFRESH_TIMEOUT = 6000;  // 6s
+const GENERAL_REFRESH_TIMEOUT = 10000;  // 10s
 const REFRESH_TIMEOUT_PLAYLIST_CREATION = 2000;  // 2s
 
 const MIN_USERS_TO_SHARE = 2;
@@ -64,7 +65,7 @@ export default function Room() {
           loading: false
         })
         if (!hasAlreadySeenRefreshedError) {
-          showErrorToastWithError("Failed to get room info", error)
+          showErrorToastWithError("Failed to get room info", error, router)
         }
       })
   }
@@ -85,7 +86,7 @@ export default function Room() {
         refresh()
       })
       .catch(error => {
-        showErrorToastWithError("Failed to find common musics", error)
+        showErrorToastWithError("Failed to find common musics", error, router)
       })
   }
 
@@ -101,7 +102,10 @@ export default function Room() {
   // Handle refresh of the page
   let timeout = null
 
-  if (!room.shared_music_library) {
+  if (room.users && room.users.length === 0) {
+    timeout = null;  // do not refresh when the room is not found
+
+  } else if (!room.shared_music_library) {
     timeout = GENERAL_REFRESH_TIMEOUT
 
   } else if (room.shared_music_library.processing_status.success == null) {
@@ -124,12 +128,17 @@ export default function Room() {
 
   if (room.locked) {
     lock = (
-      <p>🔒 Locked</p>
+      <p className="text-center ml-2 mr-2">
+        🔒 Locked<br/>
+        (room is not accepting new members)
+      </p>
     )
 
   } else {
     lock = (
-      <p>🔓 Open</p>
+      <p className="text-center">
+        🔓 Open
+      </p>
     )
   }
 
@@ -181,7 +190,7 @@ export default function Room() {
     button = (
       <Link href={'/rooms/' + roomId + '/playlists'}>
         <Button variant="success" size="lg" className="mt-2 mb-2">
-          See common musics ➡️
+          See songs in common ➡️
         </Button>
       </Link>
     )
@@ -194,12 +203,16 @@ export default function Room() {
     )
   }
 
-  let shareButton = (
-    <CopyToClipboard text={process.env.NEXT_PUBLIC_URL + '/rooms/' + roomId + '/share'}
-                     onCopy={() => showSuccessToast("Shareable link copied to clipboard")}>
-      <Button variant="outline-warning" className="mt-2 mb-2">Share room 🔗</Button>
-    </CopyToClipboard>
-  )
+  let shareButton;
+
+  if (!room.locked) {
+    shareButton = (
+      <CopyToClipboard text={process.env.NEXT_PUBLIC_URL + '/rooms/' + roomId + '/share'}
+                       onCopy={() => showSuccessToast("Invite link copied to clipboard")}>
+        <Button variant="outline-warning" className="mt-2 mb-2">Add friends to room 🔗</Button>
+      </CopyToClipboard>
+    )
+  }
 
   return (
     <div className={styles.container}>
@@ -219,10 +232,7 @@ export default function Room() {
         {userList}
       </main>
 
-      <footer className={styles.footer}>
-        Powered by{' '}
-        <img src="/spotify.svg" alt="Spotify Logo" className={styles.logo} />
-      </footer>
+      <Footer/>
 
       <Toast/>
 

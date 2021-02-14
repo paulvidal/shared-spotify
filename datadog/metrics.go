@@ -7,7 +7,7 @@ import (
 
 var StatsdClient *statsd.Client
 
-func Initialise()  {
+func Initialise() {
 	statsdClient, err := statsd.New("127.0.0.1:8125")
 
 	if err != nil {
@@ -29,7 +29,7 @@ func Increment(count int, metric string, tags ...string) {
 	}
 }
 
-func Gauge(value int, metric string, tags ...string)  {
+func Gauge(value int, metric string, tags ...string) {
 	if StatsdClient == nil {
 		return
 	}

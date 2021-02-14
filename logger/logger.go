@@ -32,13 +32,12 @@ func init() {
 	Logger.SetLevel(logLevel)
 
 	if env.IsProd() {
-		Logger.SetFormatter(&logrus.JSONFormatter{
-		})
+		Logger.SetFormatter(&logrus.JSONFormatter{})
 		Logger.SetReportCaller(true)
 
 	} else {
 		Logger.SetFormatter(&logrus.TextFormatter{
-			ForceColors: true,
+			ForceColors:   true,
 			FullTimestamp: true,
 		})
 		Logger.SetReportCaller(false)

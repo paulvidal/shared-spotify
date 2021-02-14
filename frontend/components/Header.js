@@ -1,4 +1,4 @@
-import styles from "../styles/Home.module.scss";
+import styles from "../styles/HeaderFooter.module.scss";
 import Link from "next/link";
 import {Image} from "react-bootstrap";
 import {useRouter} from "next/router";

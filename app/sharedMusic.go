@@ -1,10 +1,11 @@
-package appmodels
+package app
 
 import (
 	"errors"
 	"fmt"
 	"github.com/shared-spotify/logger"
-	"github.com/shared-spotify/spotifyclient"
+	"github.com/shared-spotify/musicclient"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
 	"runtime/debug"
 )
@@ -19,13 +20,13 @@ type SharedMusicLibrary struct {
 }
 
 type ProcessingStatus struct {
-	TotalToProcess        int    `json:"total_to_process"`
-	AlreadyProcessed      int    `json:"already_processed"`
-	Started               bool   `json:"started"`
-	Success               *bool  `json:"success"`
+	TotalToProcess   int   `json:"total_to_process"`
+	AlreadyProcessed int   `json:"already_processed"`
+	Started          bool  `json:"started"`
+	Success          *bool `json:"success"`
 }
 
-func (musicLibrary *SharedMusicLibrary) SetProcessingSuccess(success *bool)  {
+func (musicLibrary *SharedMusicLibrary) SetProcessingSuccess(success *bool) {
 	musicLibrary.ProcessingStatus.Success = success
 }
 
@@ -48,7 +49,7 @@ func (musicLibrary *SharedMusicLibrary) GetPlaylist(id string) (*Playlist, error
 }
 
 type MusicProcessingResult struct {
-	User   *spotifyclient.User
+	User   *clientcommon.User
 	Tracks []*spotify.FullTrack
 	Error  error
 }
@@ -64,12 +65,12 @@ func CreateSharedMusicLibrary(totalUsers int) *SharedMusicLibrary {
 
 /*
   These are the Go routine functions to process the shared music library
- */
+*/
 
 // Will process the common library and find all the common songs
-func (musicLibrary *SharedMusicLibrary) Process(users []*spotifyclient.User, callback func(success bool)) {
+func (musicLibrary *SharedMusicLibrary) Process(users []*clientcommon.User, callback func(success bool)) {
 	logger.Logger.Infof("Starting processing of room for all users")
-	
+
 	// We mark the processing status as started
 	musicLibrary.ProcessingStatus.Started = true
 
@@ -87,11 +88,11 @@ func (musicLibrary *SharedMusicLibrary) Process(users []*spotifyclient.User, cal
 	go musicLibrary.addSongsToLibraryAndFindMostCommonSongs(callback)
 }
 
-func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *spotifyclient.User)  {
+func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *clientcommon.User) {
 	// Recovery for the goroutine
 	defer func() {
 		if err := recover(); err != nil {
-			logger.WithUser(user.GetUserId()).Errorf("An unknown error happened while fetching song for " +
+			logger.WithUser(user.GetUserId()).Errorf("An unknown error happened while fetching song for "+
 				"user %s - error: %s", user.GetUserId(), err, string(debug.Stack()))
 			fmt.Println(string(debug.Stack()))
 
@@ -99,15 +100,15 @@ func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *spotifyclient.Us
 		}
 	}()
 
-	logger.WithUser(user.GetUserId()).Infof("Fetching songs for user %s",user.GetUserId())
+	logger.WithUser(user.GetUserId()).Infof("Fetching songs for user %s", user.GetUserId())
 
-	tracks, err := user.GetAllSongs()
+	tracks, err := musicclient.GetAllSongs(user)
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Errorf("Failed to fetch all songs for user %s %v",
 			user.GetUserId(), err)
-	} else  {
-		logger.WithUser(user.GetUserId()).Infof("Fetching songs for user %s finished successfully with %d" +
+	} else {
+		logger.WithUser(user.GetUserId()).Infof("Fetching songs for user %s finished successfully with %d"+
 			" tracks found", user.GetUserId(), len(tracks))
 	}
 
@@ -140,7 +141,7 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 		}
 
 		// We receive from the channel a messages for each user
-		musicProcessingResult := <- musicLibrary.MusicProcessingChannel
+		musicProcessingResult := <-musicLibrary.MusicProcessingChannel
 		user := musicProcessingResult.User
 		userId := user.GetUserId()
 

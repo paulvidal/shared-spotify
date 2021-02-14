@@ -19,7 +19,7 @@ function MyApp({ Component, pageProps }) {
       service: 'shared-spotify-frontend',
       sampleRate: 100,
       trackInteractions: true,
-      silentMultipleInit:true
+      silentMultipleInit: true
     });
 
     datadogLogs.init({

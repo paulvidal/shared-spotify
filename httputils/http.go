@@ -19,7 +19,7 @@ func DeserialiseBody(r *http.Request, v interface{}) error {
 	return nil
 }
 
-func SendJson(w http.ResponseWriter, v interface{})  {
+func SendJson(w http.ResponseWriter, v interface{}) {
 	jsonValue, err := json.Marshal(v)
 
 	if err != nil {
@@ -36,14 +36,14 @@ func SendJson(w http.ResponseWriter, v interface{})  {
 	}
 }
 
-func SendOk(w http.ResponseWriter)  {
+func SendOk(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func UnhandledError(w http.ResponseWriter)  {
+func UnhandledError(w http.ResponseWriter) {
 	http.Error(w, "", http.StatusInternalServerError)
 }
 
-func AuthenticationError(w http.ResponseWriter, r *http.Request)  {
+func AuthenticationError(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "You need to be login to perform this action", http.StatusUnauthorized)
 }

@@ -1,6 +1,6 @@
-import {Container, Row, Col, Card, Button, Image} from 'react-bootstrap';
+import {Container, Row, Col, Card, Image} from 'react-bootstrap';
 import styles from '../styles/rooms/[roomId]/Room.module.scss'
-import {getPictureUrl} from "../utils/pictureUtils";
+import {getPictureUrl, setDefaultPictureOnError} from "../utils/pictureUtils";
 
 export default function UserRoomListElem(props) {
   return (
@@ -8,7 +8,8 @@ export default function UserRoomListElem(props) {
         <Container>
           <Row>
             <Col xs={3} className={styles.profile_pic_container}>
-              <Image src={getPictureUrl(props.user)} className={styles.profile_pic} roundedCircle/>
+              <Image src={getPictureUrl(props.user)} className={styles.profile_pic} roundedCircle
+                     onError={setDefaultPictureOnError}/>
             </Col>
             <Col xs={9}>
               <h3 className={styles.profile_name}>{props.user.name}</h3>

@@ -1,13 +1,14 @@
-package spotifyclient
+package spotify
 
 import (
-"github.com/shared-spotify/logger"
-"github.com/zmb3/spotify"
+	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/musicclient/clientcommon"
+	"github.com/zmb3/spotify"
 )
 
 const maxArtistsPerApiCall = 50
 
-func (user *User) GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify.FullArtist, error) {
+func GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify.FullArtist, error) {
 	logger.Logger.Infof("Fetching artists for %d tracks", len(tracks))
 
 	artistsPerTrack := make(map[string][]*spotify.FullArtist)
@@ -19,7 +20,7 @@ func (user *User) GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify
 
 	for _, track := range tracks {
 		for _, artist := range track.Artists {
-			trackISCR, _ := GetTrackISRC(track)
+			trackISCR, _ := clientcommon.GetTrackISRC(track)
 			artistId := artist.ID
 
 			// we only add the artistId if we have not seen it already
@@ -50,7 +51,10 @@ func (user *User) GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify
 			upperBound = len(artistIds)
 		}
 
-		artistsPart, err := user.Client.GetArtists(artistIds[i:upperBound]...)
+		// we change client often to spread the load
+		client := GetSpotifyGenericClient()
+
+		artistsPart, err := client.GetArtists(artistIds[i:upperBound]...)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get artists - %v", err)
@@ -58,7 +62,7 @@ func (user *User) GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify
 		}
 
 		artists = append(artists, artistsPart...)
-		logger.Logger.Infof("Fetched %d artists successfully",  upperBound-i)
+		logger.Logger.Infof("Fetched %d artists successfully", upperBound-i)
 	}
 
 	for _, artist := range artists {

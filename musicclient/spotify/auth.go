@@ -1,14 +1,16 @@
-package spotifyclient
+package spotify
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/shared-spotify/httputils"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/shared-spotify/utils"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -21,15 +23,10 @@ import (
 // Cache 100 states max
 var states, _ = lru.New(100)
 
-const tokenCookieName = "token"
+var ClientId = os.Getenv("CLIENT_ID")
+var ClientSecret = os.Getenv("CLIENT_SECRET_KEY")
 
-var BackendUrl = os.Getenv("BACKEND_URL")
-var FrontendUrl = os.Getenv("FRONTEND_URL")
-var clientId = os.Getenv("CLIENT_ID")
-var clientSecret = os.Getenv("CLIENT_SECRET_KEY")
-var tokenEncryptionKey = os.Getenv("TOKEN_ENCRYPTION_KEY")
-
-var CallbackUrl = fmt.Sprintf("%s/callback", BackendUrl)
+var CallbackUrl = fmt.Sprintf("%s/callback", clientcommon.BackendUrl)
 
 // the redirect URL must be an exact match of a URL you've registered for your application
 // scopes determine which permissions the user is prompted to authorize
@@ -42,36 +39,9 @@ var auth = spotify.NewAuthenticator(
 	spotify.ScopePlaylistModifyPublic,
 	spotify.ScopeUserLibraryRead)
 
-func CreateUserFromRequest(r *http.Request) (*User, error) {
-	tokenCookie, err := r.Cookie(tokenCookieName)
-
-	if err == http.ErrNoCookie {
-		errMsg := "failed to create user from request - no token cookie found "
-		logger.Logger.Warning(errMsg, err)  // this is normal if user is not logged in, so show it as a warning
-		return nil, errors.New(errMsg)
-	}
-
-	token, err := decryptToken(tokenCookie)
-
-	if err != nil {
-		errMsg := "failed to create user from request - failed to decrypt token "
-		logger.Logger.Error(errMsg, err)
-		return nil, errors.New(errMsg)
-	}
-
-	user, err := createUserFromToken(token)
-
-	if err != nil {
-		logger.Logger.Error("failed to create user from request - create user from token failed ", err)
-		return nil, err
-	}
-
-	return user, nil
-}
-
-func createUserFromToken(token *oauth2.Token) (*User, error) {
+func CreateUserFromToken(token *oauth2.Token) (*clientcommon.User, error) {
 	client := auth.NewClient(token)
-	client.AutoRetry = true  // enable auto retries when rate limited
+	client.AutoRetry = true // enable auto retries when rate limited
 
 	privateUser, err := client.CurrentUser()
 
@@ -82,10 +52,10 @@ func createUserFromToken(token *oauth2.Token) (*User, error) {
 
 	userInfos := toUserInfos(privateUser)
 
-	return &User{userInfos, &client}, nil
+	return &clientcommon.User{UserInfos: &userInfos, SpotifyClient: &client}, nil
 }
 
-func toUserInfos(user *spotify.PrivateUser) UserInfos {
+func toUserInfos(user *spotify.PrivateUser) clientcommon.UserInfos {
 	displayName := user.DisplayName
 	var image string
 
@@ -93,18 +63,7 @@ func toUserInfos(user *spotify.PrivateUser) UserInfos {
 		image = user.Images[0].URL
 	}
 
-	return UserInfos{user.ID, displayName, image}
-}
-
-func GetUser(w http.ResponseWriter, r *http.Request) {
-	user, err := CreateUserFromRequest(r)
-
-	if err != nil {
-		httputils.AuthenticationError(w, r)
-		return
-	}
-
-	httputils.SendJson(w, user)
+	return clientcommon.UserInfos{Id: user.ID, Name: displayName, ImageUrl: image}
 }
 
 func Authenticate(w http.ResponseWriter, r *http.Request) {
@@ -112,25 +71,21 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	// if you didn't store your ID and secret key in the specified environment variables,
 	// you can set them manually here
-	auth.SetAuthInfo(clientId, clientSecret)
+	auth.SetAuthInfo(ClientId, ClientSecret)
 
-	// We extract the referer if it exists, to redirect to it once th auth is finished
-	var redirectUrl string
-	referer:= r.Header.Get("Referer")
-	refererParsedUrl, err := url.Parse(referer)
+	// We extract the redirect_uri if it exists, to redirect to it once th auth is finished
+	redirectUri := r.URL.Query().Get("redirect_uri")
+	redirect := clientcommon.FrontendUrl
 
-	if err != nil || referer == "" {
-		redirectUrl = FrontendUrl
-
-	} else {
-		redirectUrl = FrontendUrl + refererParsedUrl.RequestURI()
+	if redirect != "" {
+		redirect = clientcommon.FrontendUrl + redirectUri
 	}
 
-	logger.Logger.Info("Redirect Url for user after auth will be: ", redirectUrl)
+	logger.Logger.Info("Redirect Url for user after auth will be: ", redirect)
 
 	// we generate a random state and remember the redirect url so we use it once we are redirected
 	randomState := utils.GenerateStrongHash()
-	states.Add(randomState, redirectUrl)
+	states.Add(randomState, redirect)
 
 	// get the user to this URL - how you do that is up to you
 	// you should specify a unique state string to identify the session
@@ -172,7 +127,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Logger.Infof("token is: %+v\n", token)
 
 	// Add the token as an encrypted cookie
-	cookie, err := encryptToken(token)
+	cookie, err := EncryptToken(token)
 	if err != nil {
 		logger.Logger.Errorf("Failed to set token", err)
 		http.Error(w, "Failed to set token", http.StatusBadRequest)
@@ -180,12 +135,21 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 
+	// Add the login type cookie name
+	loginTypeCookie, err := clientcommon.GetLoginTypeCookie(clientcommon.SpotifyLoginType)
+	if err != nil {
+		logger.Logger.Errorf("Failed to set loginType", err)
+		http.Error(w, "Failed to set loginType", http.StatusBadRequest)
+		return
+	}
+	http.SetCookie(w, loginTypeCookie)
+
 	logger.Logger.Info("Redirecting to ", redirectUrl)
 
 	http.Redirect(w, r, redirectUrl.(string), http.StatusFound)
 }
 
-func decryptToken(tokenCookie *http.Cookie) (*oauth2.Token, error) {
+func DecryptToken(tokenCookie *http.Cookie) (*oauth2.Token, error) {
 	var token oauth2.Token
 
 	base64JsonToken, err := base64.StdEncoding.DecodeString(tokenCookie.Value)
@@ -195,7 +159,7 @@ func decryptToken(tokenCookie *http.Cookie) (*oauth2.Token, error) {
 		return nil, err
 	}
 
-	decryptedToken, err := utils.Decrypt(base64JsonToken, tokenEncryptionKey)
+	decryptedToken, err := utils.Decrypt(base64JsonToken, clientcommon.TokenEncryptionKey)
 
 	if err != nil {
 		logger.Logger.Error("Failed to decrypt token ", err)
@@ -212,7 +176,7 @@ func decryptToken(tokenCookie *http.Cookie) (*oauth2.Token, error) {
 	return &token, nil
 }
 
-func encryptToken(token *oauth2.Token) (*http.Cookie, error) {
+func EncryptToken(token *oauth2.Token) (*http.Cookie, error) {
 	jsonToken, err := json.Marshal(*token)
 
 	if err != nil {
@@ -220,7 +184,7 @@ func encryptToken(token *oauth2.Token) (*http.Cookie, error) {
 		return nil, err
 	}
 
-	encryptedToken, err := utils.Encrypt(jsonToken, tokenEncryptionKey)
+	encryptedToken, err := utils.Encrypt(jsonToken, clientcommon.TokenEncryptionKey)
 
 	if err != nil {
 		logger.Logger.Error("Failed to encrypt token ", err)
@@ -231,7 +195,7 @@ func encryptToken(token *oauth2.Token) (*http.Cookie, error) {
 
 	expiration := time.Now().Add(365 * 24 * time.Hour)
 
-	urlParsed, err := url.Parse(BackendUrl)
+	urlParsed, err := url.Parse(clientcommon.BackendUrl)
 
 	if err != nil {
 		logger.Logger.Error("Failed to parse urls ", err)
@@ -248,14 +212,38 @@ func encryptToken(token *oauth2.Token) (*http.Cookie, error) {
 	}
 
 	cookie := http.Cookie{
-		Name: tokenCookieName,
-		Value: base64EncryptedToken,
+		Name:    clientcommon.TokenCookieName,
+		Value:   base64EncryptedToken,
 		Expires: expiration,
 		// we send the cookie cross domain, so we need all this
-		Domain: urlParsed.Host,
-		Secure: secure,
+		Domain:   urlParsed.Host,
+		Path:     "/",
+		Secure:   secure,
 		SameSite: sameSite,
 	}
 
 	return &cookie, nil
+}
+
+// we return the same client as the one used by our app for authentication, not the same as a generic client
+func AuthenticatedGenericClient() *spotify.Client {
+	return GenericClient(ClientId, ClientSecret)
+}
+
+func GenericClient(clientId string, clientSecret string) *spotify.Client {
+	config := &clientcredentials.Config{
+		ClientID:     clientId,
+		ClientSecret: clientSecret,
+		TokenURL:     spotify.TokenURL,
+	}
+	token, err := config.Token(context.Background())
+
+	if err != nil {
+		log.Fatalf("couldn't create token: %v", err)
+	}
+
+	client := spotify.Authenticator{}.NewClient(token)
+	client.AutoRetry = true // enable auto retries when rate limited
+
+	return &client
 }

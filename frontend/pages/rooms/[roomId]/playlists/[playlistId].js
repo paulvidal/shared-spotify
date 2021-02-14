@@ -15,6 +15,7 @@ import {getTrackBackground, Range} from "react-range";
 import LoaderScreen from "../../../../components/LoaderScreen";
 import CustomModal from "../../../../components/CustomModal";
 import setState from "../../../../utils/stateUtils";
+import Footer from "../../../../components/Footer";
 
 const TIMEOUT_BEFORE_BUTTON_AVAILABLE = 2000  // 2s
 const IDEAL_DEFAULT_COUNT = 40
@@ -96,7 +97,7 @@ export default function Playlist() {
       })
       .catch(error => {
         setState(setPlaylist, {loading: false})
-        showErrorToastWithError("Failed to get playlist " + playlistId, error)
+        showErrorToastWithError("Failed to get playlist " + playlistId, error, router)
       })
   }
 
@@ -140,7 +141,7 @@ export default function Playlist() {
     })
     .catch(error => {
       setState(setPlaylist, {creating_playlist: false})
-      showErrorToastWithError("Failed to create playlist in spotify", error)
+      showErrorToastWithError("Failed to create playlist in spotify", error, router)
     })
   }
 
@@ -379,10 +380,7 @@ export default function Playlist() {
         {player}
       </main>
 
-      <footer className={styles.footer}>
-        Powered by{' '}
-        <img src="/spotify.svg" alt="Spotify Logo" className={styles.logo} />
-      </footer>
+      <Footer/>
 
       <Toast/>
 

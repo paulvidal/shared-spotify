@@ -3,7 +3,7 @@ import styles from '../styles/rooms/[roomId]/playlists/Playlist.module.scss'
 import {getAlbumCoverUrlFromTrack, getArtistsFromTrack} from "../utils/trackUtils";
 import {useState} from "react";
 import CustomModal from "./CustomModal";
-import {getPictureUrl} from "../utils/pictureUtils";
+import {getPictureUrl, setDefaultPictureOnError} from "../utils/pictureUtils";
 
 const maxLikedFaceToShow = 3
 
@@ -18,7 +18,7 @@ export default function PlaylistListElem(props) {
   let showUsersForSong = usersForTrack.slice(0, maxLikedFaceToShow).map(user => {
     return (
       <div key={user.id} className="float-right mr-1">
-        <Image className={styles.user_pic} src={getPictureUrl(user)} roundedCircle/>
+        <Image className={styles.user_pic} src={getPictureUrl(user)} roundedCircle onError={setDefaultPictureOnError}/>
       </div>
     )
   })
@@ -44,7 +44,7 @@ export default function PlaylistListElem(props) {
           return (
             <Row key={user.id} className="ml-1 mr-1">
               <Col xs={12}>
-                <Image className={styles.user_pic} src={getPictureUrl(user)} roundedCircle/>
+                <Image className={styles.user_pic} src={getPictureUrl(user)} roundedCircle onError={setDefaultPictureOnError}/>
                 <p className={styles.user_name}>{user.name}</p>
               </Col>
             </Row>

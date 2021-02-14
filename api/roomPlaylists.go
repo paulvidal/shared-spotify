@@ -1,12 +1,14 @@
-package app
+package api
 
 import (
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/shared-spotify/appmodels"
+	"github.com/shared-spotify/app"
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/musicclient"
+	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
 	"net/http"
 )
@@ -69,7 +71,7 @@ func GetPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 }
 
 // Here, we launch the process of finding the musics for the users in the room
-func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request)  {
+func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 
@@ -92,7 +94,7 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request)  {
 	*room.Locked = true
 
 	// we create the music library
-	room.MusicLibrary = appmodels.CreateSharedMusicLibrary(len(room.Users))
+	room.MusicLibrary = app.CreateSharedMusicLibrary(len(room.Users))
 
 	// we now process the library of the users (all this is done async)
 	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.GetUserIds())
@@ -117,7 +119,7 @@ func RoomPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
+func GetPlaylist(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 	playlistId := vars["playlistId"]
@@ -153,9 +155,9 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request)  {
 	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {
-		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
+		logger.Logger.Error("Playlist %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
-		handleError(appmodels.ErrorPlaylistTypeNotFound, w, r, user)
+		handleError(app.ErrorPlaylistTypeNotFound, w, r, user)
 		return
 	}
 
@@ -187,7 +189,7 @@ type AddPlaylistRequestBody struct {
 	MinSharedCount int `json:"min_shared_count"`
 }
 
-func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
+func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 	playlistId := vars["playlistId"]
@@ -203,7 +205,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 	err = httputils.DeserialiseBody(r, &addPlaylistRequestBody)
 
 	if err != nil {
-		logger.Logger.Error("Failed to decode json body for add playlist for user")
+		logger.WithUser(user.GetUserId()).Error("Failed to decode json body for add playlist for user")
 		handleError(err, w, r, user)
 		return
 	}
@@ -232,9 +234,9 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {
-		logger.Logger.Error("PlaylistMetadata %s was not found for room %s, user is %s",
+		logger.WithUser(user.GetUserId()).Error("Playlist %s was not found for room %s, user is %s",
 			playlistId, roomId, user.GetUserId())
-		handleError(appmodels.ErrorPlaylistTypeNotFound, w, r, user)
+		handleError(app.ErrorPlaylistTypeNotFound, w, r, user)
 		return
 	}
 
@@ -250,7 +252,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 		}
 	}
 
-	spotifyUrl, err := user.CreatePlaylist(newPlaylist.Name, tracks)
+	spotifyUrl, err := musicclient.CreatePlaylist(user, newPlaylist.Name, tracks)
 
 	if spotifyUrl != nil {
 		newPlaylist.SpotifyUrl = *spotifyUrl
@@ -268,15 +270,18 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request)  {
 		datadog.PlaylistTypeTag.Tag(playlist.Type),
 	)
 
+	logger.WithUser(user.GetUserId()).Infof("User %s created successfully his playlist %s for room %s",
+		user.GetUserId(), playlistId, roomId)
+
 	httputils.SendJson(w, newPlaylist)
 }
 
 type NewPlaylist struct {
-	Name        string `json:"name"`
-	SpotifyUrl  string `json:"spotify_url"`
+	Name       string `json:"name"`
+	SpotifyUrl string `json:"spotify_url"`
 }
 
 func CreateNewPlaylist(roomName string, playlistName string) *NewPlaylist {
-	spotifyPlaylistName := fmt.Sprintf("%s - %s by Shared Spotify", roomName, playlistName)
+	spotifyPlaylistName := fmt.Sprintf("%s - %s %s", roomName, playlistName, clientcommon.NameCredits)
 	return &NewPlaylist{spotifyPlaylistName, ""}
 }

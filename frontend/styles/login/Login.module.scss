@@ -1,0 +1,80 @@
+@import "../common";
+
+.name_title {
+  border: solid #28a745;
+  padding: 0.2em;
+  margin: 1em 0.5em 0.5em 0.5em;
+  border-radius: 0.15em;
+  text-align: center;
+  font-size: 2rem;
+}
+
+.title a {
+  color: #0070f3;
+  text-decoration: none;
+}
+
+.title a:hover,
+.title a:focus,
+.title a:active {
+  text-decoration: underline;
+}
+
+.title {
+  margin: 0;
+  line-height: 1.15;
+  font-size: 2.8rem;
+}
+
+.title,
+.description {
+  text-align: center;
+}
+
+.angle {
+  height: 2rem;
+}
+
+@media (min-width: 768px) {
+  .title {
+    font-size: 4rem;
+  }
+
+  .name_title {
+    font-size: 2.5rem;
+  }
+}
+
+.login_button {
+  height: 3em;
+  //display: flex;
+  //justify-content: center;
+  //align-items: center;
+  padding-left: 1em;
+  padding-right: 1em;
+}
+
+.login_button_apple_music {
+  background: #FB2944;
+  border-color: #FB2944;
+}
+
+.logo_spotify {
+  height: 2em;
+  margin-bottom: 0.2rem;
+}
+
+.connect_spotify_text {
+  padding-left: 0.5em;
+  padding-top: 0.5rem;
+}
+
+.logo_apple {
+  height: 1.2em;
+  margin-bottom: 0.3rem;
+}
+
+.connect_apple_text {
+  padding-left: 0.5em;
+  padding-top: 0.5rem;
+}

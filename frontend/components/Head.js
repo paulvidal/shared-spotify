@@ -1,6 +1,6 @@
 import Head from "next/head";
 
-export default function CustomHead() {
+export default function CustomHead(props) {
   return (
     <Head>
       <title>Shared Spotify</title>
@@ -11,6 +11,8 @@ export default function CustomHead() {
 
       {/* always allow referrer to exist */}
       <meta name="referrer" content="always" />
+
+      {props.children}
     </Head>
   )
 }
