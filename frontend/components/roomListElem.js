@@ -46,7 +46,7 @@ export default function RoomListElem(props) {
           {open}
         </Card.Title>
 
-        <p className="mb-0">Members: {props.room.users.map(user => user.name).join(", ")}</p>
+        <p className="mb-0"><strong>Members:</strong> {props.room.users.map(user => user.name).join(", ")}</p>
         <p className={styles.creation_date}>Created on {moment(props.room.creation_time).format("MMMM Do YYYY")}</p>
 
         <div className="mt-3">

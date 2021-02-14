@@ -139,6 +139,42 @@ $border-radius: 1rem;
   align-items: center;
 }
 
+@media (min-width: 350px) {
+  .presentation_title {
+    margin-top: 2rem;
+  }
+
+  .presentation_header {
+    font-size: 1rem;
+    margin-top: 1rem;
+  }
+
+  .presentation_text {
+    font-size: 0.95rem;
+    text-align: center;
+  }
+
+  .angle {
+    margin-top: 4rem;
+    margin-bottom: 3rem;
+  }
+}
+
+@media (min-width: 400px) {
+  .presentation_title {
+    margin-top: 4rem;
+  }
+
+  .presentation_header {
+    font-size: 1.1rem;
+  }
+
+  .presentation_text {
+    font-size: 1rem;
+    text-align: center;
+  }
+}
+
 @media (min-width: 768px) {
   .title {
     font-size: 4rem;
@@ -160,7 +196,6 @@ $border-radius: 1rem;
   }
 
   .angle {
-    height: 2rem;
     margin-top: 6rem;
   }
 
