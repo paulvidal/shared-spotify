@@ -8,7 +8,9 @@ import Header from "../components/Header";
 import {useRouter} from "next/router";
 import setState from "../utils/stateUtils";
 import LoaderScreen from "../components/LoaderScreen";
-import Footer from "../components/Footer";
+import {faAngleDown} from "@fortawesome/free-solid-svg-icons";
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import { Element, Events, animateScroll as scroll, scrollSpy, scroller } from 'react-scroll'
 
 export default function Home() {
   const router = useRouter()
@@ -39,6 +41,59 @@ export default function Home() {
     )
   }
 
+  let timer;
+  let autoscroll = false;
+  let lastScrollTop = 0;
+
+  let scrollTop = () => {
+    if (autoscroll) {
+      return;
+    }
+
+    autoscroll = true;
+
+    scroll.scrollTo(0, {
+      duration: 1500,
+      smooth: true,
+    });
+
+    console.log("scroll top")
+
+    autoscroll = false;
+  }
+
+  let scrollBottom = () => {
+    if (autoscroll) {
+      return;
+    }
+
+    autoscroll = true;
+
+    scroll.scrollTo(document.body.scrollHeight * 1.2, {
+      duration: 2000,
+      smooth: true,
+    });
+
+    console.log("scroll bottom")
+
+    autoscroll = false;
+  }
+
+  document.addEventListener("scroll", function(){
+    let st = window.pageYOffset || document.documentElement.scrollTop;
+    clearTimeout(timer)
+
+    if (st > lastScrollTop) {
+      timer = setTimeout(scrollBottom, 150)
+
+    } else {
+      timer = setTimeout(scrollTop, 150)
+    }
+
+    lastScrollTop = st <= 0 ? 0 : st; // For Mobile or negative scrolling
+    autoscroll = false
+  }, false);
+
   return (
     <div className={styles.container}>
       <CustomHead />
@@ -50,12 +105,27 @@ export default function Home() {
           Welcome to <strong className="text-success">Shared Spotify</strong>
         </h1>
 
-        <Button variant="success" size="lg" className="mt-5" onClick={() => router.push('/login')}>
+        <p className="mt-4 text-center ml-2 mr-2">
+          The place to find and share common songs between friends
+        </p>
+
+        <Button variant="success" size="lg" className="mt-2" onClick={() => router.push('/login')}>
           Connect music account
         </Button>
+
+        <FontAwesomeIcon icon={faAngleDown} className={styles.angle} onClick={scrollBottom} />
       </main>
 
-      <Footer/>
+      <main className={styles.main}>
+        <p>How it works</p>
+      </main>
+
+      <footer className={styles.footer}>
+        Powered by
+        <img src="/spotify.svg" alt="Spotify Logo" className={styles.logo} />
+        {'and'}
+        <img src="/applemusic.svg" alt="Apple music Logo" className={styles.logo_apple_music} />
+      </footer>
     </div>
   )
 }
