@@ -10,7 +10,7 @@ import setState from "../utils/stateUtils";
 import LoaderScreen from "../components/LoaderScreen";
 import {faAngleDown} from "@fortawesome/free-solid-svg-icons";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import { Element, Events, animateScroll as scroll, scrollSpy, scroller } from 'react-scroll'
+import {animateScroll as scroll} from 'react-scroll'
 
 export default function Home() {
   const router = useRouter()
@@ -41,6 +41,9 @@ export default function Home() {
     )
   }
 
+  /*
+  * Autoscroll
+  */
   let timer;
   let autoscroll = false;
   let lastScrollTop = 0;
@@ -57,8 +60,6 @@ export default function Home() {
       smooth: true,
     });
 
-    console.log("scroll top")
-
     autoscroll = false;
   }
 
@@ -73,8 +74,6 @@ export default function Home() {
       duration: 2000,
       smooth: true,
     });
-
-    console.log("scroll bottom")
 
     autoscroll = false;
   }
@@ -94,6 +93,10 @@ export default function Home() {
     autoscroll = false
   }, false);
 
+  /*
+  * Autoscroll ends
+  */
+
   return (
     <div className={styles.container}>
       <CustomHead />
@@ -106,7 +109,7 @@ export default function Home() {
         </h1>
 
         <p className="mt-4 text-center ml-2 mr-2">
-          The place to find and share common songs between friends
+          The best place to find and share common songs between friends
         </p>
 
         <Button variant="success" size="lg" className="mt-2" onClick={() => router.push('/login')}>
@@ -116,9 +119,41 @@ export default function Home() {
         <FontAwesomeIcon icon={faAngleDown} className={styles.angle} onClick={scrollBottom} />
       </main>
 
-      <main className={styles.main}>
-        <p>How it works</p>
+      <main className={styles.main_2}>
+        <h1 className={styles.presentation_title}>How it works</h1>
+        <div className="container">
+          <div className={"mt-5 row " + styles.presentation}>
+            <div className={styles.presentation_panel + " " + styles.presentation_panel_1 + " col-md-4 col-12"}>
+              <img src="/share.svg" alt="Spotify Logo" className={styles.presentation_image} />
+              <h5 className={styles.presentation_header}>1. Create a room and share it with your friends</h5>
+              <p className={styles.presentation_text}>
+                Send the room link to all your friends so they can easily join in 1 click.
+              </p>
+            </div>
+            <div className={styles.presentation_panel + " " + styles.presentation_panel_2 + " col-md-4 col-12"}>
+              <img src="/social.svg" alt="Spotify Logo" className={styles.presentation_image} />
+              <h5 className={styles.presentation_header}>2. Discover common songs</h5>
+              <p className={styles.presentation_text}>
+                Thanks to a powerful algorithm, discover all your common songs compiled in various playlists.
+              </p>
+            </div>
+            <div className={styles.presentation_panel + " " + styles.presentation_panel_3 + " col-md-4 col-12"}>
+              <img src="/playlist.svg" alt="Spotify Logo" className={styles.presentation_image} />
+              <h5 className={styles.presentation_header}>3. Add generated playlists to your favourite music app</h5>
+              <p className={styles.presentation_text}>
+                Create the playlists you want in 1 click, so you can listen to them from your music app!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Button variant="success" size="lg" className={styles.presentation_button + " text-center mt-5"} onClick={() => router.push('/login')}>
+          Join the fun
+        </Button>
       </main>
+
+      {/* dummy tag to add the space lost because of the footer */}
+      <div className={styles.dummy}/>
 
       <footer className={styles.footer}>
         Powered by
