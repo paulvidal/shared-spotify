@@ -67,7 +67,7 @@ export default function RoomShare() {
 
   if (isEmpty(user.user)) {
     button = (
-      <Button variant="outline-success" size="lg" className="mt-5" onClick={login}>
+      <Button variant="success" size="lg" className="mt-5" onClick={login}>
         Connect music account
       </Button>
     )
