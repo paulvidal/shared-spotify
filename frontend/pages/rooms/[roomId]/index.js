@@ -221,7 +221,7 @@ export default function Room() {
       <Header />
 
       <main className={styles.main}>
-        <h1>{room.name}</h1>
+        <h1 className="text-center">{room.name}</h1>
 
         {lock}
 

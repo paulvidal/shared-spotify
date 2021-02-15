@@ -135,7 +135,7 @@ export default function Rooms() {
       <Header />
 
       <main className={styles.main}>
-        <h1>Rooms</h1>
+        <h1 className="text-center">Rooms</h1>
 
         {emptyRoomText}
 
