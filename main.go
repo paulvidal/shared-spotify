@@ -82,6 +82,7 @@ func startTracing() {
 		tracer.WithService(Service),
 		tracer.WithEnv(env.GetEnv()),
 		tracer.WithServiceVersion(ReleaseVersion),
+		tracer.WithRuntimeMetrics(),
 	)
 
 	logger.Logger.Warning("Datadog tracer started")
@@ -91,6 +92,13 @@ func startTracing() {
 		profiler.WithService(Service),
 		profiler.WithEnv(env.GetEnv()),
 		profiler.WithVersion(ReleaseVersion),
+		profiler.WithProfileTypes(
+			profiler.HeapProfile,
+			profiler.CPUProfile,
+			profiler.BlockProfile,
+			profiler.GoroutineProfile,
+			profiler.MutexProfile,
+		),
 	)
 
 	if err != nil {
