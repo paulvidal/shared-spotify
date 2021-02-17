@@ -241,7 +241,6 @@ func GenericClient(clientId string, clientSecret string) *spotify.Client {
 	if err != nil {
 		log.Fatalf("couldn't create token: %v", err)
 	}
-
 	client := spotify.Authenticator{}.NewClient(token)
 	client.AutoRetry = true // enable auto retries when rate limited
 

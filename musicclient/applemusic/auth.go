@@ -87,7 +87,11 @@ func CreateUserFromToken(appleLogin *AppleLogin) (*clientcommon.User, error) {
 
 	// Create the apple music client
 	tp := applemusic.Transport{Token: appleLogin.MusickitToken, MusicUserToken: appleLogin.MusicKitUserToken}
-	appleMusicClient := applemusic.NewClient(tp.Client())
+	client := &http.Client{
+		Transport: &tp,
+		Timeout: time.Second * ClientTimeout,
+	}
+	appleMusicClient := applemusic.NewClient(client)
 
 	// make a dummy request to make sure token is valid
 	_, _, err := appleMusicClient.Me.GetStorefront(context.Background(), nil)
