@@ -60,7 +60,7 @@ export default function Login() {
 
   const signInApple = () => {
     AppleID.auth.init({
-      clientId : 'com.sharedspotify2.login.',
+      clientId : 'com.sharedspotify.apple.login',
       scope : 'name email',
       redirectURI : process.env.NEXT_PUBLIC_APPLE_LOGIN_REDIRECT_URL,
       state : window.location.href,
@@ -73,7 +73,10 @@ export default function Login() {
       let email = decoded.email;
       let name = "";
 
-      datadogLogs.logger.warn("Received apple auth token", {"auth": response})
+      datadogLogs.logger.warn("Received apple auth token", {
+        "auth": response,
+        "auth_id_token": decoded,
+      })
 
       if (response.user && response.user.name) {
         name = response.user.name.firstName + " " + response.user.name.lastName
