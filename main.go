@@ -34,6 +34,7 @@ func startServer() {
 
 	r.HandleFunc("/callback", spotify.CallbackHandler)
 	r.HandleFunc("/callback/apple", applemusic.CallbackHandler)
+	r.HandleFunc("/callback/apple/user", applemusic.UserHandler)
 
 	r.HandleFunc("/user", musicclient.GetUser)
 

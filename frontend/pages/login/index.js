@@ -69,6 +69,8 @@ export default function Login() {
 
     AppleID.auth.signIn().then(response => {
       let decoded = jwt_decode(response.authorization.id_token)
+      let userId = decoded.sub;
+      let email = decoded.email;
       let name = "";
 
       datadogLogs.logger.warn("Received apple auth token", {"auth": response})
@@ -77,9 +79,20 @@ export default function Login() {
         name = response.user.name.firstName + " " + response.user.name.lastName
       }
 
+      // Send as soon as possible the user info so we don't lose them
+      if (response.user) {
+        axiosClient.post(getUrl("/callback/apple/user"), {
+          user_id: userId,
+          user_email: email,
+          user_name: name
+        }).catch(error => {
+          datadogLogs.logger.error("Failed to insert user with auth token", {"auth": response, "error": error})
+        })
+      }
+
       setState(setLogin, {
-        userId: decoded.sub,
-        userEmail: decoded.email,
+        userId: userId,
+        userEmail: email,
         userName: name
       })
 
