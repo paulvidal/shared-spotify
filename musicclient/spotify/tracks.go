@@ -28,9 +28,9 @@ func GetAllSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 
 	logger.WithUser(user.GetUserId()).Info("Successfully fetched all spotify saved songs for user")
 
+	// Get the playlist songs
 	logger.WithUser(user.GetUserId()).Info("Fetching all spotify playlist tracks for user")
 
-	// Get the playlist songs
 	playlistTracks, err := getAllPlaylistSongs(user)
 
 	if err != nil {

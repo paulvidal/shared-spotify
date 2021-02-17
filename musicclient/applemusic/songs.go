@@ -16,6 +16,8 @@ const maxRetryGetSongsByIsrc = 10
 
 func GetAllSongs(user *clientcommon.User) ([]*applemusic.Song, error) {
 	// Get the library songs
+	logger.WithUser(user.GetUserId()).Info("Fetching all apple library songs for user")
+
 	savedSongs, err := GetLibrarySongs(user)
 
 	if err != nil {
@@ -25,8 +27,14 @@ func GetAllSongs(user *clientcommon.User) ([]*applemusic.Song, error) {
 		return nil, err
 	}
 
+	logger.WithUser(user.GetUserId()).Info("Successfully fetched all apple library songs for user")
+
 	// Get the playlist songs
+	logger.WithUser(user.GetUserId()).Info("Fetching all apple library songs for library playlists for user")
+
 	playlistSongs, err := GetAllLibraryPlaylistSongs(user)
+
+	logger.WithUser(user.GetUserId()).Info("Successfully fetched all apple library songs for library playlists for user")
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Error(
