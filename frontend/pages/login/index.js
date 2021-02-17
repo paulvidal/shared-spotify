@@ -60,7 +60,7 @@ export default function Login() {
 
   const signInApple = () => {
     AppleID.auth.init({
-      clientId : 'com.sharedspotify.apple.login',
+      clientId : 'com.sharedspotify2.login.',
       scope : 'name email',
       redirectURI : process.env.NEXT_PUBLIC_APPLE_LOGIN_REDIRECT_URL,
       state : window.location.href,
