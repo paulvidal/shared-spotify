@@ -11,6 +11,7 @@ import setState from "../../utils/stateUtils";
 import {showErrorToastWithError} from "../../components/toast";
 import LoaderScreen from "../../components/LoaderScreen";
 import Footer from "../../components/Footer";
+import {datadogLogs} from "@datadog/browser-logs";
 
 export default function Login() {
   const router = useRouter()
@@ -60,7 +61,7 @@ export default function Login() {
   const signInApple = () => {
     AppleID.auth.init({
       clientId : 'com.sharedspotify.apple.login',
-      scope : 'name',
+      scope : 'name email',
       redirectURI : process.env.NEXT_PUBLIC_APPLE_LOGIN_REDIRECT_URL,
       state : window.location.href,
       usePopup : true
@@ -69,6 +70,8 @@ export default function Login() {
     AppleID.auth.signIn().then(response => {
       let decoded = jwt_decode(response.authorization.id_token)
       let name = "";
+
+      datadogLogs.logger.warn("Received apple auth token", {"auth": response})
 
       if (response.user && response.user.name) {
         name = response.user.name.firstName + " " + response.user.name.lastName
