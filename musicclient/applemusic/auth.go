@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	applemusic "github.com/minchao/go-apple-music"
+	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
@@ -22,6 +23,44 @@ type AppleLogin struct {
 	UserName          string `json:"user_name"`
 	MusickitToken     string `json:"musickit_token"`
 	MusicKitUserToken string `json:"musickit_user_token"`
+}
+
+type AppleUser struct {
+	UserId            string `json:"user_id"`
+	UserEmail         string `json:"user_email"`
+	UserName          string `json:"user_name"`
+}
+
+// This is used to immediately insert apple user when this one is collected in the frontend
+func UserHandler(w http.ResponseWriter, r *http.Request) {
+	logger.Logger.Info("Received new apple user")
+
+	var user AppleUser
+	err := httputils.DeserialiseBody(r, &user)
+
+	if err != nil {
+		logger.Logger.Error("Failed to decode json body for for apple user info")
+		http.Error(w, "Bad user info sent for apple user", http.StatusBadRequest)
+		return
+	}
+
+	if user.UserName == "" || user.UserId == "" {
+		logger.Logger.Error("Bad apple user info ", user)
+		http.Error(w, "Bad apple user info", http.StatusBadRequest)
+		return
+	}
+
+	// Add the user in mongo if it did not exist
+	mongoUser := &clientcommon.User{UserInfos: &clientcommon.UserInfos{Id: user.UserId, Name: user.UserName}}
+	err = mongoclient.InsertUsers([]*clientcommon.User{mongoUser})
+
+	if err != nil {
+		logger.Logger.Error("Failed to insert apple user in mongo ", err)
+		http.Error(w, "Failed to create user", http.StatusInternalServerError)
+		return
+	}
+
+	httputils.SendOk(w)
 }
 
 // the user will eventually be redirected back to your redirect URL
@@ -50,6 +89,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Logger.Error("Failed to authenticate user with apple music ", err)
 		http.Error(w, "Failed to authenticate user with apple music", http.StatusBadRequest)
+		return
 	}
 
 	// Add the token as an encrypted cookie
@@ -87,7 +127,11 @@ func CreateUserFromToken(appleLogin *AppleLogin) (*clientcommon.User, error) {
 
 	// Create the apple music client
 	tp := applemusic.Transport{Token: appleLogin.MusickitToken, MusicUserToken: appleLogin.MusicKitUserToken}
-	appleMusicClient := applemusic.NewClient(tp.Client())
+	client := &http.Client{
+		Transport: &tp,
+		Timeout: time.Second * ClientTimeout,
+	}
+	appleMusicClient := applemusic.NewClient(client)
 
 	// make a dummy request to make sure token is valid
 	_, _, err := appleMusicClient.Me.GetStorefront(context.Background(), nil)
