@@ -17,20 +17,28 @@ const maxWaitBetweenSearchCalls = 40 * time.Millisecond
 
 func GetAllSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 	// Get the liked songs
+	logger.WithUser(user.GetUserId()).Info("Fetching all spotify saved songs for user")
+
 	savedTracks, err := getSavedSongs(user)
 
 	if err != nil {
-		logger.Logger.Errorf("Failed to fetch all tracks for user %s %v", user.GetUserId(), err)
+		logger.WithUser(user.GetUserId()).Errorf("Failed to fetch all spotify tracks for user %s %v", user.GetUserId(), err)
 		return nil, err
 	}
+
+	logger.WithUser(user.GetUserId()).Info("Successfully fetched all spotify saved songs for user")
+
+	logger.WithUser(user.GetUserId()).Info("Fetching all spotify playlist tracks for user")
 
 	// Get the playlist songs
 	playlistTracks, err := getAllPlaylistSongs(user)
 
 	if err != nil {
-		logger.Logger.Errorf("Failed to fetch all tracks for user %s %v", user.GetUserId(), err)
+		logger.WithUser(user.GetUserId()).Error("Failed to fetch all spotify playlist tracks for user ", err)
 		return nil, err
 	}
+
+	logger.WithUser(user.GetUserId()).Info("Successfully fetched all spotify playlist tracks for user")
 
 	// Merge all the songs here
 	allTracks := make([]*spotify.FullTrack, 0)
@@ -48,15 +56,14 @@ func getSavedSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 	savedTrackPage, err := client.CurrentUsersTracksOpt(&spotify.Options{Limit: &maxPerPage})
 
 	if err != nil {
-		logger.Logger.Errorf("Failed to get tracks for user %s %v", user.GetUserId(), err)
+		logger.WithUser(user.GetUserId()).Errorf("Failed to get tracks for user %v", err)
 		return nil, err
 	}
 
-	logger.Logger.Infof("Playlist has %d total tracks for user %s", savedTrackPage.Total, user.GetUserId())
+	logger.WithUser(user.GetUserId()).Infof("Playlist has %d total tracks for user", savedTrackPage.Total)
 
 	for page := 1; ; page++ {
-		logger.Logger.Infof("Page %d has %d tracks for user %s", page, len(savedTrackPage.Tracks),
-			user.GetUserId())
+		logger.WithUser(user.GetUserId()).Infof("Page %d has %d tracks for user", page, len(savedTrackPage.Tracks))
 
 		// Transform all the SavedTrack into FullTrack and add them to the list
 		for _, savedTrack := range savedTrackPage.Tracks {
@@ -79,7 +86,7 @@ func getSavedSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 		}
 	}
 
-	logger.Logger.Infof("Found %d saved tracks for user %s", len(allTracks), user.GetUserId())
+	logger.WithUser(user.GetUserId()).Infof("Found %d saved tracks for user", len(allTracks))
 
 	return allTracks, nil
 }
@@ -93,15 +100,14 @@ func getAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) 
 	simplePlaylistPage, err := client.CurrentUsersPlaylistsOpt(&spotify.Options{Limit: &maxPerPage})
 
 	if err != nil {
-		logger.Logger.Errorf("Failed to get playlists for user %s %v", user.GetUserId(), err)
+		logger.WithUser(user.GetUserId()).Errorf("Failed to get playlists for user %v", err)
 		return nil, err
 	}
 
-	logger.Logger.Infof("User has %d total playlists for user %s", simplePlaylistPage.Total, user.GetUserId())
+	logger.WithUser(user.GetUserId()).Infof("User has %d total playlists for user", simplePlaylistPage.Total)
 
 	for page := 1; ; page++ {
-		logger.Logger.Infof("Page %d has %d playlists for user %s", page, len(simplePlaylistPage.Playlists),
-			user.GetUserId())
+		logger.WithUser(user.GetUserId()).Infof("Page %d has %d playlists for user", page, len(simplePlaylistPage.Playlists))
 
 		// For each playlist, get the associated tracks
 		for _, simplePlaylist := range simplePlaylistPage.Playlists {
@@ -125,8 +131,7 @@ func getAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) 
 				return nil, err
 			}
 
-			logger.Logger.Infof("Got %d tracks from playlist %s for user %s", len(tracks), playlistId,
-				user.GetUserId())
+			logger.WithUser(user.GetUserId()).Infof("Got %d tracks from playlist %s for user", len(tracks), playlistId)
 
 			allTracks = append(allTracks, tracks...)
 		}
@@ -141,12 +146,12 @@ func getAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) 
 		}
 
 		if err != nil {
-			logger.Logger.Error(err)
+			logger.WithUser(user.GetUserId()).Error(err)
 			return nil, err
 		}
 	}
 
-	logger.Logger.Infof("Found %d playlist tracks for user %s", len(allTracks), user.GetUserId())
+	logger.WithUser(user.GetUserId()).Infof("Found %d playlist tracks for user", len(allTracks))
 
 	return allTracks, nil
 }
@@ -158,17 +163,15 @@ func getSongsForPlaylist(user *clientcommon.User, playlistId string) ([]*spotify
 	playlistTrackPage, err := client.GetPlaylistTracksOpt(spotify.ID(playlistId), &spotify.Options{Limit: &maxPerPage}, "")
 
 	if err != nil {
-		logger.Logger.Errorf("Failed to get tracks for playlist %s for user %s %v", playlistId,
-			user.GetUserId(), err)
+		logger.WithUser(user.GetUserId()).Errorf("Failed to get tracks for playlist %s for user %v", playlistId, err)
 		return nil, err
 	}
 
-	logger.Logger.Infof("Playlist %s has %d total tracks for user %s", playlistId, playlistTrackPage.Total,
-		user.GetUserId())
+	logger.WithUser(user.GetUserId()).Infof("Playlist %s has %d total tracks for user", playlistId, playlistTrackPage.Total)
 
 	for page := 1; ; page++ {
-		logger.Logger.Infof("Page %d has %d tracks for playlist %s for user %s", page,
-			len(playlistTrackPage.Tracks), playlistId, user.GetUserId())
+		logger.WithUser(user.GetUserId()).Infof("Page %d has %d tracks for playlist %s for user", page,
+			len(playlistTrackPage.Tracks), playlistId)
 
 		// Transform all the PlaylistTrack into FullTrack and add them to the list
 		for _, playlistTrack := range playlistTrackPage.Tracks {
