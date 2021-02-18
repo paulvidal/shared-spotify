@@ -39,6 +39,11 @@ var auth = spotify.NewAuthenticator(
 	spotify.ScopePlaylistModifyPublic,
 	spotify.ScopeUserLibraryRead)
 
+func init() {
+	// set client id and secret here for spotify
+	auth.SetAuthInfo(ClientId, ClientSecret)
+}
+
 func CreateUserFromToken(token *oauth2.Token) (*clientcommon.User, error) {
 	client := auth.NewClient(token)
 	client.AutoRetry = true // enable auto retries when rate limited
@@ -68,10 +73,6 @@ func toUserInfos(user *spotify.PrivateUser) clientcommon.UserInfos {
 
 func Authenticate(w http.ResponseWriter, r *http.Request) {
 	logger.Logger.Info("Headers for request to authenticate are ", r.Header)
-
-	// if you didn't store your ID and secret key in the specified environment variables,
-	// you can set them manually here
-	auth.SetAuthInfo(ClientId, ClientSecret)
 
 	// We extract the redirect_uri if it exists, to redirect to it once th auth is finished
 	redirectUri := r.URL.Query().Get("redirect_uri")
