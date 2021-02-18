@@ -75,7 +75,7 @@ func InsertIsrcMapping(isrcMappings []IsrcMapping) error {
 		return err
 	}
 
-	logger.Logger.Info("%d IsrcMappings were inserted successfully in mongo ", len(isrcMappings))
+	logger.Logger.Infof("%d IsrcMappings were inserted successfully in mongo ", len(isrcMappings))
 
 	return nil
 }
