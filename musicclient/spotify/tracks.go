@@ -79,11 +79,12 @@ func getSavedSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 		// Go to next page
 		err = client.NextPage(savedTrackPage)
 
-		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeSavedSongs, true, err)
-
 		if err == spotify.ErrNoMorePages {
+			clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeSavedSongs, true, nil)
 			break
 		}
+
+		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeSavedSongs, true, err)
 
 		if err != nil {
 			logger.WithUser(user.GetUserId()).Error(err)
@@ -148,11 +149,12 @@ func getAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) 
 		// Go to next page
 		err = client.NextPage(simplePlaylistPage)
 
-		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypePlaylists, true, err)
-
 		if err == spotify.ErrNoMorePages {
+			clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypePlaylists, true, nil)
 			break
 		}
+
+		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypePlaylists, true, err)
 
 		if err != nil {
 			logger.WithUser(user.GetUserId()).Error(err)
@@ -196,11 +198,12 @@ func getSongsForPlaylist(user *clientcommon.User, playlistId string) ([]*spotify
 		// Go to next page
 		err = client.NextPage(playlistTrackPage)
 
-		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypePlaylistSongs, true, err)
-
 		if err == spotify.ErrNoMorePages {
+			clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypePlaylistSongs, true, nil)
 			break
 		}
+
+		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypePlaylistSongs, true, err)
 
 		if err != nil {
 			logger.Logger.Error(err)
