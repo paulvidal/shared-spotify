@@ -1,6 +1,7 @@
 package spotify
 
 import (
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
@@ -38,6 +39,8 @@ func GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spotify.AudioFea
 		client := GetSpotifyGenericClient()
 
 		audioFeaturesPart, err := client.GetAudioFeatures(trackIds[i:upperBound]...)
+
+		clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeAudioFeatures, false, err)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get audio features for tracks - %v", err)

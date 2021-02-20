@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	applemusic "github.com/minchao/go-apple-music"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/mongoclient"
@@ -136,9 +137,11 @@ func CreateUserFromToken(appleLogin *AppleLogin) (*clientcommon.User, error) {
 	// make a dummy request to make sure token is valid
 	_, _, err := appleMusicClient.Me.GetStorefront(context.Background(), nil)
 
+	clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypeUserInfo, true, err)
+
 	if err != nil {
 		logger.Logger.Warning("Invalid apple music user token ", err)
-		return nil, errors.New("Invalid apple music token")
+		return nil, err
 	}
 
 	// Create the generic spotify client

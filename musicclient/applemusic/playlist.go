@@ -3,6 +3,7 @@ package applemusic
 import (
 	"context"
 	applemusic "github.com/minchao/go-apple-music"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
@@ -100,6 +101,8 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			nil,
 		)
 
+	clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypePlaylistCreated, true, err)
+
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Error("Failed to created apple music playlist ", err)
 		return nil, err
@@ -129,6 +132,8 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			context.Background(),
 			playlist.Id,
 			applemusic.CreateLibraryPlaylistTrackData{Data: tracksToAdd[i:upperBound]})
+
+		clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypePlaylistSongsAdded, true, err)
 
 		if err != nil {
 			logger.WithUser(user.GetUserId()).Errorf("Failed to add songs to playlist %s - %v", playlistName, err)

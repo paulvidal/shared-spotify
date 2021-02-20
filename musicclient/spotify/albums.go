@@ -1,6 +1,7 @@
 package spotify
 
 import (
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
@@ -53,6 +54,8 @@ func GetAlbums(tracks []*spotify.FullTrack) (map[string]*spotify.FullAlbum, erro
 		client := GetSpotifyGenericClient()
 
 		albumsPart, err := client.GetAlbums(albumIds[i:upperBound]...)
+
+		clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeAlbums, false, err)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get albums - %v", err)

@@ -1,6 +1,7 @@
 package spotify
 
 import (
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
@@ -55,6 +56,8 @@ func GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify.FullArtist, 
 		client := GetSpotifyGenericClient()
 
 		artistsPart, err := client.GetArtists(artistIds[i:upperBound]...)
+
+		clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeArtists, false, err)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get artists - %v", err)
