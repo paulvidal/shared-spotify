@@ -182,7 +182,7 @@ export default function Room() {
 
     button = (
       <Button variant="warning" size="lg" className="mt-2 mb-2" disabled>
-        <Spinner animation="border" className="mr-2"/> Searching common musics ({Math.floor(current/total*100)}%)
+        <Spinner variant="dark" animation="border" className="mr-2"/> Searching common musics ({Math.floor(current/total*100)}%)
       </Button>
     )
 

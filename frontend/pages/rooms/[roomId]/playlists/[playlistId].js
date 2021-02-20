@@ -230,7 +230,7 @@ export default function Playlist() {
     if (playlist.creating_playlist) {
       addButton = (
         <Button variant="warning" size="lg" className="mb-4" disabled>
-          <Spinner animation="border" className="mr-2"/> Creating playlist
+          <Spinner variant="dark" animation="border" className="mr-2"/> Creating playlist
         </Button>
       )
 
