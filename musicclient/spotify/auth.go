@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/shared-spotify/utils"
 	"golang.org/x/oauth2"
@@ -50,8 +51,10 @@ func CreateUserFromToken(token *oauth2.Token) (*clientcommon.User, error) {
 
 	privateUser, err := client.CurrentUser()
 
+	clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeUserInfo, true, err)
+
 	if err != nil {
-		logger.Logger.Error("Failed to create user from token ", err)
+		logger.Logger.Warning("Failed to create user from token ", err)
 		return nil, err
 	}
 
@@ -93,6 +96,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 	authUrl := auth.AuthURL(randomState)
 
 	logger.Logger.Info("Url to login is: ", authUrl)
+	clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeAuth, false, nil)
 
 	// We redirect to the correct url
 	http.Redirect(w, r, authUrl, http.StatusFound)

@@ -2,6 +2,7 @@ package spotify
 
 import (
 	"fmt"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
@@ -55,6 +56,8 @@ func getSavedSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 	allTracks := make([]*spotify.FullTrack, 0)
 	savedTrackPage, err := client.CurrentUsersTracksOpt(&spotify.Options{Limit: &maxPerPage})
 
+	clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeSavedSongs, true, err)
+
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Errorf("Failed to get tracks for user %v", err)
 		return nil, err
@@ -76,12 +79,14 @@ func getSavedSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 		// Go to next page
 		err = client.NextPage(savedTrackPage)
 
+		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeSavedSongs, true, err)
+
 		if err == spotify.ErrNoMorePages {
 			break
 		}
 
 		if err != nil {
-			logger.Logger.Error(err)
+			logger.WithUser(user.GetUserId()).Error(err)
 			return nil, err
 		}
 	}
@@ -98,6 +103,8 @@ func getAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) 
 	allTracks := make([]*spotify.FullTrack, 0)
 
 	simplePlaylistPage, err := client.CurrentUsersPlaylistsOpt(&spotify.Options{Limit: &maxPerPage})
+
+	clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypePlaylists, true, err)
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Errorf("Failed to get playlists for user %v", err)
@@ -141,6 +148,8 @@ func getAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) 
 		// Go to next page
 		err = client.NextPage(simplePlaylistPage)
 
+		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypePlaylists, true, err)
+
 		if err == spotify.ErrNoMorePages {
 			break
 		}
@@ -161,6 +170,8 @@ func getSongsForPlaylist(user *clientcommon.User, playlistId string) ([]*spotify
 
 	allTracks := make([]*spotify.FullTrack, 0)
 	playlistTrackPage, err := client.GetPlaylistTracksOpt(spotify.ID(playlistId), &spotify.Options{Limit: &maxPerPage}, "")
+
+	clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypePlaylistSongs, true, err)
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Errorf("Failed to get tracks for playlist %s for user %v", playlistId, err)
@@ -184,6 +195,8 @@ func getSongsForPlaylist(user *clientcommon.User, playlistId string) ([]*spotify
 
 		// Go to next page
 		err = client.NextPage(playlistTrackPage)
+
+		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypePlaylistSongs, true, err)
 
 		if err == spotify.ErrNoMorePages {
 			break
@@ -209,6 +222,8 @@ func GetTracks(client *spotify.Client, spotifyIds []spotify.ID) ([]*spotify.Full
 		}
 
 		tracks, err := client.GetTracks(spotifyIds[i:upperBound]...)
+
+		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeSongs, false, err)
 
 		if err != nil {
 			return nil, err
@@ -244,6 +259,8 @@ func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullT
 
 		isrcQuery := fmt.Sprintf("isrc:%s", isrc)
 		results, err := client.Search(isrcQuery, spotify.SearchTypeTrack)
+
+		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeSearch, false, err)
 
 		if err != nil {
 			logger.WithUser(user.GetUserId()).Error("Failed to query track by isrc on spotify", err)

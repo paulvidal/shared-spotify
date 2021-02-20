@@ -3,6 +3,7 @@ package applemusic
 import (
 	"context"
 	applemusic "github.com/minchao/go-apple-music"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"net/http"
@@ -68,6 +69,8 @@ func GetLibrarySongs(user *clientcommon.User) ([]*applemusic.Song, error) {
 			context.Background(),
 			&applemusic.PageOptions{Limit: maxPage, Offset: offset})
 
+		clientcommon.SendRequestMetric(datadog.AppleRequest, datadog.RequestTypeSavedSongs, true, err)
+
 		if err != nil {
 			logger.WithUser(user.GetUserId()).Error("Failed to fetch apple library songs ", err)
 			return nil, err
@@ -118,6 +121,8 @@ func GetAllLibraryPlaylistSongs(user *clientcommon.User) ([]*applemusic.Song, er
 		playlists, _, err := client.Me.GetAllLibraryPlaylists(
 			context.Background(),
 			&applemusic.PageOptions{Offset: offset, Limit: maxPlaylistPerApiCall})
+
+		clientcommon.SendRequestMetric(datadog.AppleRequest, datadog.RequestTypePlaylists, true, err)
 
 		if err != nil {
 			logger.WithUser(user.GetUserId()).Error("Failed to fetch apple library playlists ", err)
@@ -180,11 +185,13 @@ func GetAllLibraryPlaylistSongs(user *clientcommon.User) ([]*applemusic.Song, er
 			}
 
 			if !success {
+				clientcommon.SendRequestMetric(datadog.AppleRequest, datadog.RequestTypeSongs, true, err)
 				logger.WithUser(user.GetUserId()).Error("Failed to fetch apple library playlist songs", err)
 				return nil, err
 			}
 		}
 
+		clientcommon.SendRequestMetric(datadog.AppleRequest, datadog.RequestTypeSongs, true, nil)
 		logger.WithUser(user.GetUserId()).Infof("Found %d apple songs for playlists %s",
 			len(librarySongs),
 			playlist.Attributes.Name)
@@ -256,8 +263,10 @@ func getFullSongs(user *clientcommon.User, songIds []string) ([]*applemusic.Song
 			songIds[i:upperBound],
 			nil)
 
+		clientcommon.SendRequestMetric(datadog.AppleRequest, datadog.RequestTypeSongs, true, err)
+
 		if err != nil {
-			logger.WithUser(user.GetUserId()).Error("Failed to get apple songs by id", err)
+			logger.WithUser(user.GetUserId()).Error("Failed to get apple songs by id ", err)
 			return nil, err
 		}
 
@@ -287,9 +296,11 @@ func GetsongsByIsrc(user *clientcommon.User, storefront string, isrcs []string) 
 
 		// Apple randomly return 504 sometimes, so we need to retry
 		if resp != nil && resp.StatusCode != http.StatusGatewayTimeout {
+			clientcommon.SendRequestMetric(datadog.AppleRequest, datadog.RequestTypeSongs, true, nil)
 			return songs, err
 		}
 
+		clientcommon.SendRequestMetric(datadog.AppleRequest, datadog.RequestTypeSongs, true, err)
 		logger.WithUser(user.GetUserId()).Errorf("Failed to get songs by ISRC - attempt count=%d - %v ", retry, err)
 	}
 	
