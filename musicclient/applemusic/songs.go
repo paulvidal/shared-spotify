@@ -62,6 +62,8 @@ func GetLibrarySongs(user *clientcommon.User) ([]*applemusic.Song, error) {
 	offset := 0
 
 	for next {
+		logger.WithUser(user.GetUserId()).Debugf("Fetching library songs offset %d", offset)
+
 		librarySongs, _, err := client.Me.GetAllLibrarySongs(
 			context.Background(),
 			&applemusic.PageOptions{Limit: maxPage, Offset: offset})
@@ -71,11 +73,15 @@ func GetLibrarySongs(user *clientcommon.User) ([]*applemusic.Song, error) {
 			return nil, err
 		}
 
+		logger.WithUser(user.GetUserId()).Debugf("Found %d library songs for offset %d", len(librarySongs.Data), offset)
+
 		// Add all the songs
 		for _, s := range librarySongs.Data {
 			song := s
 			allLibrarySongs = append(allLibrarySongs, &song)
 		}
+
+		logger.WithUser(user.GetUserId()).Debugf("Library songs next=%s href=%s", librarySongs.Next, librarySongs.Href)
 
 		if librarySongs.Next == "" {
 			next = false
