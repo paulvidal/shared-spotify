@@ -2,7 +2,7 @@
 
 ![logo](frontend/public/logo.png)
 
-A cool way to find common songs among friends on Spotify and create playlists out of those common songs.
+A cool way to find common songs among friends and create playlists out of those common songs.
 
 Currently, **Spotify** and **Apple Music** are supported.
 
