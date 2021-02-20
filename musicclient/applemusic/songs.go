@@ -87,7 +87,7 @@ func GetLibrarySongs(user *clientcommon.User) ([]*applemusic.Song, error) {
 			next = false
 		}
 
-		offset += 1
+		offset += maxPage
 	}
 
 	allTracks, err := getFullSongsForLibrarySongs(user, allLibrarySongs)
@@ -113,6 +113,8 @@ func GetAllLibraryPlaylistSongs(user *clientcommon.User) ([]*applemusic.Song, er
 	offset := 0
 
 	for next {
+		logger.WithUser(user.GetUserId()).Debugf("Fetching library playlists songs offset %d", offset)
+
 		playlists, _, err := client.Me.GetAllLibraryPlaylists(
 			context.Background(),
 			&applemusic.PageOptions{Offset: offset, Limit: maxPlaylistPerApiCall})
@@ -121,6 +123,8 @@ func GetAllLibraryPlaylistSongs(user *clientcommon.User) ([]*applemusic.Song, er
 			logger.WithUser(user.GetUserId()).Error("Failed to fetch apple library playlists ", err)
 			return nil, err
 		}
+
+		logger.WithUser(user.GetUserId()).Debugf("Found %d library playlists songs for offset %d", len(playlists.Data), offset)
 
 		// Add all the playlists
 		for _, p := range playlists.Data {
@@ -132,7 +136,9 @@ func GetAllLibraryPlaylistSongs(user *clientcommon.User) ([]*applemusic.Song, er
 			next = false
 		}
 
-		offset += 1
+		logger.WithUser(user.GetUserId()).Debugf("Library playlist songs next=%s", playlists.Next)
+
+		offset += maxPlaylistPerApiCall
 	}
 
 	logger.WithUser(user.GetUserId()).Infof("User %s has a total of %d apple playlists", user.GetUserId(), len(allLibraryPlaylists))
