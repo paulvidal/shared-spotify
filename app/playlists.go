@@ -31,7 +31,7 @@ const playlistRankGenre = 4
 const minNumberOfUserForCommonMusic = 2
 
 const genreTrackCountThreshold = 5 // min count to have a playlist to be included
-const maxGenrePlaylists = 3
+const maxGenrePlaylists = 4
 
 const popularityThreshold = 60 // out of 100
 const unpopularThreshold = 20  // out of 100
