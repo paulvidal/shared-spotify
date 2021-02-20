@@ -57,7 +57,7 @@ func GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify.FullArtist, 
 
 		artistsPart, err := client.GetArtists(artistIds[i:upperBound]...)
 
-		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeArtists, false, err)
+		clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeArtists, false, err)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get artists - %v", err)

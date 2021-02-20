@@ -51,7 +51,7 @@ func CreateUserFromToken(token *oauth2.Token) (*clientcommon.User, error) {
 
 	privateUser, err := client.CurrentUser()
 
-	clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeUserInfo, true, err)
+	clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeUserInfo, true, err)
 
 	if err != nil {
 		logger.Logger.Warning("Failed to create user from token ", err)
@@ -96,7 +96,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 	authUrl := auth.AuthURL(randomState)
 
 	logger.Logger.Info("Url to login is: ", authUrl)
-	clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeAuth, false, nil)
+	clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeAuth, false, nil)
 
 	// We redirect to the correct url
 	http.Redirect(w, r, authUrl, http.StatusFound)

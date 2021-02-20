@@ -40,7 +40,7 @@ func GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spotify.AudioFea
 
 		audioFeaturesPart, err := client.GetAudioFeatures(trackIds[i:upperBound]...)
 
-		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeAudioFeatures, false, err)
+		clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeAudioFeatures, false, err)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get audio features for tracks - %v", err)

@@ -15,7 +15,7 @@ func GetStorefront(user *clientcommon.User) (*string, error) {
 		context.Background(),
 		&applemusic.PageOptions{Offset: 0, Limit: maxPage})
 
-	clientcommon.SendRequestMetric(datadog.AppleRequest, datadog.RequestTypeUserInfo, true, err)
+	clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypeUserInfo, true, err)
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Error("Failed to fetch storefront for apple user ", err)

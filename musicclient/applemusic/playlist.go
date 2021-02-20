@@ -101,7 +101,7 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			nil,
 		)
 
-	clientcommon.SendRequestMetric(datadog.AppleRequest, datadog.RequestTypePlaylistCreated, true, err)
+	clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypePlaylistCreated, true, err)
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Error("Failed to created apple music playlist ", err)
@@ -133,7 +133,7 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			playlist.Id,
 			applemusic.CreateLibraryPlaylistTrackData{Data: tracksToAdd[i:upperBound]})
 
-		clientcommon.SendRequestMetric(datadog.AppleRequest, datadog.RequestTypePlaylistSongsAdded, true, err)
+		clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypePlaylistSongsAdded, true, err)
 
 		if err != nil {
 			logger.WithUser(user.GetUserId()).Errorf("Failed to add songs to playlist %s - %v", playlistName, err)

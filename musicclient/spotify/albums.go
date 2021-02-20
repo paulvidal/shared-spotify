@@ -55,7 +55,7 @@ func GetAlbums(tracks []*spotify.FullTrack) (map[string]*spotify.FullAlbum, erro
 
 		albumsPart, err := client.GetAlbums(albumIds[i:upperBound]...)
 
-		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypeAlbums, false, err)
+		clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeAlbums, false, err)
 
 		if err != nil {
 			logger.Logger.Errorf("Failed to get albums - %v", err)

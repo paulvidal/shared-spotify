@@ -16,7 +16,7 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 	fullPlaylist, err := user.SpotifyClient.CreatePlaylistForUser(user.GetId(), playlistName,
 		clientcommon.PlaylistDescription, playlistPublic)
 
-	clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypePlaylistCreated, true, err)
+	clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypePlaylistCreated, true, err)
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Error("Failed to created playlist ", err)
@@ -43,7 +43,7 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 
 		_, err := user.SpotifyClient.AddTracksToPlaylist(fullPlaylist.ID, trackIds[i:upperBound]...)
 
-		clientcommon.SendRequestMetric(datadog.SpotifyRequest, datadog.RequestTypePlaylistSongsAdded, true, err)
+		clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypePlaylistSongsAdded, true, err)
 
 		if err != nil {
 			logger.WithUser(user.GetUserId()).Errorf("Failed to add songs to playlist %s - %v", playlistName, err)

@@ -34,9 +34,12 @@ var RoomNameTag = Tag{"room_name"}
 var PlaylistTypeTag = Tag{"playlist_type"}
 
 // For api requests
-const SpotifyRequest = "spotify.api.requests"
-const AppleRequest = "applemusic.api.requests"
+const ApiRequests = "api.requests"
 
+const SpotifyProvider = "spotify"
+const AppleMusicProvider = "applemusic"
+
+var Provider = Tag{"provider"}
 var RequestType = Tag{"request_type"}
 var Authenticated = Tag{"authenticated"}
 var Success = Tag{"success"}
