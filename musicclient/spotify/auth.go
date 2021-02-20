@@ -51,7 +51,7 @@ func CreateUserFromToken(token *oauth2.Token) (*clientcommon.User, error) {
 
 	privateUser, err := client.CurrentUser()
 
-	clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeUserInfo, true, err)
+	clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeUserInfo, true, nil)
 
 	if err != nil {
 		logger.Logger.Warning("Failed to create user from token ", err)
