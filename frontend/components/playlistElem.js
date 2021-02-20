@@ -16,7 +16,7 @@ export default function PlaylistElem(props) {
                   {props.playlist.name}
                 </h5>
                 <p className="text-center mb-0 mt-1">
-                  <strong>{maxSongsInTotal}</strong> songs at most
+                  <strong>{maxSongsInTotal}</strong> songs
                 </p>
             </Col>
           </Row>

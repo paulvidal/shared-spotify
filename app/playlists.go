@@ -12,23 +12,21 @@ import (
 	"strings"
 )
 
-const playlistNameShared = "Songs in common"
-const playlistNameDance = "Dance songs in common"
-const playlistNamePopular = "Most popular songs in common"
-const playlistNameUnpopular = "Unpopular songs in common"
-const playlistNameGenre = "%s songs in common"
+const playlistNameShared = "All songs in common"
+const playlistNameDance = "Dance songs"
+const playlistNamePopular = "Popular songs"
+const playlistNameUnpopular = "Uncommon songs"
+const playlistNameGenre = "%s songs"
 
 const playlistTypeShared = "shared"
-const playlistTypePopular = "popular"
-const playlistTypeUnpopular = "unpopular"
+const playlistTypePopularity = "popularity"
 const playlistTypeDance = "dance"
 const playlistTypeGenre = "genre"
 
 const playlistRankShared = 1
 const playlistRankPopular = 2
-const playlistRankUnpopular = 3
-const playlistRankDance = 4
-const playlistRankGenre = 5
+const playlistRankDance = 3
+const playlistRankGenre = 4
 
 const minNumberOfUserForCommonMusic = 2
 
@@ -36,7 +34,7 @@ const genreTrackCountThreshold = 5 // min count to have a playlist to be include
 const maxGenrePlaylists = 3
 
 const popularityThreshold = 60 // out of 100
-const unpopularThreshold = 25  // out of 100
+const unpopularThreshold = 20  // out of 100
 
 type CommonPlaylists struct {
 	// all playlists in a map with key playlist generated id
@@ -326,7 +324,7 @@ func (playlists *CommonPlaylists) GeneratePopularityPlaylistType(sharedTrackPlay
 		PlaylistMetadata{
 			popularId,
 			playlistNamePopular,
-			playlistTypePopular,
+			playlistTypePopularity,
 			playlistRankPopular,
 			getTracksInCommonCount(popularTracksInCommon),
 		},
@@ -342,8 +340,8 @@ func (playlists *CommonPlaylists) GeneratePopularityPlaylistType(sharedTrackPlay
 		PlaylistMetadata{
 			unpopularId,
 			playlistNameUnpopular,
-			playlistTypeUnpopular,
-			playlistRankUnpopular,
+			playlistTypePopularity,
+			playlistRankPopular,
 			getTracksInCommonCount(unpopularTracksInCommon),
 		},
 		unpopularTracksInCommon,

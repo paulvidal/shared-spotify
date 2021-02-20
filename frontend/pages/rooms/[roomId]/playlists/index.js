@@ -6,7 +6,7 @@ import {useEffect, useState} from "react";
 import {getUrl} from "../../../../utils/urlUtils";
 import CustomHead from "../../../../components/Head";
 import Header from "../../../../components/Header";
-import {isEmpty, sum} from "lodash";
+import {isEmpty, capitalize} from "lodash";
 import PlaylistElem from "../../../../components/playlistElem";
 import LoaderScreen from "../../../../components/LoaderScreen";
 import {getTotalTrackCount} from "../../../../utils/trackUtils";
@@ -61,10 +61,11 @@ export default function Playlists() {
   }
 
   let formattedPlaylists;
+  let playlistOrder;
 
   if (!isEmpty(playlists.playlists)) {
 
-    formattedPlaylists = Object.keys(playlists.playlists).sort((playlistId1, playlistId2) => {
+    playlistOrder = Object.keys(playlists.playlists).sort((playlistId1, playlistId2) => {
       let playlist1 = playlists.playlists[playlistId1]
       let playlist2 = playlists.playlists[playlistId2]
 
@@ -74,12 +75,33 @@ export default function Playlists() {
 
       return getTotalTrackCount(playlists.playlists[playlistId2]) - getTotalTrackCount(playlists.playlists[playlistId1])
 
-    }).map((playlistId, index) => {
+    })
+
+    let previousPlaylistType = "";
+    let first = true;
+
+    formattedPlaylists = playlistOrder.map((playlistId, index) => {
       let playlist = playlists.playlists[playlistId]
 
-      return (
+      let title;
+
+      if (playlist.type !== previousPlaylistType) {
+        previousPlaylistType = playlist.type
+
+        // Do not show the first playlist title
+        if (!first) {
+          title = (
+            <h5 className="mt-3 mb-2">By {previousPlaylistType}</h5>
+          )
+        }
+
+        first = false
+      }
+
+      return [
+        title,
         <PlaylistElem key={playlistId} index={index + 1} roomId={roomId} playlist={playlist}/>
-      )
+      ]
     })
   }
 
