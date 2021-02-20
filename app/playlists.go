@@ -8,32 +8,33 @@ import (
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/shared-spotify/utils"
 	"github.com/zmb3/spotify"
+	"sort"
+	"strings"
 )
 
-const playlistNameShared = "Songs in common"
-const playlistNameDance = "Dance songs in common"
-const playlistNamePopular = "Most popular songs in common"
-const playlistNameUnpopular = "Unpopular songs in common"
-const playlistNameGenre = "Genre [%s] songs in common"
+const playlistNameShared = "All songs in common"
+const playlistNameDance = "Dance songs"
+const playlistNamePopular = "Popular songs"
+const playlistNameUnpopular = "Uncommon songs"
+const playlistNameGenre = "%s songs"
 
 const playlistTypeShared = "shared"
-const playlistTypePopular = "popular"
-const playlistTypeUnpopular = "unpopular"
+const playlistTypePopularity = "popularity"
 const playlistTypeDance = "dance"
 const playlistTypeGenre = "genre"
 
 const playlistRankShared = 1
 const playlistRankPopular = 2
-const playlistRankUnpopular = 3
-const playlistRankDance = 4
-const playlistRankGenre = 5
+const playlistRankDance = 3
+const playlistRankGenre = 4
 
 const minNumberOfUserForCommonMusic = 2
 
 const genreTrackCountThreshold = 5 // min count to have a playlist to be included
+const maxGenrePlaylists = 4
 
 const popularityThreshold = 60 // out of 100
-const unpopularThreshold = 25  // out of 100
+const unpopularThreshold = 20  // out of 100
 
 type CommonPlaylists struct {
 	// all playlists in a map with key playlist generated id
@@ -323,7 +324,7 @@ func (playlists *CommonPlaylists) GeneratePopularityPlaylistType(sharedTrackPlay
 		PlaylistMetadata{
 			popularId,
 			playlistNamePopular,
-			playlistTypePopular,
+			playlistTypePopularity,
 			playlistRankPopular,
 			getTracksInCommonCount(popularTracksInCommon),
 		},
@@ -339,8 +340,8 @@ func (playlists *CommonPlaylists) GeneratePopularityPlaylistType(sharedTrackPlay
 		PlaylistMetadata{
 			unpopularId,
 			playlistNameUnpopular,
-			playlistTypeUnpopular,
-			playlistRankUnpopular,
+			playlistTypePopularity,
+			playlistRankPopular,
 			getTracksInCommonCount(unpopularTracksInCommon),
 		},
 		unpopularTracksInCommon,
@@ -402,9 +403,25 @@ func (playlists *CommonPlaylists) GenerateGenrePlaylists(sharedTrackPlaylist *Pl
 		}
 	}
 
-	logger.Logger.Debug("Genres are: ", genres)
-
+	allGenres := make([]string, 0)
 	for genre := range genres {
+		allGenres = append(allGenres, genre)
+	}
+
+	// we sort the allGenres array, placing the ost popular ones in front
+	sort.Slice(allGenres, func(i, j int) bool {
+		return genres[allGenres[i]] > genres[allGenres[j]]
+	})
+
+	logger.Logger.Debug("Genres in order of popularity are: ", allGenres)
+
+	// if there are less genres then we want to select, stop
+	genreToSelectCount := maxGenrePlaylists
+	if len(allGenres) < maxGenrePlaylists {
+		genreToSelectCount = len(allGenres)
+	}
+
+	for _, genre := range allGenres[:genreToSelectCount] {
 		playlists.GenerateGenrePlaylist(sharedTrackPlaylist, genre)
 	}
 }
@@ -444,7 +461,7 @@ func (playlists *CommonPlaylists) GenerateGenrePlaylist(sharedTrackPlaylist *Pla
 
 	if genreTrackCount >= genreTrackCountThreshold {
 		id := utils.GenerateStrongHash()
-		playlistType := fmt.Sprintf(playlistNameGenre, playlistGenre)
+		playlistType := fmt.Sprintf(playlistNameGenre, strings.Title(strings.ToLower(playlistGenre)))
 
 		commonPlaylistType := &Playlist{
 			PlaylistMetadata{

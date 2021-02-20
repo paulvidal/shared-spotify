@@ -1,11 +1,11 @@
 import {useRouter} from 'next/router'
 import styles from "../../../../styles/rooms/[roomId]/playlists/Playlist.module.scss";
-import {showErrorToastWithError, showSuccessToast, Toast} from "../../../../components/toast";
+import {showErrorToastWithError, Toast} from "../../../../components/toast";
 import axios from "axios";
 import {useEffect, useState} from "react";
 import PlaylistListElem from "../../../../components/playlistListElem";
 import ReactAudioPlayer from "react-audio-player";
-import {Button, OverlayTrigger, Spinner, Tooltip} from "react-bootstrap";
+import {Button, Spinner} from "react-bootstrap";
 import {getArtistsFromTrack} from "../../../../utils/trackUtils";
 import {isEmpty, max, min, sum} from "lodash"
 import {getUrl} from "../../../../utils/urlUtils";
@@ -168,7 +168,7 @@ export default function Playlist() {
   if (trackTotalCount !== 0) {
 
     info = [
-      <p key="count" className="font-weight-bold text-center mb-0">
+      <p key="count" className="mt-4 font-weight-bold text-center mb-0">
         {trackTotalCount} songs in common 🎉
       </p>,
       <p key="info" className="font-weight-normal">
@@ -182,15 +182,24 @@ export default function Playlist() {
 
         let divider;
 
-        if (index !== tracksPerSharedCount.length - 1) {
+        if (index !== tracksPerSharedCount.length - 1 && tracks.length !== 0) {
           divider = (
             <div className={styles.group_divider + " mt-5 col-5 col-md-3"}/>
           )
         }
 
+        let title;
+
+        if (tracks.length !== 0) {
+          title = (
+            <h5 className="mt-3 mb-3">Songs shared by {sharedCount} friends</h5>
+          )
+        }
+
         return (
           <div key={sharedCount} className={styles.common_songs_group}>
-            <h5 className="mt-3 mb-3">Songs shared by {sharedCount} friends</h5>
+            {title}
+
             {tracks.sort((track1, track2) => {
                 return getArtistsFromTrack(track1).localeCompare(getArtistsFromTrack(track2))
               })
@@ -230,7 +239,7 @@ export default function Playlist() {
     if (playlist.creating_playlist) {
       addButton = (
         <Button variant="warning" size="lg" className="mb-4" disabled>
-          <Spinner animation="border" className="mr-2"/> Creating playlist
+          <Spinner variant="dark" animation="border" className="mr-2"/> Creating playlist
         </Button>
       )
 
@@ -261,108 +270,108 @@ export default function Playlist() {
     }
   }
 
-  let slider;
-  let sliderHelp;
-
-  // Ugly slider but it does the job
-  if (roomId && playlist.minSharedCountLimit < playlist.maxSharedCountLimit) {
-    sliderHelp = (
-      <p className={styles.slider_help + " mb-5 mt-3 ml-3 mr-3 text-center"}>
-        Select the minimum number of friends that <br/>
-        must have the song in their spotify library among the group for it to appear
-      </p>
-    )
-
-    let current = playlist.minSharedCount
-    let min = playlist.minSharedCountLimit
-    let max = playlist.maxSharedCountLimit
-
-    slider = (
-      <Range
-        step={1}
-        min={min}
-        max={max}
-        values={[current]}
-        onChange={(values) => {
-          setPlaylist(prevState => {
-            return {
-              ...prevState,
-              minSharedCount: values[0]
-            }
-          })
-        }}
-        renderTrack={({ props, children }) => (
-          <div
-            onMouseDown={props.onMouseDown}
-            onTouchStart={props.onTouchStart}
-            className={styles.tracker}
-            style={{
-              ...props.style,
-            }}
-          >
-            <div
-              ref={props.ref}
-              style={{
-                height: '5px',
-                width: '100%',
-                borderRadius: '4px',
-                background: getTrackBackground({
-                  values: [current],
-                  colors: ['#28a745', '#cccccc'],
-                  min: min,
-                  max: max
-                }),
-                alignSelf: 'center'
-              }}
-            >
-              {children}
-            </div>
-          </div>
-        )}
-        renderThumb={({ props, isDragged }) => (
-          <div
-            {...props}
-            style={{
-              ...props.style,
-              height: '42px',
-              width: '42px',
-              borderRadius: '4px',
-              backgroundColor: '#ffffff',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              boxShadow: '0px 2px 6px #AAA'
-            }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                top: '-35px',
-                color: '#fff',
-                fontWeight: 'bold',
-                fontSize: '14px',
-                fontFamily: 'Arial,Helvetica Neue,Helvetica,sans-serif',
-                padding: '4px',
-                paddingLeft: '7px',
-                paddingRight: '7px',
-                borderRadius: '4px',
-                backgroundColor: '#28a745'
-              }}
-            >
-              {current}
-            </div>
-            <div
-              style={{
-                height: '16px',
-                width: '5px',
-                backgroundColor: isDragged ? '#28a745' : '#CCC'
-              }}
-            />
-          </div>
-        )}
-      />
-    )
-  }
+  // let slider;
+  // let sliderHelp;
+  //
+  // // Ugly slider but it does the job
+  // if (roomId && playlist.minSharedCountLimit < playlist.maxSharedCountLimit) {
+  //   sliderHelp = (
+  //     <p className={styles.slider_help + " mb-5 mt-3 ml-3 mr-3 text-center"}>
+  //       Select the minimum number of friends that <br/>
+  //       must have the song in their spotify library among the group for it to appear
+  //     </p>
+  //   )
+  //
+  //   let current = playlist.minSharedCount
+  //   let min = playlist.minSharedCountLimit
+  //   let max = playlist.maxSharedCountLimit
+  //
+  //   slider = (
+  //     <Range
+  //       step={1}
+  //       min={min}
+  //       max={max}
+  //       values={[current]}
+  //       onChange={(values) => {
+  //         setPlaylist(prevState => {
+  //           return {
+  //             ...prevState,
+  //             minSharedCount: values[0]
+  //           }
+  //         })
+  //       }}
+  //       renderTrack={({ props, children }) => (
+  //         <div
+  //           onMouseDown={props.onMouseDown}
+  //           onTouchStart={props.onTouchStart}
+  //           className={styles.tracker}
+  //           style={{
+  //             ...props.style,
+  //           }}
+  //         >
+  //           <div
+  //             ref={props.ref}
+  //             style={{
+  //               height: '5px',
+  //               width: '100%',
+  //               borderRadius: '4px',
+  //               background: getTrackBackground({
+  //                 values: [current],
+  //                 colors: ['#28a745', '#cccccc'],
+  //                 min: min,
+  //                 max: max
+  //               }),
+  //               alignSelf: 'center'
+  //             }}
+  //           >
+  //             {children}
+  //           </div>
+  //         </div>
+  //       )}
+  //       renderThumb={({ props, isDragged }) => (
+  //         <div
+  //           {...props}
+  //           style={{
+  //             ...props.style,
+  //             height: '42px',
+  //             width: '42px',
+  //             borderRadius: '4px',
+  //             backgroundColor: '#ffffff',
+  //             display: 'flex',
+  //             justifyContent: 'center',
+  //             alignItems: 'center',
+  //             boxShadow: '0px 2px 6px #AAA'
+  //           }}
+  //         >
+  //           <div
+  //             style={{
+  //               position: 'absolute',
+  //               top: '-35px',
+  //               color: '#fff',
+  //               fontWeight: 'bold',
+  //               fontSize: '14px',
+  //               fontFamily: 'Arial,Helvetica Neue,Helvetica,sans-serif',
+  //               padding: '4px',
+  //               paddingLeft: '7px',
+  //               paddingRight: '7px',
+  //               borderRadius: '4px',
+  //               backgroundColor: '#28a745'
+  //             }}
+  //           >
+  //             {current}
+  //           </div>
+  //           <div
+  //             style={{
+  //               height: '16px',
+  //               width: '5px',
+  //               backgroundColor: isDragged ? '#28a745' : '#CCC'
+  //             }}
+  //           />
+  //         </div>
+  //       )}
+  //     />
+  //   )
+  // }
 
   return (
     <div className={styles.container}>
@@ -372,8 +381,8 @@ export default function Playlist() {
 
       <main className={styles.main}>
         <h1 className="text-center mt-3 mb-3">{playlist.name}</h1>
-        {slider}
-        {sliderHelp}
+        {/*{slider}*/}
+        {/*{sliderHelp}*/}
         {info}
         {addButton}
         {music}

@@ -137,7 +137,7 @@ func CreateUserFromToken(appleLogin *AppleLogin) (*clientcommon.User, error) {
 	// make a dummy request to make sure token is valid
 	_, _, err := appleMusicClient.Me.GetStorefront(context.Background(), nil)
 
-	clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypeUserInfo, true, err)
+	clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypeUserInfo, true, nil)
 
 	if err != nil {
 		logger.Logger.Warning("Invalid apple music user token ", err)
