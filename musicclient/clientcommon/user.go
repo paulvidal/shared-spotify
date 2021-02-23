@@ -31,7 +31,7 @@ func (user *User) IsEqual(otherUser *User) bool {
 
 /**
   Determine music provider
- */
+*/
 
 func (user *User) IsSpotify() bool {
 	return user.AppleMusicClient == nil

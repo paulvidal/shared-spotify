@@ -27,9 +27,9 @@ type AppleLogin struct {
 }
 
 type AppleUser struct {
-	UserId            string `json:"user_id"`
-	UserEmail         string `json:"user_email"`
-	UserName          string `json:"user_name"`
+	UserId    string `json:"user_id"`
+	UserEmail string `json:"user_email"`
+	UserName  string `json:"user_name"`
 }
 
 // This is used to immediately insert apple user when this one is collected in the frontend
@@ -130,7 +130,7 @@ func CreateUserFromToken(appleLogin *AppleLogin) (*clientcommon.User, error) {
 	tp := applemusic.Transport{Token: appleLogin.MusickitToken, MusicUserToken: appleLogin.MusicKitUserToken}
 	client := &http.Client{
 		Transport: &tp,
-		Timeout: time.Second * ClientTimeout,
+		Timeout:   time.Second * ClientTimeout,
 	}
 	appleMusicClient := applemusic.NewClient(client)
 

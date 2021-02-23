@@ -14,7 +14,6 @@ const maxCatalogSongsPerApiCall = 300
 const maxPlaylistPerApiCall = 100
 const maxRetryGetSongsByIsrc = 10
 
-
 func GetAllSongs(user *clientcommon.User) ([]*applemusic.Song, error) {
 	// Get the library songs
 	logger.WithUser(user.GetUserId()).Info("Fetching all apple library songs for user")
@@ -157,7 +156,7 @@ func GetAllLibraryPlaylistSongs(user *clientcommon.User) ([]*applemusic.Song, er
 
 		// Do not take into account playlists which the user did not create
 		// (we find this by checking edit and delete permissions)
-		if !playlist.Attributes.CanEdit{
+		if !playlist.Attributes.CanEdit {
 			logger.WithUser(user.GetUserId()).Warningf(
 				"Skipped apple playlist %s as user had not write access edit=%t",
 				playlist.Attributes.Name,
@@ -281,7 +280,6 @@ func getFullSongs(user *clientcommon.User, songIds []string) ([]*applemusic.Song
 	return allSongs, nil
 }
 
-
 func GetsongsByIsrc(user *clientcommon.User, storefront string, isrcs []string) (*applemusic.Songs, error) {
 	var songs *applemusic.Songs
 	var resp *applemusic.Response
@@ -303,6 +301,6 @@ func GetsongsByIsrc(user *clientcommon.User, storefront string, isrcs []string) 
 		clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypeSongs, true, err)
 		logger.WithUser(user.GetUserId()).Errorf("Failed to get songs by ISRC - attempt count=%d - %v ", retry, err)
 	}
-	
+
 	return songs, err
 }

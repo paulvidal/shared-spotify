@@ -98,8 +98,8 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 		applemusic.CreateLibraryPlaylist{
 			applemusic.CreateLibraryPlaylistAttributes{playlistName, clientcommon.PlaylistDescription},
 			nil},
-			nil,
-		)
+		nil,
+	)
 
 	clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypePlaylistCreated, true, err)
 
