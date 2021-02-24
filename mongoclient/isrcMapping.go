@@ -11,8 +11,8 @@ import (
 const isrcCollection = "isrc"
 
 type IsrcMapping struct {
-	Isrc            string `bson:"_id"`
-	SpotifyId       string `bson:"spotify_id"`
+	Isrc      string `bson:"_id"`
+	SpotifyId string `bson:"spotify_id"`
 }
 
 func InsertIsrcMapping(isrcMappings []IsrcMapping) error {

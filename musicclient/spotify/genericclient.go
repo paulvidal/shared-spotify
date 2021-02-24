@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const expirationTime = 30 * time.Minute  // change the client every 30 mins
+const expirationTime = 30 * time.Minute // change the client every 30 mins
 
 // General clients are spotify clients that can be used at anytime to access spotify info
 // they cannot access user info, as all this is linked with another client id and secret
