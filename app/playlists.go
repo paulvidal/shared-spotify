@@ -323,7 +323,7 @@ func (playlists *CommonPlaylists) GeneratePopularityPlaylistType(sharedTrackPlay
 
 	// Popular playlist
 	playlists.createPlaylist(playlistNamePopular, playlistTypePopularity, playlistRankPopular, 1, popularTracksInCommon)
-	playlists.createPlaylist(playlistNameUnpopular, playlistTypePopularity, playlistRankPopular, 2, popularTracksInCommon)
+	playlists.createPlaylist(playlistNameUnpopular, playlistTypePopularity, playlistRankPopular, 2, unpopularTracksInCommon)
 }
 
 // This could be refactored but for now, let's say it's ok
