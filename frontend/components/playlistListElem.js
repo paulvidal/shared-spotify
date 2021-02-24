@@ -1,23 +1,49 @@
 import {Card, Col, Container, Image, Row} from 'react-bootstrap';
 import styles from '../styles/rooms/[roomId]/playlists/Playlist.module.scss'
 import {getAlbumCoverUrlFromTrack, getArtistsFromTrack} from "../utils/trackUtils";
-import {useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import CustomModal from "./CustomModal";
 import {getPictureUrl, setDefaultPictureOnError} from "../utils/pictureUtils";
+import setState from "../utils/stateUtils";
 
-const maxLikedFaceToShow = 3
+const maxLikedFaceToShow = 2
 
 export default function PlaylistListElem(props) {
-  const [show, showModal] = useState(false)
+  const [item, setItem] = useState({
+    showModal: false,
+    likedFaceToShow: maxLikedFaceToShow
+  })
+
+  // we compute here how many faces for the element we can show
+  const face = useRef(null)
+  const faceOtherCount = useRef(null)
+  const faceContainer = useRef(null)
+
+  useEffect(() => {
+    if (!face.current || !faceContainer.current) {
+      return
+    }
+
+    let faceWidth = face.current.offsetWidth;
+    let faceCountWidth = faceOtherCount.current ? faceOtherCount.current.offsetWidth : 0;
+    let faceContainerWidth = faceContainer.current.clientWidth;
+
+    let style = getComputedStyle(faceContainer.current);
+    let faceContainerPadding = parseInt(style.paddingRight) + parseInt(style.paddingLeft)
+
+    let faceCount = Math.floor((faceContainerWidth - faceContainerPadding - faceCountWidth) / faceWidth)
+
+    setState(setItem, {likedFaceToShow: faceCount})
+  }, [item.likedFaceToShow])
 
   let artist = getArtistsFromTrack(props.track)
   let albumCover = getAlbumCoverUrlFromTrack(props.track)
 
-  let usersForTrack = props.usersForTrack;
+  let usersForTrack = props.usersForTrack
 
-  let showUsersForSong = usersForTrack.slice(0, maxLikedFaceToShow).map(user => {
+  let showUsersForSong = usersForTrack.slice(0, item.likedFaceToShow).map(user => {
     return (
-      <div key={user.id} className="float-right mr-1">
+      <div key={user.id} className="float-right pr-1" ref={face}>
         <Image className={styles.user_pic} src={getPictureUrl(user)} roundedCircle onError={setDefaultPictureOnError}/>
       </div>
     )
@@ -58,7 +84,7 @@ export default function PlaylistListElem(props) {
 
   if (usersForTrack.length > maxLikedFaceToShow) {
     otherPeopleForSong = (
-      <div className="float-right mr-1">
+      <div className="float-right pr-1" ref={faceOtherCount}>
         +{usersForTrack.length - maxLikedFaceToShow}
       </div>
     )
@@ -68,12 +94,16 @@ export default function PlaylistListElem(props) {
 
   if (props.track.preview_url && props.songPlaying === props.track.preview_url) {
     musicButton = (
-      <div className="text-center btn p-0">⏸️</div>
+      <div className={"text-center btn p-0 position-absolute " + styles.play_button}>
+        <img className={styles.play_icon} src="/pause.svg"/>
+      ️</div>
     )
 
   } else if (props.track.preview_url) {
     musicButton = (
-      <div className="text-center btn p-0">▶️</div>
+      <div className={"text-center btn p-0 position-absolute " + styles.play_button}>
+        <img className={styles.play_icon} src="/play.svg"/>
+      </div>
     )
   }
 
@@ -88,29 +118,24 @@ export default function PlaylistListElem(props) {
 
   return (
     <Card className="mt-1 col-11 col-md-5 p-1">
-      <div onClick={onClickMusic} className={styles.playlist_item}>
+      <div onClick={() => setState(setItem, {showModal: true})} className={styles.playlist_item}>
         <Container>
           <Row>
-            <Col xs={3} className={styles.album_pic_container}>
-              <Image src={albumCover} className={styles.album_pic} rounded/>
+            <Col xs={3} md={3} className={styles.album_pic_container} onClick={(e) => {
+              e.stopPropagation();
+              onClickMusic()
+            }}>
+              <div className="position-relative">
+                {musicButton}
+                <Image src={albumCover} className={styles.album_pic} rounded/>
+              </div>
             </Col>
-            <Col xs={7}>
+            <Col xs={6} md={7}>
               <p className={styles.track_name}>{props.track.name}</p>
               <p className={styles.artist_name}>{artist}</p>
             </Col>
-            <Col xs={2}>
-              {musicButton}
-            </Col>
-          </Row>
-
-          <Row>
-            <Col xs={12}>
-              <div className="float-right btn p-0 pt-1 pb-1" onClick={
-                (e) => {
-                  e.stopPropagation();
-                  showModal(true)
-                }
-              }>
+            <Col xs={3} md={2} className="p-0 pr-2" ref={faceContainer}>
+              <div className="float-right btn p-0 pt-1 pb-1">
                 {otherPeopleForSong}
                 {showUsersForSong}
               </div>
@@ -120,14 +145,14 @@ export default function PlaylistListElem(props) {
       </div>
 
       <CustomModal
-        show={show}
+        show={item.showModal}
         body={
           <div>
             {modalUsersForSong}
           </div>
         }
         onHideAction={
-          () => {showModal(false)}
+          () => {setState(setItem, {showModal: false})}
         }
       />
     </Card>

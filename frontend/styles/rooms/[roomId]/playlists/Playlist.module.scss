@@ -57,6 +57,18 @@
   float: left;
 }
 
+.play_button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.play_icon {
+  height: 1.2rem;
+  width: 1.2rem;
+}
+
 .songs_users_divider {
   width: 100%;
   border-top: 0.1rem solid #807d7d;
@@ -81,6 +93,11 @@
 
   .artist_name {
     font-size: 1em;
+  }
+
+  .play_icon {
+    height: 1.5rem;
+    width: 1.5rem;
   }
 
   .tracker {
