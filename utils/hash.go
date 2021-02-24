@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const minCountToBeStrong = 4
+const minCountToBeStrong = 6
 const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))

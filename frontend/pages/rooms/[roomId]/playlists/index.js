@@ -6,7 +6,7 @@ import {useEffect, useState} from "react";
 import {getUrl} from "../../../../utils/urlUtils";
 import CustomHead from "../../../../components/Head";
 import Header from "../../../../components/Header";
-import {isEmpty, capitalize} from "lodash";
+import {isEmpty} from "lodash";
 import PlaylistElem from "../../../../components/playlistElem";
 import LoaderScreen from "../../../../components/LoaderScreen";
 import {getTotalTrackCount} from "../../../../utils/trackUtils";
@@ -71,10 +71,12 @@ export default function Playlists() {
 
       if (playlist1.rank !== playlist2.rank) {
         return playlist1.rank -  playlist2.rank
+
+      } else if (playlist1.rank_for_type !== playlist2.rank_for_type) {
+        return playlist1.rank_for_type -  playlist2.rank_for_type
       }
 
       return getTotalTrackCount(playlists.playlists[playlistId2]) - getTotalTrackCount(playlists.playlists[playlistId1])
-
     })
 
     let previousPlaylistType = "";
@@ -91,7 +93,7 @@ export default function Playlists() {
         // Do not show the first playlist title
         if (!first) {
           title = (
-            <h5 className="mt-3 mb-2">By {previousPlaylistType}</h5>
+            <h5 className="mt-4 mb-2 font-weight-bolder">By {previousPlaylistType}</h5>
           )
         }
 
