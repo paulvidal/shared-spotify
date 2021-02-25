@@ -117,7 +117,7 @@ export default function PlaylistListElem(props) {
   }
 
   return (
-    <Card className="mt-1 col-11 col-md-5 p-1">
+    <Card className="mt-1 col-11 col-md-5 p-1 pt-2 pb-2">
       <div onClick={() => setState(setItem, {showModal: true})} className={styles.playlist_item}>
         <Container>
           <Row>
