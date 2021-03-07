@@ -9,6 +9,7 @@ import (
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
+	"github.com/thoas/go-funk"
 	"github.com/zmb3/spotify"
 	"net/http"
 )
@@ -186,7 +187,7 @@ func RoomAddPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type AddPlaylistRequestBody struct {
-	MinSharedCount int `json:"min_shared_count"`
+	SharedUserCount []int `json:"shared_user_count"`
 }
 
 func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
@@ -210,8 +211,9 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.WithUser(user.GetUserId()).Infof("User %s requested to create playlist %s for room %s",
-		user.GetUserId(), playlistId, roomId)
+	logger.WithUser(user.GetUserId()).Infof("User %s requested to create playlist %s for room %s with user " +
+		"count songs %+v",
+		user.GetUserId(), playlistId, roomId, addPlaylistRequestBody.SharedUserCount)
 
 	musicLibrary := room.MusicLibrary
 
@@ -247,7 +249,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 	tracks := make([]*spotify.FullTrack, 0)
 
 	for sharedCount, sharedTracks := range playlist.TracksPerSharedCount {
-		if sharedCount >= addPlaylistRequestBody.MinSharedCount {
+		if funk.ContainsInt(addPlaylistRequestBody.SharedUserCount, sharedCount) {
 			tracks = append(tracks, sharedTracks...)
 		}
 	}

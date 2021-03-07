@@ -16,6 +16,8 @@ export default function CustomModal(props) {
   let footer;
   let variantPrimary = props.primaryVariant || "success"
 
+  let primaryDisabled = props.primaryDisabled || false
+
   if (props.secondaryAction || props.primaryAction) {
     footer = (
       <Modal.Footer>
@@ -23,7 +25,7 @@ export default function CustomModal(props) {
           {props.secondaryActionName}
         </Button>
 
-        <Button variant={variantPrimary} onClick={props.primaryAction}>
+        <Button variant={variantPrimary} onClick={props.primaryAction} disabled={primaryDisabled}>
           {props.primaryActionName}
         </Button>
       </Modal.Footer>

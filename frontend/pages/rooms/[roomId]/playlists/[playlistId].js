@@ -5,13 +5,13 @@ import axios from "axios";
 import {useEffect, useState} from "react";
 import PlaylistListElem from "../../../../components/playlistListElem";
 import ReactAudioPlayer from "react-audio-player";
-import {Button, Spinner} from "react-bootstrap";
+import {Button, Form, Spinner} from "react-bootstrap";
 import {getArtistsFromTrack} from "../../../../utils/trackUtils";
-import {isEmpty, max, min, sum} from "lodash"
+import {isEmpty, max, min, range, sum} from "lodash"
 import {getUrl} from "../../../../utils/urlUtils";
 import CustomHead from "../../../../components/Head";
 import Header from "../../../../components/Header";
-import {getTrackBackground, Range} from "react-range";
+// import {getTrackBackground, Range} from "react-range";
 import LoaderScreen from "../../../../components/LoaderScreen";
 import CustomModal from "../../../../components/CustomModal";
 import setState from "../../../../utils/stateUtils";
@@ -39,12 +39,12 @@ function findBestDefaultSharedCount(playlists) {
     }
   }
 
-  return sharedCount
+  return parseInt(sharedCount)
 }
 
 export default function Playlist() {
   const router = useRouter()
-  const { roomId, playlistId } = router.query
+  const {roomId, playlistId} = router.query
 
   const axiosClient = axios.create({
     withCredentials: true
@@ -56,9 +56,10 @@ export default function Playlist() {
     song_playing: '',
     creating_playlist: false,
     new_playlist: {},
-    minSharedCount: 0,
+    idealSharedCount: 0,
     minSharedCountLimit: 0,
     maxSharedCountLimit: 0,
+    sharedCountsToAdd: [],
     loading: true,
     showConfirmationModal: false,
     user_ids_per_shared_tracks: {},
@@ -77,6 +78,8 @@ export default function Playlist() {
 
         let sharedCounts = Object.keys(playlistReceived).map(i => {
           return parseInt(i)
+        }).filter(sharedCount => {
+          return playlistReceived[sharedCount].length !== 0
         })
 
         let minSharedCountLimit = min(sharedCounts)
@@ -89,9 +92,11 @@ export default function Playlist() {
 
         setState(setPlaylist, {
           ...resp.data,
-          minSharedCount: parseInt(bestDefaultSharedCount),
+          idealSharedCount: bestDefaultSharedCount,
           minSharedCountLimit: minSharedCountLimit,
           maxSharedCountLimit: maxSharedCountLimit,
+          // only add songs shared above ideal threshold
+          sharedCountsToAdd: sharedCounts.filter(s => s >= bestDefaultSharedCount),
           loading: false
         })
       })
@@ -124,25 +129,21 @@ export default function Playlist() {
       creating_playlist: true
     })
 
-    const minSharedCount =  playlist.minSharedCount
-
     axiosClient.post(getUrl('/rooms/' + roomId + '/playlists/' + playlistId + '/add'), {
-      min_shared_count: minSharedCount
+      shared_user_count: playlist.sharedCountsToAdd
     }).then(resp => {
       setState(setPlaylist, {
-        new_playlist: {
-          [minSharedCount]: resp.data
-        }
+        new_playlist: resp.data
       })
 
       setTimeout(() => {
         setState(setPlaylist, {creating_playlist: false})
       }, TIMEOUT_BEFORE_BUTTON_AVAILABLE)
     })
-    .catch(error => {
-      setState(setPlaylist, {creating_playlist: false})
-      showErrorToastWithError("Failed to create playlist in spotify", error, router)
-    })
+      .catch(error => {
+        setState(setPlaylist, {creating_playlist: false})
+        showErrorToastWithError("Failed to create playlist in spotify", error, router)
+      })
   }
 
   const updateSongCallback = (song) => {
@@ -150,7 +151,6 @@ export default function Playlist() {
   }
 
   let tracksPerSharedCount = Object.keys(playlist.tracks_per_shared_count)
-    .filter(sharedCount => parseInt(sharedCount) >= playlist.minSharedCount)
     .sort()
     .reverse()
 
@@ -172,7 +172,7 @@ export default function Playlist() {
         {trackTotalCount} songs in common 🎉
       </p>,
       <p key="info" className="font-weight-normal">
-        (shared between at least {playlist.minSharedCount} friends)
+        (shared between at least {playlist.minSharedCountLimit} friends)
       </p>
     ]
 
@@ -190,19 +190,21 @@ export default function Playlist() {
 
         let title;
 
-        if (tracks.length !== 0) {
-          title = (
-            <h5 className="mt-3 mb-3">Songs shared by {sharedCount} friends</h5>
-          )
+        if (tracks.length === 0) {
+          return null;
         }
+
+        title = (
+          <h5 className="mt-3 mb-3">Songs shared by {sharedCount} friends</h5>
+        )
 
         return (
           <div key={sharedCount} className={styles.common_songs_group}>
             {title}
 
             {tracks.sort((track1, track2) => {
-                return getArtistsFromTrack(track1).localeCompare(getArtistsFromTrack(track2))
-              })
+              return getArtistsFromTrack(track1).localeCompare(getArtistsFromTrack(track2))
+            })
               .map(track => {
                 let trackISRC = track.external_ids["isrc"]
                 let userIds = playlist.user_ids_per_shared_tracks[trackISRC]
@@ -243,9 +245,9 @@ export default function Playlist() {
         </Button>
       )
 
-    } else if (!isEmpty(playlist.new_playlist[playlist.minSharedCount])) {
+    } else if (!isEmpty(playlist.new_playlist)) {
       let url = "#"
-      let spotifyUrl = playlist.new_playlist[playlist.minSharedCount].spotify_url
+      let spotifyUrl = playlist.new_playlist.spotify_url
 
       if (spotifyUrl) {
         url = spotifyUrl
@@ -373,11 +375,69 @@ export default function Playlist() {
   //   )
   // }
 
+  // Modal body when adding a playlist
+  let musicTimeInSeconds = Math.floor(
+    sum(playlist.sharedCountsToAdd.map(count =>
+        sum(playlist.tracks_per_shared_count[count].map(track =>track.duration_ms / 1000))
+      )
+    )
+  )
+  let musicMinutes = 0;
+  let musicHours = 0;
+
+  if (musicTimeInSeconds > 0) {
+    musicHours = Math.floor(musicTimeInSeconds / 3600)
+    musicMinutes = Math.floor((musicTimeInSeconds % 3600) / 60)
+  }
+
+  let songToAddCount = sum(playlist.sharedCountsToAdd.map(count => playlist.tracks_per_shared_count[count].length))
+  let primaryDisabled = playlist.sharedCountsToAdd.length === 0;
+
+  let body = (
+    <div>
+      <div>You are creating a playlist on your account, with <strong>{songToAddCount} songs</strong> (
+        <strong>{musicHours ? `${musicHours}h`: ``}{musicMinutes}m</strong> of music time)
+      </div>
+
+      <Form className="mt-3">
+        {range(playlist.minSharedCountLimit, playlist.maxSharedCountLimit + 1).reverse().map(count => {
+          if (playlist.tracks_per_shared_count[count].length === 0) {
+            return null
+          }
+
+          return (
+            <div key={`add-playlist-${count}`} className="mb-4">
+              <Form.Check
+                type="switch"
+                id={`add-playlist-${count}`}
+                label={`Add ${playlist.tracks_per_shared_count[count].length} songs shared by ${count} friends`}
+                checked={playlist.sharedCountsToAdd.includes(count)}
+                onChange={() => {
+                  if (playlist.sharedCountsToAdd.includes(count)) {
+                    setState(setPlaylist, {
+                      sharedCountsToAdd: playlist.sharedCountsToAdd.filter(c => c !== count)
+                    })
+                  } else {
+                    setState(setPlaylist, {
+                      sharedCountsToAdd: playlist.sharedCountsToAdd.concat([count])
+                    })
+                  }
+                }}
+              />
+            </div>
+          )
+        })}
+      </Form>
+
+      <div className="mt-2">Do you wish to continue ?</div>
+    </div>
+  )
+
   return (
     <div className={styles.container}>
-      <CustomHead />
+      <CustomHead/>
 
-      <Header />
+      <Header/>
 
       <main className={styles.main}>
         <h1 className="text-center mt-3 mb-3">{playlist.name}</h1>
@@ -395,12 +455,13 @@ export default function Playlist() {
 
       <CustomModal
         show={playlist.showConfirmationModal}
-        body={"You are creating a playlist on your account, do you wish to continue?"}
+        body={body}
         secondaryActionName={"Cancel"}
         secondaryAction={hideModal}
         onHideAction={hideModal}
         primaryActionName={"Add playlist"}
         primaryAction={addPlaylist}
+        primaryDisabled={primaryDisabled}
       />
     </div>
   )
