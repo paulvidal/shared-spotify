@@ -5,6 +5,7 @@ import {useEffect, useRef, useState} from "react";
 import CustomModal from "./CustomModal";
 import {getPictureUrl, setDefaultPictureOnError} from "../utils/pictureUtils";
 import setState from "../utils/stateUtils";
+import LazyLoad from 'react-lazyload';
 
 const maxLikedFaceToShow = 2
 
@@ -69,7 +70,8 @@ export default function PlaylistListElem(props) {
           return (
             <Row key={user.id} className="ml-1 mr-1">
               <Col xs={12}>
-                <Image className={styles.user_pic} src={getPictureUrl(user)} roundedCircle onError={setDefaultPictureOnError}/>
+                <Image className={styles.user_pic} src={getPictureUrl(user)} roundedCircle
+                       onError={setDefaultPictureOnError}/>
                 <p className={styles.user_name}>{user.name}</p>
               </Col>
             </Row>
@@ -95,7 +97,7 @@ export default function PlaylistListElem(props) {
     musicButton = (
       <div className={"text-center btn p-0 position-absolute " + styles.play_button}>
         <img className={styles.play_icon} src="/pause.svg"/>
-      ️</div>
+        ️</div>
     )
 
   } else if (props.track.preview_url) {
@@ -117,43 +119,48 @@ export default function PlaylistListElem(props) {
 
   return (
     <Card className="mt-1 col-11 col-md-5 p-1 pt-2 pb-2">
-      <div onClick={() => setState(setItem, {showModal: true})} className={styles.playlist_item}>
-        <Container>
-          <Row>
-            <Col xs={3} md={3} className={styles.album_pic_container} onClick={(e) => {
-              e.stopPropagation();
-              onClickMusic()
-            }}>
-              <div className="position-relative">
-                {musicButton}
-                <Image src={albumCover} className={styles.album_pic} rounded/>
-              </div>
-            </Col>
-            <Col xs={6} md={7}>
-              <p className={styles.track_name}>{props.track.name}</p>
-              <p className={styles.artist_name}>{artist}</p>
-            </Col>
-            <Col xs={3} md={2} className="p-0 pr-2">
-              <div className="w-100 btn p-0 pt-1 pb-1" ref={faceContainer}>
-                {otherPeopleForSong}
-                {showUsersForSong}
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </div>
+      {/* Allow lazy loading of huge lists of songs */}
+      <LazyLoad height={100} offset={200}>
+        <div onClick={() => setState(setItem, {showModal: true})} className={styles.playlist_item}>
+          <Container>
+            <Row>
+              <Col xs={3} md={3} className={styles.album_pic_container} onClick={(e) => {
+                e.stopPropagation();
+                onClickMusic()
+              }}>
+                <div className="position-relative">
+                  {musicButton}
+                  <Image src={albumCover} className={styles.album_pic} rounded/>
+                </div>
+              </Col>
+              <Col xs={6} md={7}>
+                <p className={styles.track_name}>{props.track.name}</p>
+                <p className={styles.artist_name}>{artist}</p>
+              </Col>
+              <Col xs={3} md={2} className="p-0 pr-2">
+                <div className="w-100 btn p-0 pt-1 pb-1" ref={faceContainer}>
+                  {otherPeopleForSong}
+                  {showUsersForSong}
+                </div>
+              </Col>
+            </Row>
+          </Container>
+        </div>
 
-      <CustomModal
-        show={item.showModal}
-        body={
-          <div>
-            {modalUsersForSong}
-          </div>
-        }
-        onHideAction={
-          () => {setState(setItem, {showModal: false})}
-        }
-      />
+        <CustomModal
+          show={item.showModal}
+          body={
+            <div>
+              {modalUsersForSong}
+            </div>
+          }
+          onHideAction={
+            () => {
+              setState(setItem, {showModal: false})
+            }
+          }
+        />
+      </LazyLoad>
     </Card>
   )
 }
