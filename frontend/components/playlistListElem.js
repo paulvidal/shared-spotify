@@ -24,13 +24,12 @@ export default function PlaylistListElem(props) {
       return
     }
 
-    let faceWidth = face.current.offsetWidth;
-    let faceCountWidth = faceOtherCount.current ? faceOtherCount.current.offsetWidth : 0;
-    let faceContainerWidth = faceContainer.current.clientWidth;
+    let faceWidth = face.current.offsetWidth + 1;
+    let faceCountWidth = faceOtherCount.current ? faceOtherCount.current.offsetWidth + 1 : 0;
+    let faceContainerWidth = faceContainer.current.offsetWidth + 1;
 
     let style = getComputedStyle(faceContainer.current);
-    let faceContainerPadding = parseInt(style.paddingRight) + parseInt(style.paddingLeft)
-
+    let faceContainerPadding = parseInt(style.paddingRight) + parseInt(style.paddingLeft) + 1
     let faceCount = Math.floor((faceContainerWidth - faceContainerPadding - faceCountWidth) / faceWidth)
 
     setState(setItem, {likedFaceToShow: faceCount})
@@ -134,8 +133,8 @@ export default function PlaylistListElem(props) {
               <p className={styles.track_name}>{props.track.name}</p>
               <p className={styles.artist_name}>{artist}</p>
             </Col>
-            <Col xs={3} md={2} className="p-0 pr-2" ref={faceContainer}>
-              <div className="float-right btn p-0 pt-1 pb-1">
+            <Col xs={3} md={2} className="p-0 pr-2">
+              <div className="w-100 btn p-0 pt-1 pb-1" ref={faceContainer}>
                 {otherPeopleForSong}
                 {showUsersForSong}
               </div>
