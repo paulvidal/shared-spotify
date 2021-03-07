@@ -20,6 +20,7 @@ require (
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.7.0 // indirect
+	github.com/thoas/go-funk v0.7.0
 	github.com/tidwall/pretty v1.0.5 // indirect
 	github.com/tinylib/msgp v1.1.5 // indirect
 	github.com/xdg/stringprep v1.0.0 // indirect
