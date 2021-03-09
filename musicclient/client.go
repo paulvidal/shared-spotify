@@ -17,6 +17,15 @@ import (
 // We use the spotify objects for now as the reference objects - e.g. FullTrack object
 // Eventually, we should create out own data model so we can get rid of spotify and have real abstraction
 
+func Logout(w http.ResponseWriter, r *http.Request)  {
+	// delete the cookies
+	http.SetCookie(w, clientcommon.GetDeletedCookie(clientcommon.TokenCookieName))
+	http.SetCookie(w, clientcommon.GetDeletedCookie(clientcommon.LoginTypeCookieName))
+
+	// we redirect to home page
+	http.Redirect(w, r, clientcommon.FrontendUrl, http.StatusFound)
+}
+
 /**
   Create user abstraction
 */

@@ -1,5 +1,4 @@
-function
-setState(setStateFunction, newState) {
+function setState(setStateFunction, newState) {
   setStateFunction(prevState => {
     return {
       ...prevState,

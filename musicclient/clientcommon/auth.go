@@ -50,3 +50,13 @@ func GetLoginTypeCookie(loginType string) (*http.Cookie, error) {
 		SameSite: sameSite,
 	}, nil
 }
+
+// This function return cookies overriding the set cookies, so they will get expired straight away
+func GetDeletedCookie(cookieName string) *http.Cookie {
+	return &http.Cookie{
+		Name:   cookieName,
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	}
+}

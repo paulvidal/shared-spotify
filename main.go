@@ -31,6 +31,7 @@ func startServer() {
 	r := muxtrace.NewRouter()
 
 	r.HandleFunc("/login", spotify.Authenticate)
+	r.HandleFunc("/logout", musicclient.Logout)
 
 	r.HandleFunc("/callback", spotify.CallbackHandler)
 	r.HandleFunc("/callback/apple", applemusic.CallbackHandler)
