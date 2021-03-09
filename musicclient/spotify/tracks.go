@@ -266,16 +266,32 @@ func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullT
 		clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeSearch, false, err)
 
 		if err != nil {
-			logger.WithUser(user.GetUserId()).Error("Failed to query track by isrc on spotify", err)
+			logger.WithUser(user.GetUserId()).Error("Failed to query track by isrc on spotify ", err)
 			continue
+		}
+
+		if len(results.Tracks.Tracks) == 0 {
+			logger.WithUser(user.GetUserId()).Infof("No track found on spotify for isrc: %s, " +
+				"retrying with country code", isrc)
+
+			// we retry the same search query, with country code
+			countryCode := isrc[:2] // get first 2 chars
+			results, err = client.SearchOpt(isrcQuery, spotify.SearchTypeTrack, &spotify.Options{Country: &countryCode})
+
+			clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeSearch, false, err)
+
+			if err != nil {
+				logger.WithUser(user.GetUserId()).Error("Failed to query track by isrc on spotify ", err)
+				continue
+			}
+
+			if len(results.Tracks.Tracks) == 0 {
+				logger.WithUser(user.GetUserId()).Warningf("No track found on spotify for isrc: %s", isrc)
+				continue
+			}
 		}
 
 		trackResults := results.Tracks.Tracks
-
-		if len(trackResults) == 0 {
-			logger.WithUser(user.GetUserId()).Warningf("No track found on spotify for isrc: %s", isrc)
-			continue
-		}
 
 		// Always take the first one, we don't care as we compare later via ISRC
 		track := trackResults[0]
