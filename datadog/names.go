@@ -15,6 +15,9 @@ func (t Tag) TagBool(value bool) string {
 }
 
 // For users
+const UserLoginStarted = "user.login.started"
+const UserLoginSuccess = "user.login.success"
+const UserLogout = "user.logout"
 const UsersNewCount = "users.new.count"
 
 var UserIdTag = Tag{"user_id"}

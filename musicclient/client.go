@@ -2,6 +2,7 @@ package musicclient
 
 import (
 	"errors"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient/applemusic"
@@ -21,6 +22,21 @@ func Logout(w http.ResponseWriter, r *http.Request)  {
 	// delete the cookies
 	http.SetCookie(w, clientcommon.GetDeletedCookie(clientcommon.TokenCookieName))
 	http.SetCookie(w, clientcommon.GetDeletedCookie(clientcommon.LoginTypeCookieName))
+
+	tag := "unknown"
+	tokenCookie, err := r.Cookie(clientcommon.LoginTypeCookieName)
+
+	if err != nil {
+		// nothing, do not crash
+
+	} else if tokenCookie.Value == clientcommon.SpotifyLoginType {
+		tag = datadog.SpotifyProvider
+
+	} else if tokenCookie.Value == clientcommon.AppleMusicLoginType {
+		tag = datadog.AppleMusicProvider
+	}
+
+	datadog.Increment(1, datadog.UserLogout, datadog.Provider.Tag(tag))
 
 	// we redirect to home page
 	http.Redirect(w, r, clientcommon.FrontendUrl, http.StatusFound)
