@@ -17,6 +17,7 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
 	"net/http"
 	"os"
+	"time"
 )
 
 var Port = os.Getenv("PORT")
@@ -65,7 +66,15 @@ func startServer() {
 	defer profiler.Stop()
 
 	// Launch the server
-	err := http.ListenAndServe(":"+Port, handler)
+	s := &http.Server{
+		Addr: ":" + Port,
+		Handler: handler,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 100 * time.Second,
+		IdleTimeout:  1200 * time.Second,
+	}
+	err := s.ListenAndServe()
+
 	if err != nil {
 		logger.Logger.Fatal("Failed to start server ", err)
 	}
