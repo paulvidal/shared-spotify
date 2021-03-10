@@ -52,11 +52,19 @@ func GetLoginTypeCookie(loginType string) (*http.Cookie, error) {
 }
 
 // This function return cookies overriding the set cookies, so they will get expired straight away
-func GetDeletedCookie(cookieName string) *http.Cookie {
+func GetDeletedCookie(cookieName string) (*http.Cookie, error) {
+	urlParsed, err := url.Parse(BackendUrl)
+
+	if err != nil {
+		logger.Logger.Error("Failed to parse urls ", err)
+		return nil, err
+	}
+
 	return &http.Cookie{
 		Name:   cookieName,
 		Value:  "",
 		Path:   "/",
+		Domain: urlParsed.Host,
 		MaxAge: -1,
-	}
+	}, nil
 }

@@ -20,8 +20,17 @@ import (
 
 func Logout(w http.ResponseWriter, r *http.Request)  {
 	// delete the cookies
-	http.SetCookie(w, clientcommon.GetDeletedCookie(clientcommon.TokenCookieName))
-	http.SetCookie(w, clientcommon.GetDeletedCookie(clientcommon.LoginTypeCookieName))
+	tokenDeleteCookie, errToken := clientcommon.GetDeletedCookie(clientcommon.TokenCookieName)
+	loginTypeDeleteCookie, errLoginType := clientcommon.GetDeletedCookie(clientcommon.LoginTypeCookieName)
+
+	if errToken != nil || errLoginType != nil {
+		logger.Logger.Error("Got an error while creating deletion cookies")
+		http.Error(w, "Logout failed", http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w, tokenDeleteCookie)
+	http.SetCookie(w, loginTypeDeleteCookie)
 
 	tag := "unknown"
 	tokenCookie, err := r.Cookie(clientcommon.LoginTypeCookieName)
