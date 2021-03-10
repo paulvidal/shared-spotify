@@ -94,7 +94,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	// get the user to this URL - how you do that is up to you
 	// you should specify a unique state string to identify the session
-	authUrl := auth.AuthURL(randomState)
+	authUrl := auth.AuthURLWithDialog(randomState)
 
 	logger.Logger.Info("Url to login is: ", authUrl)
 	clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeAuth, false, nil)
