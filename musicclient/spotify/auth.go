@@ -7,6 +7,7 @@ import (
 	"fmt"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/shared-spotify/datadog"
+	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/shared-spotify/utils"
 	"golang.org/x/oauth2"
@@ -156,6 +157,13 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.SetCookie(w, loginTypeCookie)
+
+	// Add the users to the database if we can, but don't fail as we will add him otherwise at another time
+	// for example when the room is processed
+	user, err := CreateUserFromToken(token, "")
+	if err == nil {
+		_ = mongoclient.InsertUsers([]*clientcommon.User{user})
+	}
 
 	logger.Logger.Info("Redirecting to ", redirectUrl)
 	datadog.Increment(1, datadog.UserLoginSuccess, datadog.Provider.Tag(datadog.SpotifyProvider))
