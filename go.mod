@@ -17,6 +17,8 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/minchao/go-apple-music v0.0.0-20210125035215-7b2ae7443f3a
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/pkg/profile v1.5.0 // indirect
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.7.0 // indirect

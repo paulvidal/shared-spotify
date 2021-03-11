@@ -39,7 +39,8 @@ export default function Room() {
     refreshing: false,
     errorRefresh: false,
     loading: true,
-    showConfirmationModal: false
+    showConfirmationModal: false,
+    launchingProcessing: false,
   });
 
   const refresh = () => {
@@ -80,6 +81,7 @@ export default function Room() {
 
   const fetchMusics = () => {
     hideModal()
+    setState(setRoom, {launchingProcessing: true})
 
     axiosClient.post(getUrl('/rooms/' + roomId + '/playlists'))
       .then(resp => {
@@ -87,6 +89,8 @@ export default function Room() {
       })
       .catch(error => {
         showErrorToastWithError("Failed to find common musics", error, router)
+      }).finally(() => {
+        setState(setRoom, {launchingProcessing: false})
       })
   }
 
@@ -144,7 +148,14 @@ export default function Room() {
 
   let button;
 
-  if (room.shared_music_library == null) {
+  if (room.launchingProcessing) {
+    button = (
+      <Button variant="warning" size="lg" className="mt-2 mb-2" disabled>
+        <Spinner variant="dark" animation="border" className="mr-2"/> Starting search...
+      </Button>
+    )
+
+  } else if (room.shared_music_library == null) {
 
     if (room.users.length >= MIN_USERS_TO_SHARE) {
 

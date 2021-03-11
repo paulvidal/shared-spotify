@@ -67,7 +67,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateUserFromRequest(r *http.Request) (*clientcommon.User, error) {
-	tokenCookie, err := r.Cookie(clientcommon.LoginTypeCookieName)
+	loginTypeCookie, err := r.Cookie(clientcommon.LoginTypeCookieName)
 
 	if err != nil {
 		errMsg := "failed to create user from request - no login cookie found "
@@ -75,28 +75,50 @@ func CreateUserFromRequest(r *http.Request) (*clientcommon.User, error) {
 		return nil, errors.New(errMsg)
 	}
 
-	if tokenCookie.Value == clientcommon.SpotifyLoginType {
-		return createUserFromRequestSpotify(r)
-
-	} else if tokenCookie.Value == clientcommon.AppleMusicLoginType {
-		return createUserFromRequestAppleMusic(r)
-	}
-
-	msg := "Unknown token login type, found " + tokenCookie.Value
-	logger.Logger.Warning(msg)
-	return nil, errors.New(msg)
-}
-
-func createUserFromRequestSpotify(r *http.Request) (*clientcommon.User, error) {
 	tokenCookie, err := r.Cookie(clientcommon.TokenCookieName)
 
-	if err == http.ErrNoCookie {
+	if err != nil {
 		errMsg := "failed to create user from request - no token cookie found "
 		logger.Logger.Warning(errMsg, err) // this is normal if user is not logged in, so show it as a warning
 		return nil, errors.New(errMsg)
 	}
 
-	token, err := spotifyclient.DecryptToken(tokenCookie)
+	return CreateUserFromToken(tokenCookie.Value, loginTypeCookie.Value)
+}
+
+func CreateUserFromToken(token string, loginType string) (*clientcommon.User, error) {
+	// try to use our local user cache
+	if user, ok := clientcommon.GetUserFromCache(token); ok {
+		return user, nil
+	}
+
+	if loginType == clientcommon.SpotifyLoginType {
+		user, err := createUserFromTokenSpotify(token)
+
+		if user != nil {
+			clientcommon.AddUserToCache(token, user)
+		}
+
+		return user, err
+
+	} else if loginType == clientcommon.AppleMusicLoginType {
+		user, err := createUserFromTokenAppleMusic(token)
+
+		if user != nil {
+			clientcommon.AddUserToCache(token, user)
+		}
+
+		return user, err
+
+	} else {
+		msg := "Unknown token login type, found " + token
+		logger.Logger.Warning(msg)
+		return nil, errors.New(msg)
+	}
+}
+
+func createUserFromTokenSpotify(tokenStr string) (*clientcommon.User, error) {
+	token, err := spotifyclient.DecryptToken(tokenStr)
 
 	if err != nil {
 		errMsg := "failed to create user from request - failed to decrypt token "
@@ -104,7 +126,7 @@ func createUserFromRequestSpotify(r *http.Request) (*clientcommon.User, error) {
 		return nil, errors.New(errMsg)
 	}
 
-	user, err := spotifyclient.CreateUserFromToken(token)
+	user, err := spotifyclient.CreateUserFromToken(token, tokenStr)
 
 	if err != nil {
 		logger.Logger.Error("failed to create user from request - create user from token failed ", err)
@@ -114,16 +136,8 @@ func createUserFromRequestSpotify(r *http.Request) (*clientcommon.User, error) {
 	return user, nil
 }
 
-func createUserFromRequestAppleMusic(r *http.Request) (*clientcommon.User, error) {
-	tokenCookie, err := r.Cookie(clientcommon.TokenCookieName)
-
-	if err == http.ErrNoCookie {
-		errMsg := "failed to create user from request - no token cookie found "
-		logger.Logger.Warning(errMsg, err) // this is normal if user is not logged in, so show it as a warning
-		return nil, errors.New(errMsg)
-	}
-
-	appleLogin, err := applemusic.DecryptToken(tokenCookie)
+func createUserFromTokenAppleMusic(tokenStr string) (*clientcommon.User, error) {
+	appleLogin, err := applemusic.DecryptToken(tokenStr)
 
 	if err != nil {
 		errMsg := "failed to create user from request - failed to decrypt token "
@@ -131,7 +145,7 @@ func createUserFromRequestAppleMusic(r *http.Request) (*clientcommon.User, error
 		return nil, errors.New(errMsg)
 	}
 
-	user, err := applemusic.CreateUserFromToken(appleLogin)
+	user, err := applemusic.CreateUserFromToken(appleLogin, tokenStr)
 
 	if err != nil {
 		logger.Logger.Error("failed to create user from request - create user from token failed ", err)

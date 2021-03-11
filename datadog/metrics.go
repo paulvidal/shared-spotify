@@ -40,3 +40,15 @@ func Gauge(value int, metric string, tags ...string) {
 		logger.Logger.Errorf("Failed to send gauge value %f to %s with tags %s ", value, metric, tags, err)
 	}
 }
+
+func Distribution(value float64, metric string, tags ...string) {
+	if StatsdClient == nil {
+		return
+	}
+
+	err := StatsdClient.Distribution(metric, value, tags, 1)
+
+	if err != nil {
+		logger.Logger.Errorf("Failed to send distribution value %f to %s with tags %s ", value, metric, tags, err)
+	}
+}

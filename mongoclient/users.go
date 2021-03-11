@@ -13,14 +13,14 @@ import (
 const userCollection = "users"
 
 type MongoUser struct {
-	*clientcommon.User `bson:"inline"`
+	*clientcommon.UserInfos `bson:"inline"`
 }
 
 func InsertUsers(users []*clientcommon.User) error {
 	usersToInsert := make([]interface{}, 0)
 
 	for _, user := range users {
-		usersToInsert = append(usersToInsert, MongoUser{user})
+		usersToInsert = append(usersToInsert, MongoUser{user.UserInfos})
 	}
 
 	// We do a mongo transaction as we want all the documents to be inserted at once
@@ -110,7 +110,7 @@ func GetUsers(userIds []string) (map[string]*clientcommon.User, error) {
 
 	// we convert the users back to their original format
 	for _, mongoUser := range mongoUsers {
-		usersPerId[mongoUser.Id] = mongoUser.User
+		usersPerId[mongoUser.Id] = &clientcommon.User{UserInfos: mongoUser.UserInfos}
 	}
 
 	return usersPerId, nil

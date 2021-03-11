@@ -12,6 +12,7 @@ import (
 	"github.com/thoas/go-funk"
 	"github.com/zmb3/spotify"
 	"net/http"
+	"time"
 )
 
 /*
@@ -97,10 +98,25 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 	// we create the music library
 	room.MusicLibrary = app.CreateSharedMusicLibrary(len(room.Users))
 
+	err = updateRoom(room)
+
+	if err != nil {
+		logger.WithUser(user.GetUserId()).Errorf("Failed to update room %s %+v", roomId, err)
+		handleError(failedToUpdateRoom, w, r, user)
+		return
+	}
+
 	// we now process the library of the users (all this is done async)
 	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.GetUserIds())
 	room.MusicLibrary.Process(room.Users, func(success bool) {
 		updateRoomNotProcessed(room, success) // callback function
+
+	}, func() {
+		// we update the last time checkpoint
+		room.MusicLibrary.ProcessingStatus.CheckpointTime = time.Now()
+
+		// ignore error, it can always be updated by a later call, this is just a checkpoint
+		_ = updateRoom(room)
 	})
 
 	httputils.SendOk(w)

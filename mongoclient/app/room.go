@@ -56,6 +56,10 @@ func InsertRoom(room *app.Room) error {
 	// we insert the room
 	mongoPlaylists := convertPlaylistsToMongoPlaylists(playlists, room)
 
+	// IMPORTANT: we remove the tokens to not introduce them in long term storage once the processing is over
+	removeTokenForUsers([]*clientcommon.User{room.Owner})
+	removeTokenForUsers(room.Users)
+
 	mongoRoom := MongoRoom{
 		room,
 		mongoPlaylists,
@@ -71,6 +75,13 @@ func InsertRoom(room *app.Room) error {
 	logger.Logger.Info("Room was inserted successfully in mongo ", insertResult.InsertedID)
 
 	return nil
+}
+
+// we prevent introducing in the database for the processed rooms the user tokens (even if they are encrypted)
+func removeTokenForUsers(users []*clientcommon.User) {
+	for _, user := range users {
+		user.Token = ""
+	}
 }
 
 func GetRoom(roomId string) (*app.Room, error) {

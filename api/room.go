@@ -13,7 +13,6 @@ import (
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/shared-spotify/utils"
 	"net/http"
-	"sync"
 )
 
 const defaultRoomName = "Room #%s"
@@ -23,6 +22,9 @@ var failedToDeleteRoom = errors.New("Failed to delete room")
 var failedToGetRooms = errors.New("Failed to get rooms")
 var roomDoesNotExistError = errors.New("Room does not exists")
 var roomIsNotAccessibleError = errors.New("Room is not accessible to user")
+var failedToCreateRoom = errors.New("Failed to create room")
+var failedToUpdateRoom = errors.New("Failed to update room")
+var failedToAddUserToRoom = errors.New("Failed to add user to room")
 var authenticationError = errors.New("Failed to authenticate user")
 var roomLockedError = errors.New("Room is locked and not accepting new members. Create a new one to share music")
 var processingInProgressError = errors.New("Processing of music is already in progress")
@@ -30,29 +32,38 @@ var processingNotStartedError = errors.New("Processing of music has not been don
 var processingFailedError = errors.New("Processing of music failed, cannot get playlists")
 var failedToCreatePlaylistError = errors.New("An error occurred while creating the playlist")
 
-// we store in memory the rooms not processed so that if the server crashes, we do not need to manage recovery of
-// ongoing processing - it has the pitfall though that we won't preserve state for not processed room
-var roomNotProcessed = sync.Map{} // map[string]*app.Room
-
-func addRoomNotProcessed(room *app.Room) {
+func addRoomNotProcessed(room *app.Room) error {
 	datadog.Increment(1, datadog.RoomCount,
 		datadog.RoomIdTag.Tag(room.Id),
 		datadog.RoomNameTag.Tag(room.Name),
 	)
 
-	roomNotProcessed.Store(room.Id, room)
+	return mongoclientapp.UpdateUnprocessedRoom(room)
 }
 
+// this function should run in a go routine only, so it should be fine to make it panic
 func updateRoomNotProcessed(room *app.Room, success bool) {
 	// we set processing result
-	roomNotProcessed, _ := roomNotProcessed.Load(room.Id)
-	roomNotProcessed.(*app.Room).MusicLibrary.SetProcessingSuccess(&success)
+	room.MusicLibrary.SetProcessingSuccess(&success)
+
+	// send time taken to process the room
+	datadog.Distribution(room.MusicLibrary.GetProcessingTime(), datadog.RoomProcessedTime,
+		datadog.RoomIdTag.Tag(room.Id),
+		datadog.RoomNameTag.Tag(room.Name),
+	)
 
 	if !success {
 		datadog.Increment(1, datadog.RoomProcessedFailed,
 			datadog.RoomIdTag.Tag(room.Id),
 			datadog.RoomNameTag.Tag(room.Name),
 		)
+		err := updateRoom(room)
+
+		if err != nil {
+			logger.Logger.Errorf("Could not update mongo for finished processed room! this is bad, " +
+				"we need to make sure we recover properly for the room ", err)
+		}
+
 		return
 	}
 
@@ -62,15 +73,23 @@ func updateRoomNotProcessed(room *app.Room, success bool) {
 	if err != nil {
 		// if we fail to insert the result in mongo, we declare processing as failed
 		success := false
-		roomNotProcessed.(*app.Room).MusicLibrary.SetProcessingSuccess(&success)
+		room.MusicLibrary.SetProcessingSuccess(&success)
 		datadog.Increment(1, datadog.RoomProcessedFailed,
 			datadog.RoomIdTag.Tag(room.Id),
 			datadog.RoomNameTag.Tag(room.Name),
 		)
+		err := updateRoom(room)
+
+		if err != nil {
+			logger.Logger.Errorf("Could not update mongo for finished processed room! this is bad, " +
+				"we need to make sure we recover properly for the room ", err)
+		}
 
 	} else {
 		// otherwise we delete the room from the rooms being processed
+		// TODO: handle the case where we fail to delete the mongo room
 		deleteRoomNotProcessed(room)
+
 		datadog.Increment(1, datadog.RoomProcessedCount,
 			datadog.RoomIdTag.Tag(room.Id),
 			datadog.RoomNameTag.Tag(room.Name),
@@ -78,17 +97,41 @@ func updateRoomNotProcessed(room *app.Room, success bool) {
 	}
 }
 
-func deleteRoomNotProcessed(room *app.Room) {
-	roomNotProcessed.Delete(room.Id)
+func updateRoom(room *app.Room) error {
+	err := mongoclientapp.UpdateUnprocessedRoom(room)
+
+	if err != nil {
+		logger.Logger.Errorf("Failed to set processing status for room %s %+v", room.Id, err)
+	}
+
+	return err
+}
+
+func deleteRoomNotProcessed(room *app.Room) error {
+	// TODO(mongo): what do we do when this updates faisl
+	err := mongoclientapp.DeleteUnprocessedRoom(room.Id)
+
+	if err != nil {
+		logger.Logger.Errorf("Failed to delete unprocessed room %s %+v", room.Id, err)
+	}
+
+	return err
 }
 
 func getRoom(roomId string) (*app.Room, error) {
 	// we check if a room not processed exists first, and we use it if it exists
-	if roomNotProcessed, ok := roomNotProcessed.Load(roomId); ok {
-		return roomNotProcessed.(*app.Room), nil
+	room, err := mongoclientapp.GetUnprocessedRoom(roomId)
+
+	if err != nil && err != mongoclientapp.NotFound {
+		logger.Logger.Error("Failed to query unprocessed rooms ", err)
+		return nil, failedToGetRoom
 	}
 
-	room, err := mongoclientapp.GetRoom(roomId)
+	if room != nil {
+		return room, nil
+	}
+
+	room, err = mongoclientapp.GetRoom(roomId)
 
 	if err == mongoclientapp.NotFound {
 		return nil, roomDoesNotExistError
@@ -186,15 +229,14 @@ func GetRooms(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// we add to these rooms the not processed yet rooms
-	roomNotProcessed.Range(func(_, value interface{}) bool {
-		room := value.(*app.Room)
+	unprocessedRooms, err := mongoclientapp.GetUnprocessedRoomsForUser(user)
 
-		if room.IsUserInRoom(user) {
-			rooms = append(rooms, room)
-		}
+	if err != nil {
+		handleError(failedToGetRooms, w, r, user)
+		return
+	}
 
-		return true
-	})
+	rooms = append(rooms, unprocessedRooms...)
 
 	httputils.SendJson(w, &rooms)
 }
@@ -237,8 +279,13 @@ func CreateRoom(w http.ResponseWriter, r *http.Request) {
 
 	room := app.CreateRoom(roomId, roomName, user)
 
-	// Add the room in memory (it will be added to mongo once processed)
-	addRoomNotProcessed(room)
+	err = addRoomNotProcessed(room)
+
+	if err != nil {
+		logger.Logger.Errorf("Failed to create room %s %+v", roomId, err)
+		handleError(failedToCreateRoom, w, r, user)
+		return
+	}
 
 	httputils.SendJson(w, CreatedRoom{room.Id})
 }
@@ -293,17 +340,20 @@ func DeleteRoom(w http.ResponseWriter, r *http.Request) {
 
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to delete room %s", user.GetUserId(), roomId)
 
-	// If room has been processed, we delete it in mongo
+	err = nil
+
 	if room.HasRoomBeenProcessed() {
 		err = mongoclientapp.DeleteRoomForUser(room, user)
 
-		if err != nil {
-			handleError(failedToDeleteRoom, w, r, user)
-			return
-		}
+	} else {
+		// TODO: not ideal, if room is not processed and deleted, it is deleted for ALL users
+		err = deleteRoomNotProcessed(room)
 	}
 
-	deleteRoomNotProcessed(room)
+	if err != nil {
+		handleError(failedToDeleteRoom, w, r, user)
+		return
+	}
 
 	httputils.SendOk(w)
 }
@@ -354,6 +404,13 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	room.AddUser(user)
+
+	err = updateRoom(room)
+
+	if err != nil {
+		handleError(failedToAddUserToRoom, w, r, user)
+		return
+	}
 
 	httputils.SendOk(w)
 }
