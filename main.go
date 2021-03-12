@@ -59,7 +59,10 @@ func startServer() {
 	handler = handlers.LoggingHandler(logger.Logger.Out, handler)
 
 	// Setup recovery in case of panic
-	handler = handlers.RecoveryHandler()(handler)
+	handler = handlers.RecoveryHandler(
+		handlers.RecoveryLogger(logger.Logger),
+		handlers.PrintRecoveryStack(true),
+	)(handler)
 
 	// Close tracer and profiler in case server is shut down
 	defer tracer.Stop()
