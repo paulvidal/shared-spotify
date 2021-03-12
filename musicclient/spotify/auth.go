@@ -122,7 +122,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// use the same state string here that you used to generate the URL
 	token, err := auth.Token(st, r)
 	if err != nil {
-		logger.Logger.Errorf("Couldn't get token", err)
+		logger.Logger.Error("Couldn't get token ", err)
 		http.Error(w, "Couldn't get token", http.StatusNotFound)
 		return
 	}
