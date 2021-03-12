@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const TimeoutTimeMinRoomProcessing = 20  // 20min before we can re trigger a processing
+
 var ErrorPlaylistTypeNotFound = errors.New("playlist type id not found")
 
 type SharedMusicLibrary struct {
@@ -26,7 +28,6 @@ type ProcessingStatus struct {
 	Started          bool      `json:"started"`
 	StartedAt        time.Time `json:"started_at"`
 	CheckpointTime   time.Time `json:"checkpoint_time"`  // time for the last time we got an update
-	Timedout         bool      `json:"timedout"`
 	Success          *bool     `json:"success"`
 }
 
@@ -40,6 +41,11 @@ func (musicLibrary *SharedMusicLibrary) HasProcessingFailed() bool {
 
 func (musicLibrary *SharedMusicLibrary) HasProcessingFinished() bool {
 	return musicLibrary.ProcessingStatus.Success != nil
+}
+
+func (musicLibrary *SharedMusicLibrary) HasTimedOut() bool {
+	return !musicLibrary.HasProcessingFinished() &&
+		time.Now().Sub(musicLibrary.ProcessingStatus.CheckpointTime).Minutes() > TimeoutTimeMinRoomProcessing
 }
 
 func (musicLibrary *SharedMusicLibrary) GetProcessingTime() float64 {
@@ -73,7 +79,6 @@ func CreateSharedMusicLibrary(totalUsers int) *SharedMusicLibrary {
 			false,
 			time.Now(),
 			time.Now(),
-			false,
 			nil},
 		make(chan MusicProcessingResult, totalUsers), // Channel needs to be only as big as the number of users
 		nil,
@@ -86,11 +91,17 @@ func CreateSharedMusicLibrary(totalUsers int) *SharedMusicLibrary {
 
 // Will process the common library and find all the common songs
 func (musicLibrary *SharedMusicLibrary) Process(users []*clientcommon.User, notifyProcessingOver func(success bool),
-	saveMusicLibrary func()) {
+	saveMusicLibrary func() error) error {
 	logger.Logger.Infof("Starting processing of room for all users")
 
 	// We mark the processing status as started
 	musicLibrary.ProcessingStatus.Started = true
+	err := saveMusicLibrary()
+
+	if err != nil {
+		logger.Logger.Error("Failed to save processing started ", err)
+		return err
+	}
 
 	// We create the common playlists
 	musicLibrary.CommonPlaylists = CreateCommonPlaylists()
@@ -104,6 +115,8 @@ func (musicLibrary *SharedMusicLibrary) Process(users []*clientcommon.User, noti
 	// launch a single routine to wait for the songs from users, add them to the library and the fidn the most commons
 	logger.Logger.Infof("Launching processing gatherer of information")
 	go musicLibrary.addSongsToLibraryAndFindMostCommonSongs(notifyProcessingOver, saveMusicLibrary)
+
+	return nil
 }
 
 func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *clientcommon.User) {
@@ -135,7 +148,7 @@ func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(user *clientcommon.Use
 }
 
 func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(notifyProcessingOver func(success bool),
-	saveMusicLibrary func()) {
+	saveMusicLibrary func() error) {
 	// Recovery for the goroutine
 	defer func() {
 		if err := recover(); err != nil {
@@ -185,7 +198,7 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 		musicLibrary.ProcessingStatus.AlreadyProcessed += 1
 
 		// we mark the change in mongo
-		saveMusicLibrary()
+		_ = saveMusicLibrary()
 	}
 
 	logger.Logger.Infof("All music processing results received - success=%t", success)
@@ -202,7 +215,7 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 
 	// we add the last step done once all the processing is good
 	musicLibrary.ProcessingStatus.AlreadyProcessed += 1
-	saveMusicLibrary()
+	_ = saveMusicLibrary()
 
 	// we notify that the processing is over
 	notifyProcessingOver(success)

@@ -160,7 +160,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Add the users to the database if we can, but don't fail as we will add him otherwise at another time
 	// for example when the room is processed
-	user, err := CreateUserFromToken(token, "")
+	user, err := CreateUserFromToken(token, cookie.Value)
 	if err == nil {
 		_ = mongoclient.InsertUsers([]*clientcommon.User{user})
 	}

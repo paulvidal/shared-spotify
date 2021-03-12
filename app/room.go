@@ -73,10 +73,18 @@ func (room *Room) HasRoomBeenProcessed() bool {
 	return room.MusicLibrary != nil && room.MusicLibrary.HasProcessingFinished()
 }
 
+func (room *Room) HasProcessingTimedOut() bool{
+	return room.MusicLibrary != nil && room.MusicLibrary.HasTimedOut()
+}
+
 func (room *Room) GetPlaylists() map[string]*Playlist {
 	return room.MusicLibrary.CommonPlaylists.Playlists
 }
 
 func (room *Room) SetPlaylists(playlists map[string]*Playlist) {
 	room.MusicLibrary.CommonPlaylists = &CommonPlaylists{Playlists: playlists}
+}
+
+func (room *Room) ResetMusicLibrary() {
+	room.MusicLibrary = nil
 }

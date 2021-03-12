@@ -27,6 +27,7 @@ var failedToUpdateRoom = errors.New("Failed to update room")
 var failedToAddUserToRoom = errors.New("Failed to add user to room")
 var authenticationError = errors.New("Failed to authenticate user")
 var roomLockedError = errors.New("Room is locked and not accepting new members. Create a new one to share music")
+var processingLaunchError = errors.New("Failed to launch processing")
 var processingInProgressError = errors.New("Processing of music is already in progress")
 var processingNotStartedError = errors.New("Processing of music has not been done, cannot get playlists")
 var processingFailedError = errors.New("Processing of music failed, cannot get playlists")
@@ -318,6 +319,20 @@ func GetRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to get room %s", user.GetUserId(), roomId)
+
+	// check if room has not been processing without result for too long
+	if room.HasProcessingTimedOut() {
+		logger.WithUser(user.GetUserId()).Warningf("Processing timed out for room %s, reset the room", roomId)
+
+		// if so, reset the library and update it in mongo, so we can trigger a new processing
+		room.ResetMusicLibrary()
+		err = updateRoom(room)
+
+		if err != nil {
+			handleError(failedToGetRoom, w, r, user)
+			return
+		}
+	}
 
 	roomWithOwnerInfo := app.RoomWithOwnerInfo{
 		Room:    room,

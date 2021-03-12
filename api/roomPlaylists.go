@@ -102,22 +102,27 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Errorf("Failed to update room %s %+v", roomId, err)
-		handleError(failedToUpdateRoom, w, r, user)
+		handleError(processingLaunchError, w, r, user)
 		return
 	}
 
 	// we now process the library of the users (all this is done async)
 	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.GetUserIds())
-	room.MusicLibrary.Process(room.Users, func(success bool) {
+	err = room.MusicLibrary.Process(room.Users, func(success bool) {
 		updateRoomNotProcessed(room, success) // callback function
 
-	}, func() {
+	}, func() error {
 		// we update the last time checkpoint
 		room.MusicLibrary.ProcessingStatus.CheckpointTime = time.Now()
 
-		// ignore error, it can always be updated by a later call, this is just a checkpoint
-		_ = updateRoom(room)
+		return updateRoom(room)
 	})
+
+	if err != nil {
+		logger.WithUser(user.GetUserId()).Errorf("Failed to launch processing %s %+v", roomId, err)
+		handleError(processingLaunchError, w, r, user)
+		return
+	}
 
 	httputils.SendOk(w)
 }

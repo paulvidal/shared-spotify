@@ -23,6 +23,11 @@ func UpdateUnprocessedRoom(room *app.Room) error {
 
 	upsert := true
 
+	// TODO: delete
+	if room.Owner.Token == "" {
+		panic("bug found!")
+	}
+
 	insertResult, err := mongoclient.GetDatabase().Collection(unprocessedRoomCollection).ReplaceOne(
 		context.TODO(),
 		bson.D{{
