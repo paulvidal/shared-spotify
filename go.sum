@@ -246,6 +246,8 @@ github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/zmb3/spotify v0.0.0-20200814173021-9bec46940cc0 h1:5EK/om56mgVbJOAqJrAI6XtjEqYCTousMfurjHXDHuE=
 github.com/zmb3/spotify v0.0.0-20200814173021-9bec46940cc0/go.mod h1:CYu0Uo+YYMlUX39zUTsCU9j3SpK3l1eB8oLykXF7R7w=
+github.com/zmb3/spotify v1.1.1 h1:3v2IxmzMrvl/1mieDINOI4JAXCJYWP/NQ4o2A1Ni35k=
+github.com/zmb3/spotify v1.1.1/go.mod h1:GD7AAEMUJVYc2Z7p2a2S0E3/5f/KxM/vOnErNr4j+Tw=
 go.mongodb.org/mongo-driver v1.4.6 h1:rh7GdYmDrb8AQSkF8yteAus8qYOgOASWDOv1BWqBXkU=
 go.mongodb.org/mongo-driver v1.4.6/go.mod h1:WcMNYLx/IlOxLe6JRJiv2uXuCz6zBLndR4SoGjYphSc=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=

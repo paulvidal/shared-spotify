@@ -24,7 +24,7 @@ require (
 	github.com/tidwall/pretty v1.0.5 // indirect
 	github.com/tinylib/msgp v1.1.5 // indirect
 	github.com/xdg/stringprep v1.0.0 // indirect
-	github.com/zmb3/spotify v0.0.0-20200814173021-9bec46940cc0
+	github.com/zmb3/spotify v1.1.1
 	go.mongodb.org/mongo-driver v1.4.6
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect

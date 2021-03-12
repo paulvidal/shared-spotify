@@ -3,6 +3,7 @@ import CustomHead from "./Head";
 import Header from "./Header";
 import {Toast} from "./toast";
 import {Spinner} from "react-bootstrap";
+import Footer from "./Footer";
 
 export default function LoaderScreen(props) {
   return (
@@ -17,10 +18,7 @@ export default function LoaderScreen(props) {
         <Spinner animation="border" variant="success"/>
       </main>
 
-      <footer className={styles.footer}>
-        Powered by{' '}
-        <img src="/spotify.svg" alt="Spotify Logo" className={styles.logo} />
-      </footer>
+      <Footer/>
 
       <Toast/>
     </div>

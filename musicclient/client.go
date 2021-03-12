@@ -2,6 +2,7 @@ package musicclient
 
 import (
 	"errors"
+	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient/applemusic"
@@ -16,6 +17,39 @@ import (
 //
 // We use the spotify objects for now as the reference objects - e.g. FullTrack object
 // Eventually, we should create out own data model so we can get rid of spotify and have real abstraction
+
+func Logout(w http.ResponseWriter, r *http.Request)  {
+	// delete the cookies
+	tokenDeleteCookie, errToken := clientcommon.GetDeletedCookie(clientcommon.TokenCookieName)
+	loginTypeDeleteCookie, errLoginType := clientcommon.GetDeletedCookie(clientcommon.LoginTypeCookieName)
+
+	if errToken != nil || errLoginType != nil {
+		logger.Logger.Error("Got an error while creating deletion cookies")
+		http.Error(w, "Logout failed", http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w, tokenDeleteCookie)
+	http.SetCookie(w, loginTypeDeleteCookie)
+
+	tag := "unknown"
+	tokenCookie, err := r.Cookie(clientcommon.LoginTypeCookieName)
+
+	if err != nil {
+		// nothing, do not crash
+
+	} else if tokenCookie.Value == clientcommon.SpotifyLoginType {
+		tag = datadog.SpotifyProvider
+
+	} else if tokenCookie.Value == clientcommon.AppleMusicLoginType {
+		tag = datadog.AppleMusicProvider
+	}
+
+	datadog.Increment(1, datadog.UserLogout, datadog.Provider.Tag(tag))
+
+	// we redirect to home page
+	http.Redirect(w, r, clientcommon.FrontendUrl, http.StatusFound)
+}
 
 /**
   Create user abstraction

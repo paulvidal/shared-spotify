@@ -76,6 +76,7 @@ func toUserInfos(user *spotify.PrivateUser) clientcommon.UserInfos {
 
 func Authenticate(w http.ResponseWriter, r *http.Request) {
 	logger.Logger.Info("Headers for request to authenticate are ", r.Header)
+	datadog.Increment(1, datadog.UserLoginStarted, datadog.Provider.Tag(datadog.SpotifyProvider))
 
 	// We extract the redirect_uri if it exists, to redirect to it once th auth is finished
 	redirectUri := r.URL.Query().Get("redirect_uri")
@@ -93,7 +94,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	// get the user to this URL - how you do that is up to you
 	// you should specify a unique state string to identify the session
-	authUrl := auth.AuthURL(randomState)
+	authUrl := auth.AuthURLWithDialog(randomState)
 
 	logger.Logger.Info("Url to login is: ", authUrl)
 	clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeAuth, false, nil)
@@ -150,6 +151,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, loginTypeCookie)
 
 	logger.Logger.Info("Redirecting to ", redirectUrl)
+	datadog.Increment(1, datadog.UserLoginSuccess, datadog.Provider.Tag(datadog.SpotifyProvider))
 
 	http.Redirect(w, r, redirectUrl.(string), http.StatusFound)
 }

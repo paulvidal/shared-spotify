@@ -35,6 +35,7 @@ type AppleUser struct {
 // This is used to immediately insert apple user when this one is collected in the frontend
 func UserHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Logger.Info("Received new apple user")
+	datadog.Increment(1, datadog.UserLoginStarted, datadog.Provider.Tag(datadog.AppleMusicProvider))
 
 	var user AppleUser
 	err := httputils.DeserialiseBody(r, &user)
@@ -119,6 +120,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Logger.Info("Redirecting to ", redirect)
+	datadog.Increment(1, datadog.UserLoginSuccess, datadog.Provider.Tag(datadog.AppleMusicProvider))
 
 	http.Redirect(w, r, redirect, http.StatusFound)
 }
