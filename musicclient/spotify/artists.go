@@ -53,7 +53,11 @@ func GetArtists(tracks []*spotify.FullTrack) (map[string][]*spotify.FullArtist, 
 		}
 
 		// we change client often to spread the load
-		client := GetSpotifyGenericClient()
+		client, err := GetSpotifyGenericClient()
+
+		if err != nil {
+			return nil, err
+		}
 
 		artistsPart, err := client.GetArtists(artistIds[i:upperBound]...)
 

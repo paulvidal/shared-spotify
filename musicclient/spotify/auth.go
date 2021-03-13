@@ -11,7 +11,6 @@ import (
 	"github.com/shared-spotify/utils"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -122,7 +121,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// use the same state string here that you used to generate the URL
 	token, err := auth.Token(st, r)
 	if err != nil {
-		logger.Logger.Errorf("Couldn't get token", err)
+		logger.Logger.Error("Couldn't get token ", err)
 		http.Error(w, "Couldn't get token", http.StatusNotFound)
 		return
 	}
@@ -233,11 +232,11 @@ func EncryptToken(token *oauth2.Token) (*http.Cookie, error) {
 }
 
 // we return the same client as the one used by our app for authentication, not the same as a generic client
-func AuthenticatedGenericClient() *spotify.Client {
-	return CreateGenericClient(ClientId, ClientSecret)
+func AuthenticatedGenericClient() (*spotify.Client, error) {
+	return GetSpotifyGenericClient()
 }
 
-func CreateGenericClient(clientId string, clientSecret string) *spotify.Client {
+func CreateGenericClient(clientId string, clientSecret string) (*spotify.Client, error) {
 	config := &clientcredentials.Config{
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
@@ -246,10 +245,12 @@ func CreateGenericClient(clientId string, clientSecret string) *spotify.Client {
 	token, err := config.Token(context.Background())
 
 	if err != nil {
-		log.Fatalf("couldn't create token: %v", err)
+		logger.Logger.Warning("Couldn't create oauth token for generic client: ", err)
+		return nil, err
 	}
+
 	client := spotify.Authenticator{}.NewClient(token)
 	client.AutoRetry = true // enable auto retries when rate limited
 
-	return &client
+	return &client, nil
 }

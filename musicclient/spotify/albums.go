@@ -51,7 +51,11 @@ func GetAlbums(tracks []*spotify.FullTrack) (map[string]*spotify.FullAlbum, erro
 		}
 
 		// we change client often to spread the load
-		client := GetSpotifyGenericClient()
+		client, err := GetSpotifyGenericClient()
+
+		if err != nil {
+			return nil, err
+		}
 
 		albumsPart, err := client.GetAlbums(albumIds[i:upperBound]...)
 
