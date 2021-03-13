@@ -147,7 +147,12 @@ func CreateUserFromToken(appleLogin *AppleLogin) (*clientcommon.User, error) {
 	}
 
 	// Create the generic spotify client
-	spotifyClient := spotifyclient.AuthenticatedGenericClient()
+	spotifyClient, err := spotifyclient.AuthenticatedGenericClient()
+
+	if err != nil {
+		logger.Logger.Error("Failed to get a spotify authenticated generic client ", err)
+		return nil, err
+	}
 
 	user := &clientcommon.User{UserInfos: &userInfos, SpotifyClient: spotifyClient, AppleMusicClient: appleMusicClient}
 

@@ -36,7 +36,11 @@ func GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spotify.AudioFea
 		}
 
 		// we change client often to spread the load
-		client := GetSpotifyGenericClient()
+		client, err := GetSpotifyGenericClient()
+
+		if err != nil {
+			return nil, err
+		}
 
 		audioFeaturesPart, err := client.GetAudioFeatures(trackIds[i:upperBound]...)
 
