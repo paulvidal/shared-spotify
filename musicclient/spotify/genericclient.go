@@ -103,8 +103,8 @@ func GetSpotifyGenericClient() (*spotify.Client, error) {
 			return client, err
 		}
 
-		logger.Logger.Warningf("Failed to create generic client, retrying with retry count=%d, %+v", retry, err)
 		retry += 1
+		logger.Logger.Warningf("Failed to create generic client, retrying with retry count=%d, %+v", retry, err)
 	}
 
 	logger.Logger.Errorf("Failed to get a generic client after %d retries", retryCreation)
