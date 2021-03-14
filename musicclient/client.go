@@ -18,6 +18,8 @@ import (
 // We use the spotify objects for now as the reference objects - e.g. FullTrack object
 // Eventually, we should create out own data model so we can get rid of spotify and have real abstraction
 
+const retryFailCreateUserFromRequestSpotify = 5
+
 func Logout(w http.ResponseWriter, r *http.Request)  {
 	// delete the cookies
 	tokenDeleteCookie, errToken := clientcommon.GetDeletedCookie(clientcommon.TokenCookieName)
@@ -104,7 +106,20 @@ func createUserFromRequestSpotify(r *http.Request) (*clientcommon.User, error) {
 		return nil, errors.New(errMsg)
 	}
 
-	user, err := spotifyclient.CreateUserFromToken(token)
+	var user *clientcommon.User
+	retry := 0
+
+	// We retry for spotify because the api throws randomly 503 sometimes
+	for retry < retryFailCreateUserFromRequestSpotify {
+		user, err = spotifyclient.CreateUserFromToken(token)
+
+		if user != nil {
+			break
+		}
+
+		retry += 1
+		logger.Logger.Warningf("Failed to create user from request, retrying with retry count=%d, %+v", retry, err)
+	}
 
 	if err != nil {
 		logger.Logger.Error("failed to create user from request - create user from token failed ", err)
