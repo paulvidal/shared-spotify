@@ -96,7 +96,6 @@ func (room *Room) ResetMusicLibrary() {
 }
 
 func (room *Room) RecreateClients() error {
-
 	owner, err := recreateUserWithClient(room.Owner)
 
 	if err != nil {

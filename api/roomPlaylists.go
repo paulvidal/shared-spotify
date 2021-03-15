@@ -90,6 +90,7 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 			datadog.RoomIdTag.Tag(roomId),
 			datadog.RoomNameTag.Tag(room.Name),
 		)
+		logger.WithUser(user.GetUserId()).Errorf("Room %s declared as expired %+v", roomId, err)
 		handleError(roomExpiredError, w, r, user)
 		return
 	}
@@ -99,6 +100,7 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Error("Failed to recreate clients when fetching common musics ", err)
+		handleError(roomExpiredError, w, r, user)
 		return
 	}
 
