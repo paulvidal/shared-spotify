@@ -174,6 +174,16 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if room.IsExpired() {
+		datadog.Increment(1, datadog.RoomExpired,
+			datadog.UserIdTag.Tag(user.GetId()),
+			datadog.RoomIdTag.Tag(roomId),
+			datadog.RoomNameTag.Tag(room.Name),
+		)
+		handleError(roomExpiredError, w, r, user)
+		return
+	}
+
 	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {

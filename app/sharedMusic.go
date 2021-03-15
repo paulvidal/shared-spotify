@@ -39,6 +39,10 @@ func (musicLibrary *SharedMusicLibrary) HasProcessingFailed() bool {
 	return musicLibrary.ProcessingStatus.Success != nil && !(*musicLibrary.ProcessingStatus.Success)
 }
 
+func (musicLibrary *SharedMusicLibrary) HasProcessingSucceeded() bool {
+	return musicLibrary.ProcessingStatus.Success != nil && *musicLibrary.ProcessingStatus.Success
+}
+
 func (musicLibrary *SharedMusicLibrary) HasProcessingFinished() bool {
 	return musicLibrary.ProcessingStatus.Success != nil
 }

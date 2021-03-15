@@ -23,7 +23,6 @@ var failedToGetRooms = errors.New("Failed to get rooms")
 var roomDoesNotExistError = errors.New("Room does not exists")
 var roomIsNotAccessibleError = errors.New("Room is not accessible to user")
 var failedToCreateRoom = errors.New("Failed to create room")
-var failedToUpdateRoom = errors.New("Failed to update room")
 var failedToAddUserToRoom = errors.New("Failed to add user to room")
 var authenticationError = errors.New("Failed to authenticate user")
 var roomLockedError = errors.New("Room is locked and not accepting new members. Create a new one to share music")
@@ -31,6 +30,8 @@ var processingLaunchError = errors.New("Failed to launch processing")
 var processingInProgressError = errors.New("Processing of music is already in progress")
 var processingNotStartedError = errors.New("Processing of music has not been done, cannot get playlists")
 var processingFailedError = errors.New("Processing of music failed, cannot get playlists")
+var roomExpiredError = errors.New("Room has expired because some users are no longer connected to their music " +
+	"provider, create a new room to retry")
 var failedToCreatePlaylistError = errors.New("An error occurred while creating the playlist")
 
 func addRoomNotProcessed(room *app.Room) error {
@@ -109,7 +110,7 @@ func updateRoom(room *app.Room) error {
 }
 
 func deleteRoomNotProcessed(room *app.Room) error {
-	// TODO(mongo): what do we do when this updates faisl
+	// TODO(mongo): what do we do when this updates fails
 	err := mongoclientapp.DeleteUnprocessedRoom(room.Id)
 
 	if err != nil {

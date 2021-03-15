@@ -89,6 +89,10 @@ func CreateUserFromRequest(r *http.Request) (*clientcommon.User, error) {
 }
 
 func CreateUserFromToken(token string, loginType string) (*clientcommon.User, error) {
+	if token == "" {
+		return nil, errors.New("no token provided for user")
+	}
+
 	// try to use our local user cache
 	if user, ok := clientcommon.GetUserFromCache(token); ok {
 		return user, nil

@@ -26,6 +26,7 @@ var UserIdTag = Tag{"user_id"}
 const RoomCount = "rooms.new.count"
 const RoomProcessedCount = "rooms.processed.count"
 const RoomProcessedFailed = "rooms.processed.failed"
+const RoomExpired = "rooms.expired"
 const RoomProcessedTime = "rooms.processed.time"
 const TrackForRoom = "rooms.tracks.common.count"
 const RoomUsers = "rooms.users.count"

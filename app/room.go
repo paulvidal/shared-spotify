@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"time"
 )
@@ -73,6 +74,10 @@ func (room *Room) HasRoomBeenProcessed() bool {
 	return room.MusicLibrary != nil && room.MusicLibrary.HasProcessingFinished()
 }
 
+func (room *Room) HasRoomBeenProcessedSuccessfully() bool {
+	return room.MusicLibrary != nil && room.MusicLibrary.HasProcessingSucceeded()
+}
+
 func (room *Room) HasProcessingTimedOut() bool{
 	return room.MusicLibrary != nil && room.MusicLibrary.HasTimedOut()
 }
@@ -87,4 +92,22 @@ func (room *Room) SetPlaylists(playlists map[string]*Playlist) {
 
 func (room *Room) ResetMusicLibrary() {
 	room.MusicLibrary = nil
+}
+
+// checks if a room can still be processed, by checking if every user in the room can have a client created for them
+// if a client cannot be created, it means the user must have revoqued its token
+func (room *Room) IsExpired() bool {
+	if room.HasRoomBeenProcessedSuccessfully() {
+		return false
+	}
+
+	for _, user := range room.Users {
+		_, err := musicclient.CreateUserFromToken(user.Token, user.LoginType)
+
+		if err != nil {
+			return true
+		}
+	}
+
+	return false
 }
