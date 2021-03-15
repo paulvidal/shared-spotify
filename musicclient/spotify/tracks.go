@@ -258,7 +258,11 @@ func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullT
 		}
 
 		// we change client often to spread the load and not be rate limited
-		client := GetSpotifyGenericClient()
+		client, err := GetSpotifyGenericClient()
+
+		if err != nil {
+			return nil, err
+		}
 
 		isrcQuery := fmt.Sprintf("isrc:%s", isrc)
 		results, err := client.Search(isrcQuery, spotify.SearchTypeTrack)
@@ -302,8 +306,13 @@ func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullT
 		time.Sleep(maxWaitBetweenSearchCalls)
 	}
 
+	client, err := GetSpotifyGenericClient()
+
+	if err != nil {
+		return nil, err
+	}
+
 	// search all the tracks for which we already had the spotify id
-	client := GetSpotifyGenericClient()
 	foundTracks, err := GetTracks(client, tracksToSearch)
 
 	if err != nil {
