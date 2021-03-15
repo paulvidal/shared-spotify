@@ -34,7 +34,7 @@ func (c *GenericClient) GetClient() (*spotify.Client, error) {
 		client, err := CreateGenericClient(c.ClientId, c.ClientSecret)
 
 		if err != nil {
-			logger.Logger.Warning("Failed to create first time generic client ", err)
+			logger.Logger.Warning("Failed to create first time generic client %s %+v", c.ClientId, err)
 			return nil, err
 		}
 
@@ -47,7 +47,7 @@ func (c *GenericClient) GetClient() (*spotify.Client, error) {
 		client, err := CreateGenericClient(c.ClientId, c.ClientSecret)
 
 		if err != nil {
-			logger.Logger.Warning("Failed to re-create generic client after expiration ", err)
+			logger.Logger.Warningf("Failed to re-create generic client after expiration %s %+v", c.ClientId, err)
 			return nil, err
 		}
 
