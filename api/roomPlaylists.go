@@ -84,6 +84,24 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if room.IsExpired() {
+		datadog.Increment(1, datadog.RoomExpired,
+			datadog.UserIdTag.Tag(user.GetId()),
+			datadog.RoomIdTag.Tag(roomId),
+			datadog.RoomNameTag.Tag(room.Name),
+		)
+		handleError(roomExpiredError, w, r, user)
+		return
+	}
+
+	// we re-create all the clients for the room
+	err = room.RecreateClients()
+
+	if err != nil {
+		logger.WithUser(user.GetUserId()).Error("Failed to recreate clients when fetching common musics ", err)
+		return
+	}
+
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to find the playlists for room %s",
 		user.GetUserId(), roomId)
 
@@ -171,16 +189,6 @@ func GetPlaylist(w http.ResponseWriter, r *http.Request) {
 
 	if musicLibrary.HasProcessingFailed() {
 		handleError(processingFailedError, w, r, user)
-		return
-	}
-
-	if room.IsExpired() {
-		datadog.Increment(1, datadog.RoomExpired,
-			datadog.UserIdTag.Tag(user.GetId()),
-			datadog.RoomIdTag.Tag(roomId),
-			datadog.RoomNameTag.Tag(room.Name),
-		)
-		handleError(roomExpiredError, w, r, user)
 		return
 	}
 

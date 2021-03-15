@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"time"
@@ -78,7 +79,7 @@ func (room *Room) HasRoomBeenProcessedSuccessfully() bool {
 	return room.MusicLibrary != nil && room.MusicLibrary.HasProcessingSucceeded()
 }
 
-func (room *Room) HasProcessingTimedOut() bool{
+func (room *Room) HasProcessingTimedOut() bool {
 	return room.MusicLibrary != nil && room.MusicLibrary.HasTimedOut()
 }
 
@@ -92,6 +93,43 @@ func (room *Room) SetPlaylists(playlists map[string]*Playlist) {
 
 func (room *Room) ResetMusicLibrary() {
 	room.MusicLibrary = nil
+}
+
+func (room *Room) RecreateClients() error {
+
+	owner, err := recreateUserWithClient(room.Owner)
+
+	if err != nil {
+		logger.Logger.Error("Failed to recreate client for owner ", err)
+		return err
+	}
+
+	room.Owner = owner
+
+	usersWithClients := make([]*clientcommon.User, 0)
+	users := room.Users
+
+	for _, user := range users {
+		newUser, err := recreateUserWithClient(user)
+
+		if err != nil {
+			logger.Logger.Error("Failed to recreate client for user ", err)
+			return err
+		}
+
+		usersWithClients = append(usersWithClients, newUser)
+	}
+
+	room.Users = usersWithClients
+
+	return nil
+}
+
+func recreateUserWithClient(user *clientcommon.User) (*clientcommon.User, error) {
+	loginType := user.LoginType
+	token := user.Token
+
+	return musicclient.CreateUserFromToken(token, loginType)
 }
 
 // checks if a room can still be processed, by checking if every user in the room can have a client created for them

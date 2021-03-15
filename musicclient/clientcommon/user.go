@@ -9,7 +9,7 @@ import (
 )
 
 // Define a user cache so that we don't recreate clients all the time
-var userCache = cache.New(10 * time.Minute, 20 * time.Minute)
+var userCache = cache.New(10 * time.Minute, 10 * time.Minute)
 
 type UserInfos struct {
 	Id       string `json:"id" bson:"_id"`

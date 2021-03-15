@@ -5,7 +5,6 @@ import (
 	"github.com/shared-spotify/app"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/mongoclient"
-	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,11 +21,6 @@ func UpdateUnprocessedRoom(room *app.Room) error {
 	mongoRoom := MongoUnprocessedRoom{Room: room}
 
 	upsert := true
-
-	// TODO: delete
-	if room.Owner.Token == "" {
-		panic("bug found!")
-	}
 
 	insertResult, err := mongoclient.GetDatabase().Collection(unprocessedRoomCollection).ReplaceOne(
 		context.TODO(),
@@ -68,41 +62,9 @@ func GetUnprocessedRoom(roomId string) (*app.Room, error) {
 
 	room := mongoRoom.Room
 
-	owner, err := recreateUserWithClient(room.Owner)
-
-	if err != nil {
-		logger.Logger.Error("Failed to recreate client for owner ", err)
-		return nil, err
-	}
-
-	room.Owner = owner
-
-	usersWithClients := make([]*clientcommon.User, 0)
-	users := room.Users
-
-	for _, user := range users {
-		newUser, err := recreateUserWithClient(user)
-
-		if err != nil {
-			logger.Logger.Error("Failed to recreate client for user ", err)
-			return nil, err
-		}
-
-		usersWithClients = append(usersWithClients, newUser)
-	}
-
-	room.Users = usersWithClients
-
 	logger.Logger.Infof("Fetched unprocessed room %s successfully", roomId)
 
 	return room, err
-}
-
-func recreateUserWithClient(user *clientcommon.User) (*clientcommon.User, error) {
-	loginType := user.LoginType
-	token := user.Token
-
-	return musicclient.CreateUserFromToken(token, loginType)
 }
 
 func DeleteUnprocessedRoom(roomId string) error {
