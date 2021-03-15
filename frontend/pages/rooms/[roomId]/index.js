@@ -15,8 +15,8 @@ import CustomModal from "../../../components/CustomModal";
 import setState from "../../../utils/stateUtils";
 import Footer from "../../../components/Footer";
 
-// const GENERAL_REFRESH_TIMEOUT = 10000;  // 10s
-const REFRESH_TIMEOUT_PLAYLIST_CREATION = 2000;  // 2s
+const GENERAL_REFRESH_TIMEOUT = 20000;  // 20s
+const REFRESH_TIMEOUT_PLAYLIST_CREATION = 4000;  // 4s
 
 const MIN_USERS_TO_SHARE = 2;
 
@@ -109,8 +109,7 @@ export default function Room() {
     timeout = null;  // do not refresh when the room is not found
 
   } else if (!room.shared_music_library) {
-    // timeout = GENERAL_REFRESH_TIMEOUT
-    timeout = null;  // do not refresh if processing not started
+    timeout = GENERAL_REFRESH_TIMEOUT
 
   } else if (room.shared_music_library.processing_status.success == null) {
     // Force a refresh of the page while we are processing the musics more often to get the progress
