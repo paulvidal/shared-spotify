@@ -270,7 +270,7 @@ func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullT
 		clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeSearch, false, err)
 
 		if err != nil {
-			logger.WithUser(user.GetUserId()).Error("Failed to query track by isrc on spotify ", err)
+			logger.WithUser(user.GetUserId()).Warning("Failed to query track by isrc on spotify ", err)
 			continue
 		}
 
@@ -285,7 +285,7 @@ func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullT
 			clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeSearch, false, err)
 
 			if err != nil {
-				logger.WithUser(user.GetUserId()).Error("Failed to query track by isrc on spotify ", err)
+				logger.WithUser(user.GetUserId()).Warning("Failed to query track by isrc on spotify ", err)
 				continue
 			}
 
