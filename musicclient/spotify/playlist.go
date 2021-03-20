@@ -50,9 +50,14 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			return nil, err
 		}
 
-		logger.WithUser(user.GetUserId()).Infof("Add %d tracks to Playlist '%s' successfully created for user %s",
-			upperBound-i, playlistName, user.GetUserId())
+		logger.
+			WithUser(user.GetUserId()).
+			Debugf("Add %d tracks to Playlist '%s' successfully created for user %s", upperBound-i, playlistName, user.GetUserId())
 	}
+
+	logger.
+		WithUser(user.GetUserId()).
+		Infof("Added %d tracks to playlist %s for user", len(trackIds), playlistName)
 
 	// get the spotify link to the playlist so we return it
 	externalLink, ok := fullPlaylist.ExternalURLs[spotifyExternalLinkName]

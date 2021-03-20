@@ -140,9 +140,14 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			return nil, err
 		}
 
-		logger.WithUser(user.GetUserId()).Infof("Add %d tracks to Playlist '%s' successfully created for user %s",
-			upperBound-i, playlistName, user.GetUserId())
+		logger.
+			WithUser(user.GetUserId()).
+			Debugf("Add %d tracks to Playlist '%s' successfully created for user %s", upperBound-i, playlistName, user.GetUserId())
 	}
+
+	logger.
+		WithUser(user.GetUserId()).
+		Infof("Added %d tracks to playlist %s for user", len(tracksToAdd), playlistName)
 
 	// FIXME: we cannot get straight way the public link to the playlist as apple indexes it later
 	//   for this reason, we can only redirect the user at best to is apple music library where he will find the playlist
