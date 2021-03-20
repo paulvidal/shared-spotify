@@ -109,8 +109,6 @@ func updateRoom(room *app.Room) error {
 	return err
 }
 
-// TODO(mongo): what do we do when this updates fails, currently we just leave the room so user
-//   would have duplicated rooms
 func deleteRoomNotProcessed(room *app.Room) error {
 	err := mongoclientapp.DeleteUnprocessedRoom(room.Id)
 
@@ -122,29 +120,47 @@ func deleteRoomNotProcessed(room *app.Room) error {
 }
 
 func getRoom(roomId string) (*app.Room, error) {
-	// we check if a room not processed exists first, and we use it if it exists
-	room, err := mongoclientapp.GetUnprocessedRoom(roomId)
+	unprocessedRoom, unprocessedRoomErr := mongoclientapp.GetUnprocessedRoom(roomId)
+	room, roomErr := mongoclientapp.GetRoom(roomId)
 
-	if err != nil && err != mongoclientapp.NotFound {
-		logger.Logger.Error("Failed to query unprocessed rooms ", err)
-		return nil, failedToGetRoom
+	// we make a check to see if do not have the same room unprocessed and processed
+	if unprocessedRoom != nil && room != nil {
+		logger.WithRoom(roomId).Warning("Found unprocessed room with processed room, deleting unprocessed one")
+
+		// remove unprocessed room that was not removed before
+		err := deleteRoomNotProcessed(unprocessedRoom)
+
+		if err != nil {
+			logger.WithRoom(roomId).Error("Failed to delete duplicate rooms unprocessed and processed ", err)
+			return nil, failedToGetRoom
+		}
+
+		logger.WithRoom(roomId).Warningf("Successfully deleted unprocessed room that had processed room")
+
+		return room, nil
+	}
+
+	if unprocessedRoom != nil {
+		return unprocessedRoom, nil
 	}
 
 	if room != nil {
 		return room, nil
 	}
 
-	room, err = mongoclientapp.GetRoom(roomId)
-
-	if err == mongoclientapp.NotFound {
+	if unprocessedRoomErr == mongoclientapp.NotFound && roomErr == mongoclientapp.NotFound {
 		return nil, roomDoesNotExistError
 	}
 
-	if err != nil {
-		return nil, failedToGetRoom
+	if unprocessedRoomErr != nil {
+		logger.WithRoom(roomId).Error("Failed to query unprocessed rooms ", unprocessedRoomErr)
 	}
 
-	return room, nil
+	if roomErr != nil {
+		logger.WithRoom(roomId).Error("Failed to query rooms ", roomErr)
+	}
+
+	return nil, failedToGetRoom
 }
 
 func getRoomAndCheckUser(roomId string, r *http.Request) (*app.Room, *clientcommon.User, error) {
