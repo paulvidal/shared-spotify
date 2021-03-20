@@ -16,6 +16,12 @@ import (
 	"time"
 )
 
+// perform all shutdown operations here
+func Shutdown()  {
+	// Cancel all processing here
+	app.CancelAll()
+}
+
 /*
   Room playlists handler
 */
@@ -130,10 +136,14 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 	// we now process the library of the users (all this is done async)
 	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.GetUserIds())
 
-	ctx, _ := context.WithTimeout(context.Background(), app.TimeoutRoomProcessing)
+	ctx, cancel := context.WithTimeout(context.Background(), app.TimeoutRoomProcessing)
 
 	err = room.MusicLibrary.Process(room, func(success bool) {
-		updateRoomNotProcessed(room, success) // callback function
+		// callback function
+		updateRoomNotProcessed(room, success)
+
+		// remove the cancel as room is done processing
+		app.RemoveCancel(roomId)
 
 	}, func() error {
 		// we update the last time checkpoint
@@ -147,6 +157,9 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 		handleError(processingLaunchError, w, r, user)
 		return
 	}
+
+	// add the cancel function for the room in case we need to shutdown processing
+	app.AddCancel(roomId, cancel)
 
 	httputils.SendOk(w)
 }

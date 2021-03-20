@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
@@ -147,4 +148,28 @@ func (room *Room) IsExpired() bool {
 	}
 
 	return false
+}
+
+/**
+  Room processing
+ */
+
+var cancels = make(map[string]context.CancelFunc)
+
+func AddCancel(roomId string, cancel context.CancelFunc) {
+	cancels[roomId] = cancel
+}
+
+func RemoveCancel(roomId string) {
+	delete(cancels, roomId)
+}
+
+func CancelAll() {
+	for roomId, cancel := range cancels {
+		logger.Logger.Warningf("Cancelling processing room_id=%s", roomId)
+		cancel()
+	}
+
+	// reinitialise the map to be sure we never call cancel twice
+	cancels = make(map[string]context.CancelFunc)
 }

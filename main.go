@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/gorilla/handlers"
 	"github.com/rs/cors"
 	"github.com/shared-spotify/api"
@@ -17,6 +18,8 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -24,6 +27,11 @@ var Port = os.Getenv("PORT")
 var ReleaseVersion = os.Getenv("HEROKU_RELEASE_VERSION")
 
 const Service = "shared-spotify-backend"
+
+var srv *http.Server
+
+// Allows us to wait for all connection to be closed
+var idleConnsClosed = make(chan struct{})
 
 func startServer() {
 	logger.Logger.Warning("Starting server")
@@ -64,23 +72,49 @@ func startServer() {
 		handlers.PrintRecoveryStack(true),
 	)(handler)
 
-	// Close tracer and profiler in case server is shut down
-	defer tracer.Stop()
-	defer profiler.Stop()
-
 	// Launch the server
-	s := &http.Server{
+	srv = &http.Server{
 		Addr: ":" + Port,
 		Handler: handler,
 		ReadTimeout:  60 * time.Second,
 		WriteTimeout: 100 * time.Second,
 		IdleTimeout:  1200 * time.Second,
 	}
-	err := s.ListenAndServe()
+	err := srv.ListenAndServe()
 
-	if err != nil {
+	if err != http.ErrServerClosed {
 		logger.Logger.Fatal("Failed to start server ", err)
 	}
+
+	<-idleConnsClosed
+}
+
+func RegisterGracefulShutdown() {
+	go func() {
+		sigterm := make(chan os.Signal, 1)
+		signal.Notify(sigterm, os.Interrupt, syscall.SIGTERM)
+		<-sigterm
+
+		logger.Logger.Warningf("Shutting down gracefully...")
+
+		// close all api resources
+		logger.Logger.Warningf("Shutting down api...")
+		api.Shutdown()
+
+		// Close tracer and profiler
+		logger.Logger.Warningf("Shutting down tracer and profiler...")
+		tracer.Stop()
+		profiler.Stop()
+
+		// Shutdown the server
+		logger.Logger.Warningf("Shutting down server...")
+		if err := srv.Shutdown(context.Background()); err != nil {
+			logger.Logger.Errorf("Got an error when shutting down server: %+v", err)
+		}
+		close(idleConnsClosed)
+
+		logger.Logger.Warningf("Server has gracefully shutdown")
+	}()
 }
 
 func connectToMongo() {
@@ -132,5 +166,7 @@ func main() {
 		startMetricClient()
 	}
 	connectToMongo()
+
+	RegisterGracefulShutdown()
 	startServer()
 }
