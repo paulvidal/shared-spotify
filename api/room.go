@@ -109,8 +109,9 @@ func updateRoom(room *app.Room) error {
 	return err
 }
 
+// TODO(mongo): what do we do when this updates fails, currently we just leave the room so user
+//   would have duplicated rooms
 func deleteRoomNotProcessed(room *app.Room) error {
-	// TODO(mongo): what do we do when this updates fails
 	err := mongoclientapp.DeleteUnprocessedRoom(room.Id)
 
 	if err != nil {

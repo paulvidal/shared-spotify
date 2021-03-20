@@ -36,7 +36,7 @@ func UpdateUnprocessedRoom(room *app.Room) error {
 		return err
 	}
 
-	logger.Logger.Info("Unprocessed Room was updated successfully in mongo ",
+	logger.Logger.Info("Unprocessed room was updated successfully in mongo ",
 		insertResult.UpsertedCount + insertResult.ModifiedCount)
 
 	return nil

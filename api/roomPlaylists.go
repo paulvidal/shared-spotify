@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shared-spotify/app"
@@ -128,7 +129,10 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 
 	// we now process the library of the users (all this is done async)
 	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.GetUserIds())
-	err = room.MusicLibrary.Process(room.Users, func(success bool) {
+
+	ctx, _ := context.WithTimeout(context.Background(), app.TimeoutRoomProcessing)
+
+	err = room.MusicLibrary.Process(room, func(success bool) {
 		updateRoomNotProcessed(room, success) // callback function
 
 	}, func() error {
@@ -136,7 +140,7 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 		room.MusicLibrary.ProcessingStatus.CheckpointTime = time.Now()
 
 		return updateRoom(room)
-	})
+	}, ctx)
 
 	if err != nil {
 		logger.WithUser(user.GetUserId()).Errorf("Failed to launch processing %s %+v", roomId, err)
