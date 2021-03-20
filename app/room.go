@@ -166,7 +166,7 @@ func RemoveCancel(roomId string) {
 
 func CancelAll() {
 	for roomId, cancel := range cancels {
-		logger.Logger.Warningf("Cancelling processing room_id=%s", roomId)
+		logger.WithRoom(roomId).Warning("Cancelling processing for room")
 		cancel()
 	}
 

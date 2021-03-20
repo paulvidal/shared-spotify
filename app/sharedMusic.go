@@ -145,11 +145,12 @@ func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(room *Room, user *clie
 	tracks, err := musicclient.GetAllSongs(user)
 
 	if err != nil {
-		logger.WithUser(user.GetUserId()).Errorf("Failed to fetch all songs for user %s room_id=%s %v",
-			user.GetUserId(), room.Id, err)
+		logger.WithUserAndRoom(user.GetUserId(), room.Id).
+			WithError(err).
+			Error("Failed to fetch all songs for user")
 	} else {
-		logger.WithUser(user.GetUserId()).Infof("Fetching songs for user %s finished successfully with %d"+
-			" tracks found", user.GetUserId(), len(tracks))
+		logger.WithUserAndRoom(user.GetUserId(), room.Id).
+			Infof("Fetching songs for user finished successfully with %d tracks found", len(tracks))
 	}
 
 	// We send in the channel the result after processing the music for this user
@@ -161,9 +162,9 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 	// Recovery for the goroutine
 	defer func() {
 		if err := recover(); err != nil {
-			logger.Logger.Errorf(
-				"An unknown error happened while adding song and finding common songs room_id=%s - error %s \n%s",
-				room.Id, err, string(debug.Stack()))
+			logger.WithRoom(room.Id).Errorf(
+				"An unknown error happened while adding song and finding common songs - error %s \n%s",
+				err, string(debug.Stack()))
 
 			// we notify that the processing is over
 			notifyProcessingOver(false)
@@ -210,8 +211,9 @@ func (musicLibrary *SharedMusicLibrary) getUserMusic(room *Room, success *bool, 
 			logger.WithUser(user.GetUserId()).Info("Received music fetching result for user")
 
 			if musicProcessingResult.Error != nil {
-				logger.WithUser(user.GetUserId()).Errorf("Music fetching failed for user room_id=%s %+v",
-					room.Id, musicProcessingResult.Error)
+				logger.WithUserAndRoom(user.GetUserId(), room.Id).
+					WithError(musicProcessingResult.Error).
+					Error("Music fetching failed for user")
 				*success = false
 				return
 
@@ -232,7 +234,7 @@ func (musicLibrary *SharedMusicLibrary) getUserMusic(room *Room, success *bool, 
 
 		// this happens if processing takes too much time
 		case <-ctx.Done():
-			logger.Logger.Errorf("Music fetching timeout room_id=%s", room.Id)
+			logger.WithRoom(room.Id).Error("Music fetching timeout")
 			*success = false
 			return
 		}
@@ -251,7 +253,7 @@ func (musicLibrary *SharedMusicLibrary) processUserMusic(room *Room, success *bo
 		}
 
 	case <-ctx.Done():
-		logger.Logger.Errorf("Music processing timeout room_id=%s", room.Id)
+		logger.WithRoom(room.Id).Error("Music processing timeout")
 		*success = false
 	}
 }
@@ -260,9 +262,10 @@ func (musicLibrary *SharedMusicLibrary) generatePlaylists(room *Room) {
 	// Recovery for the goroutine
 	defer func() {
 		if err := recover(); err != nil {
-			logger.Logger.Errorf(
-				"An unknown error happened while generating playlists room_id=%s - error %s \n%s",
-				room.Id, err, string(debug.Stack()))
+			logger.
+				WithRoom(room.Id).
+				Errorf("An unknown error happened while generating playlists - error %s \n%s",
+				err, string(debug.Stack()))
 			musicLibrary.MusicProcessingChannel <- MusicProcessingResult{errors.New("Unknown error")}
 		}
 	}()
@@ -271,7 +274,10 @@ func (musicLibrary *SharedMusicLibrary) generatePlaylists(room *Room) {
 	err := musicLibrary.CommonPlaylists.GeneratePlaylists()
 
 	if err != nil {
-		logger.Logger.Errorf("An error when generating playlists occurred room_id=%s %+v", room.Id, err)
+		logger.
+			WithRoom(room.Id).
+			WithError(err).
+			Error("An error when generating playlists occurred")
 	}
 
 	musicLibrary.MusicProcessingChannel <- MusicProcessingResult{err}
