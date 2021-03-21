@@ -152,7 +152,7 @@ func (playlists *CommonPlaylists) addTracks(user *clientcommon.User, tracks []*s
 		trackISCR, ok := clientcommon.GetTrackISRC(track)
 
 		if !ok {
-			logger.WithUser(user.GetUserId()).Error("ISRC does not exist, track=", track)
+			logger.WithUser(user.GetUserId()).Warning("ISRC does not exist, track=", track)
 			continue
 		}
 

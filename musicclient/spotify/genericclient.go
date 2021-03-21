@@ -30,27 +30,27 @@ func (c *GenericClient) GetClient() (*spotify.Client, error) {
 
 	// if the the client is older than expiration time or does not exist, change it
 	if c.Client == nil {
-		c.TimeCreatedAt = &timeNow
 		client, err := CreateGenericClient(c.ClientId, c.ClientSecret)
 
 		if err != nil {
-			logger.Logger.Warning("Failed to create first time generic client ", err)
+			logger.Logger.Warning("Failed to create first time generic client %s %+v", c.ClientId, err)
 			return nil, err
 		}
 
+		c.TimeCreatedAt = &timeNow
 		c.Client = client
 
 		logger.Logger.Warningf("Creating spotify generic client with client id %s", c.ClientId)
 
 	} else if timeNow.After(c.TimeCreatedAt.Add(expirationTime)) {
-		c.TimeCreatedAt = &timeNow
 		client, err := CreateGenericClient(c.ClientId, c.ClientSecret)
 
 		if err != nil {
-			logger.Logger.Warning("Failed to re-create generic client after expiration ", err)
+			logger.Logger.Warningf("Failed to re-create generic client after expiration %s %+v", c.ClientId, err)
 			return nil, err
 		}
 
+		c.TimeCreatedAt = &timeNow
 		c.Client = client
 
 		logger.Logger.Warningf("Refreshing expired spotify generic client with client id %s", c.ClientId)
