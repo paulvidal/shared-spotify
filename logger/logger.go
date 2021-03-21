@@ -49,3 +49,16 @@ func WithUser(userId string) *logrus.Entry {
 		"user": userId,
 	})
 }
+
+func WithRoom(roomId string) *logrus.Entry {
+	return Logger.WithFields(logrus.Fields{
+		"room_id": roomId,
+	})
+}
+
+func WithUserAndRoom(userId string, roomId string) *logrus.Entry {
+	return Logger.WithFields(logrus.Fields{
+		"user": userId,
+		"room_id": roomId,
+	})
+}

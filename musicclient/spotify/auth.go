@@ -7,6 +7,7 @@ import (
 	"fmt"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/shared-spotify/datadog"
+	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/shared-spotify/utils"
 	"golang.org/x/oauth2"
@@ -20,8 +21,8 @@ import (
 	"github.com/zmb3/spotify"
 )
 
-// Cache 100 states max
-var states, _ = lru.New(100)
+// Cache 1000 states max
+var states, _ = lru.New(1000)
 
 var ClientId = os.Getenv("CLIENT_ID")
 var ClientSecret = os.Getenv("CLIENT_SECRET_KEY")
@@ -33,6 +34,7 @@ var CallbackUrl = fmt.Sprintf("%s/callback", clientcommon.BackendUrl)
 var auth = spotify.NewAuthenticator(
 	CallbackUrl,
 	spotify.ScopeUserReadPrivate,
+	spotify.ScopeUserReadEmail,
 	spotify.ScopePlaylistReadPrivate,
 	spotify.ScopePlaylistReadCollaborative,
 	spotify.ScopePlaylistModifyPrivate,
@@ -44,7 +46,7 @@ func init() {
 	auth.SetAuthInfo(ClientId, ClientSecret)
 }
 
-func CreateUserFromToken(token *oauth2.Token) (*clientcommon.User, error) {
+func CreateUserFromToken(token *oauth2.Token, tokenStr string) (*clientcommon.User, error) {
 	client := auth.NewClient(token)
 	client.AutoRetry = true // enable auto retries when rate limited
 
@@ -59,18 +61,24 @@ func CreateUserFromToken(token *oauth2.Token) (*clientcommon.User, error) {
 
 	userInfos := toUserInfos(privateUser)
 
-	return &clientcommon.User{UserInfos: &userInfos, SpotifyClient: &client}, nil
+	return &clientcommon.User{
+		UserInfos:     &userInfos,
+		SpotifyClient: &client,
+		LoginType:     clientcommon.SpotifyLoginType,
+		Token:         tokenStr,
+	}, nil
 }
 
 func toUserInfos(user *spotify.PrivateUser) clientcommon.UserInfos {
 	displayName := user.DisplayName
+	email := user.Email
 	var image string
 
 	if user.Images != nil && len(user.Images) > 0 {
 		image = user.Images[0].URL
 	}
 
-	return clientcommon.UserInfos{Id: user.ID, Name: displayName, ImageUrl: image}
+	return clientcommon.UserInfos{Id: user.ID, Name: displayName, ImageUrl: image, Email: email}
 }
 
 func Authenticate(w http.ResponseWriter, r *http.Request) {
@@ -149,16 +157,23 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, loginTypeCookie)
 
+	// Add the users to the database if we can, but don't fail as we will add him otherwise at another time
+	// for example when the room is processed
+	user, err := CreateUserFromToken(token, cookie.Value)
+	if err == nil {
+		_ = mongoclient.InsertUsers([]*clientcommon.User{user})
+	}
+
 	logger.Logger.Info("Redirecting to ", redirectUrl)
 	datadog.Increment(1, datadog.UserLoginSuccess, datadog.Provider.Tag(datadog.SpotifyProvider))
 
 	http.Redirect(w, r, redirectUrl.(string), http.StatusFound)
 }
 
-func DecryptToken(tokenCookie *http.Cookie) (*oauth2.Token, error) {
+func DecryptToken(tokenStr string) (*oauth2.Token, error) {
 	var token oauth2.Token
 
-	base64JsonToken, err := base64.StdEncoding.DecodeString(tokenCookie.Value)
+	base64JsonToken, err := base64.StdEncoding.DecodeString(tokenStr)
 
 	if err != nil {
 		logger.Logger.Error("Failed to decode base64 token ", err)

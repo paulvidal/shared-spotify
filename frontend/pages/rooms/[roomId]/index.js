@@ -15,8 +15,8 @@ import CustomModal from "../../../components/CustomModal";
 import setState from "../../../utils/stateUtils";
 import Footer from "../../../components/Footer";
 
-// const GENERAL_REFRESH_TIMEOUT = 10000;  // 10s
-const REFRESH_TIMEOUT_PLAYLIST_CREATION = 2000;  // 2s
+const GENERAL_REFRESH_TIMEOUT = 20000;  // 20s
+const REFRESH_TIMEOUT_PLAYLIST_CREATION = 4000;  // 4s
 
 const MIN_USERS_TO_SHARE = 2;
 
@@ -39,7 +39,8 @@ export default function Room() {
     refreshing: false,
     errorRefresh: false,
     loading: true,
-    showConfirmationModal: false
+    showConfirmationModal: false,
+    launchingProcessing: false,
   });
 
   const refresh = () => {
@@ -79,6 +80,7 @@ export default function Room() {
 
   const fetchMusics = () => {
     hideModal()
+    setState(setRoom, {launchingProcessing: true})
 
     axiosClient.post(getUrl('/rooms/' + roomId + '/playlists'))
       .then(resp => {
@@ -86,6 +88,8 @@ export default function Room() {
       })
       .catch(error => {
         showErrorToastWithError("Failed to find common musics", error, router)
+      }).finally(() => {
+        setState(setRoom, {launchingProcessing: false})
       })
   }
 
@@ -105,8 +109,7 @@ export default function Room() {
     timeout = null;  // do not refresh when the room is not found
 
   } else if (!room.shared_music_library) {
-    // timeout = GENERAL_REFRESH_TIMEOUT
-    timeout = null;  // do not refresh if processing not started
+    timeout = GENERAL_REFRESH_TIMEOUT
 
   } else if (room.shared_music_library.processing_status.success == null) {
     // Force a refresh of the page while we are processing the musics more often to get the progress
@@ -144,7 +147,14 @@ export default function Room() {
 
   let button;
 
-  if (room.shared_music_library == null) {
+  if (room.launchingProcessing) {
+    button = (
+      <Button variant="warning" size="lg" className="mt-2 mb-2" disabled>
+        <Spinner variant="dark" animation="border" className="mr-2"/> Starting search...
+      </Button>
+    )
+
+  } else if (room.shared_music_library == null) {
 
     if (room.users.length >= MIN_USERS_TO_SHARE) {
 

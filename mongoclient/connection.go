@@ -11,6 +11,7 @@ import (
 	mongotrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/go.mongodb.org/mongo-driver/mongo"
 	"os"
 	"reflect"
+	"time"
 )
 
 var MongoClient *mongo.Client
@@ -39,6 +40,10 @@ func Initialise() {
 							RegisterDefaultEncoder(reflect.Struct, structcodec).
 							Build(),
 		).
+		// Add timeouts
+		SetServerSelectionTimeout(10 * time.Second).
+		SetConnectTimeout(10 * time.Second).
+		SetSocketTimeout(10 * time.Second).
 		SetMonitor(mongotrace.NewMonitor(mongotrace.WithAnalytics(true))) // enable tracing of mongo calls
 
 	// Connect to MongoDB
