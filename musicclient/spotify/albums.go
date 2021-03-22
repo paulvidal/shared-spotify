@@ -67,7 +67,7 @@ func GetAlbums(tracks []*spotify.FullTrack) (map[string]*spotify.FullAlbum, erro
 		}
 
 		albums = append(albums, albumsPart...)
-		logger.Logger.Infof("Fetched %d albums successfully", upperBound-i)
+		logger.Logger.Debugf("Fetched %d albums successfully", upperBound-i)
 	}
 
 	for _, album := range albums {

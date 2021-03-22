@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"github.com/jinzhu/copier"
 	"github.com/shared-spotify/app"
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/logger"
@@ -56,6 +57,23 @@ func InsertRoom(room *app.Room) error {
 	// we insert the room
 	mongoPlaylists := convertPlaylistsToMongoPlaylists(playlists, room)
 
+	// IMPORTANT: we remove the tokens to not introduce them in long term storage once the processing is over
+	roomOwner, errOwner := recreateUsersWithoutToken([]*clientcommon.User{room.Owner})
+	roomUsers, errUsers := recreateUsersWithoutToken(room.Users)
+
+	if errOwner != nil  {
+		logger.Logger.Error("An error occurred while copying users to remove token ", errOwner)
+		return errOwner
+	}
+
+	if errUsers != nil {
+		logger.Logger.Error("An error occurred while copying users to remove token ", errUsers)
+		return errUsers
+	}
+
+	room.Owner = roomOwner[0]
+	room.Users = roomUsers
+
 	mongoRoom := MongoRoom{
 		room,
 		mongoPlaylists,
@@ -71,6 +89,24 @@ func InsertRoom(room *app.Room) error {
 	logger.Logger.Info("Room was inserted successfully in mongo ", insertResult.InsertedID)
 
 	return nil
+}
+
+// we prevent introducing in the database for the processed rooms the user tokens (even if they are encrypted)
+func recreateUsersWithoutToken(users []*clientcommon.User) ([]*clientcommon.User, error) {
+	newUsers := make([]*clientcommon.User, 0)
+
+	// copy as we don't want ot alter users, which should be immutable
+	err := copier.Copy(&newUsers, &users)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, user := range newUsers {
+		user.Token = ""
+	}
+
+	return newUsers, nil
 }
 
 func GetRoom(roomId string) (*app.Room, error) {

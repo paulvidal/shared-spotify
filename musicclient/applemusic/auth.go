@@ -53,7 +53,8 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add the user in mongo if it did not exist
-	mongoUser := &clientcommon.User{UserInfos: &clientcommon.UserInfos{Id: user.UserId, Name: user.UserName}}
+	mongoUser := &clientcommon.User{UserInfos: &clientcommon.UserInfos{Id: user.UserId, Name: user.UserName,
+		Email: user.UserEmail}, LoginType: clientcommon.AppleMusicLoginType}
 	err = mongoclient.InsertUsers([]*clientcommon.User{mongoUser})
 
 	if err != nil {
@@ -86,7 +87,14 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		musickitToken,
 		musicKitUserToken}
 
-	_, err := CreateUserFromToken(&appleLogin)
+	cookie, err := EncryptToken(&appleLogin)
+	if err != nil {
+		logger.Logger.Error("Failed to set token", err)
+		http.Error(w, "Failed to set token", http.StatusBadRequest)
+		return
+	}
+
+	_, err = CreateUserFromToken(&appleLogin, cookie.Value)
 
 	if err != nil {
 		logger.Logger.Error("Failed to authenticate user with apple music ", err)
@@ -95,12 +103,6 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add the token as an encrypted cookie
-	cookie, err := EncryptToken(&appleLogin)
-	if err != nil {
-		logger.Logger.Error("Failed to set token", err)
-		http.Error(w, "Failed to set token", http.StatusBadRequest)
-		return
-	}
 	http.SetCookie(w, cookie)
 
 	// Add the login type cookie name
@@ -125,8 +127,9 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirect, http.StatusFound)
 }
 
-func CreateUserFromToken(appleLogin *AppleLogin) (*clientcommon.User, error) {
-	userInfos := clientcommon.UserInfos{Id: appleLogin.UserId, Name: appleLogin.UserName, ImageUrl: ""}
+func CreateUserFromToken(appleLogin *AppleLogin, tokenStr string) (*clientcommon.User, error) {
+	userInfos := clientcommon.UserInfos{Id: appleLogin.UserId, Name: appleLogin.UserName, ImageUrl: "",
+		Email: appleLogin.UserEmail}
 
 	// Create the apple music client
 	tp := applemusic.Transport{Token: appleLogin.MusickitToken, MusicUserToken: appleLogin.MusicKitUserToken}
@@ -154,7 +157,13 @@ func CreateUserFromToken(appleLogin *AppleLogin) (*clientcommon.User, error) {
 		return nil, err
 	}
 
-	user := &clientcommon.User{UserInfos: &userInfos, SpotifyClient: spotifyClient, AppleMusicClient: appleMusicClient}
+	user := &clientcommon.User{
+		UserInfos:        &userInfos,
+		SpotifyClient:    spotifyClient,
+		AppleMusicClient: appleMusicClient,
+		LoginType:        clientcommon.AppleMusicLoginType,
+		Token:            tokenStr,
+	}
 
 	// Get the name for the user
 	users, err := mongoclient.GetUsers([]string{user.GetId()})
@@ -235,10 +244,10 @@ func EncryptToken(appleLogin *AppleLogin) (*http.Cookie, error) {
 	return &cookie, nil
 }
 
-func DecryptToken(tokenCookie *http.Cookie) (*AppleLogin, error) {
+func DecryptToken(tokenStr string) (*AppleLogin, error) {
 	var appleLogin AppleLogin
 
-	base64JsonToken, err := base64.StdEncoding.DecodeString(tokenCookie.Value)
+	base64JsonToken, err := base64.StdEncoding.DecodeString(tokenStr)
 
 	if err != nil {
 		logger.Logger.Error("Failed to decode base64 apple token ", err)

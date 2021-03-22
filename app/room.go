@@ -1,6 +1,9 @@
 package app
 
 import (
+	"context"
+	"github.com/shared-spotify/logger"
+	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"time"
 )
@@ -73,10 +76,100 @@ func (room *Room) HasRoomBeenProcessed() bool {
 	return room.MusicLibrary != nil && room.MusicLibrary.HasProcessingFinished()
 }
 
+func (room *Room) HasRoomBeenProcessedSuccessfully() bool {
+	return room.MusicLibrary != nil && room.MusicLibrary.HasProcessingSucceeded()
+}
+
+func (room *Room) HasProcessingTimedOut() bool {
+	return room.MusicLibrary != nil && room.MusicLibrary.HasTimedOut()
+}
+
 func (room *Room) GetPlaylists() map[string]*Playlist {
 	return room.MusicLibrary.CommonPlaylists.Playlists
 }
 
 func (room *Room) SetPlaylists(playlists map[string]*Playlist) {
 	room.MusicLibrary.CommonPlaylists = &CommonPlaylists{Playlists: playlists}
+}
+
+func (room *Room) ResetMusicLibrary() {
+	room.MusicLibrary = nil
+}
+
+func (room *Room) RecreateClients() error {
+	owner, err := recreateUserWithClient(room.Owner)
+
+	if err != nil {
+		logger.Logger.Error("Failed to recreate client for owner ", err)
+		return err
+	}
+
+	room.Owner = owner
+
+	usersWithClients := make([]*clientcommon.User, 0)
+	users := room.Users
+
+	for _, user := range users {
+		newUser, err := recreateUserWithClient(user)
+
+		if err != nil {
+			logger.Logger.Error("Failed to recreate client for user ", err)
+			return err
+		}
+
+		usersWithClients = append(usersWithClients, newUser)
+	}
+
+	room.Users = usersWithClients
+
+	return nil
+}
+
+func recreateUserWithClient(user *clientcommon.User) (*clientcommon.User, error) {
+	loginType := user.LoginType
+	token := user.Token
+
+	return musicclient.CreateUserFromToken(token, loginType)
+}
+
+// checks if a room can still be processed, by checking if every user in the room can have a client created for them
+// if a client cannot be created, it means the user must have revoqued its token
+func (room *Room) IsExpired() bool {
+	if room.HasRoomBeenProcessedSuccessfully() {
+		return false
+	}
+
+	for _, user := range room.Users {
+		_, err := musicclient.CreateUserFromToken(user.Token, user.LoginType)
+
+		if err != nil {
+			return true
+		}
+	}
+
+	return false
+}
+
+/**
+  Room processing
+ */
+
+var cancels = make(map[string]context.CancelFunc)
+
+func AddCancel(roomId string, cancel context.CancelFunc) {
+	cancels[roomId] = cancel
+}
+
+func RemoveCancel(roomId string) {
+	delete(cancels, roomId)
+}
+
+func CancelAll() {
+	for roomId, cancel := range cancels {
+		logger.WithRoom(roomId).Warning("Cancelling processing for room")
+		cancel()
+	}
+
+	// reinitialise the map to be sure we never call cancel twice
+	cancels = make(map[string]context.CancelFunc)
 }

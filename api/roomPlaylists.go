@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shared-spotify/app"
@@ -12,7 +13,14 @@ import (
 	"github.com/thoas/go-funk"
 	"github.com/zmb3/spotify"
 	"net/http"
+	"time"
 )
+
+// perform all shutdown operations here
+func Shutdown()  {
+	// Cancel all processing here
+	app.CancelAll()
+}
 
 /*
   Room playlists handler
@@ -83,6 +91,26 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if room.IsExpired() {
+		datadog.Increment(1, datadog.RoomExpired,
+			datadog.UserIdTag.Tag(user.GetId()),
+			datadog.RoomIdTag.Tag(roomId),
+			datadog.RoomNameTag.Tag(room.Name),
+		)
+		logger.WithUser(user.GetUserId()).Errorf("Room %s declared as expired %+v", roomId, err)
+		handleError(roomExpiredError, w, r, user)
+		return
+	}
+
+	// we re-create all the clients for the room
+	err = room.RecreateClients()
+
+	if err != nil {
+		logger.WithUser(user.GetUserId()).Error("Failed to recreate clients when fetching common musics ", err)
+		handleError(roomExpiredError, w, r, user)
+		return
+	}
+
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to find the playlists for room %s",
 		user.GetUserId(), roomId)
 
@@ -97,11 +125,41 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 	// we create the music library
 	room.MusicLibrary = app.CreateSharedMusicLibrary(len(room.Users))
 
+	err = updateRoom(room)
+
+	if err != nil {
+		logger.WithUser(user.GetUserId()).Errorf("Failed to update room %s %+v", roomId, err)
+		handleError(processingLaunchError, w, r, user)
+		return
+	}
+
 	// we now process the library of the users (all this is done async)
 	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.GetUserIds())
-	room.MusicLibrary.Process(room.Users, func(success bool) {
-		updateRoomNotProcessed(room, success) // callback function
-	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), app.TimeoutRoomProcessing)
+
+	err = room.MusicLibrary.Process(room, func(success bool) {
+		// callback function
+		updateRoomNotProcessed(room, success)
+
+		// remove the cancel as room is done processing
+		app.RemoveCancel(roomId)
+
+	}, func() error {
+		// we update the last time checkpoint
+		room.MusicLibrary.ProcessingStatus.CheckpointTime = time.Now()
+
+		return updateRoom(room)
+	}, ctx)
+
+	if err != nil {
+		logger.WithUser(user.GetUserId()).Errorf("Failed to launch processing %s %+v", roomId, err)
+		handleError(processingLaunchError, w, r, user)
+		return
+	}
+
+	// add the cancel function for the room in case we need to shutdown processing
+	app.AddCancel(roomId, cancel)
 
 	httputils.SendOk(w)
 }

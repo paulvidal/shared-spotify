@@ -66,7 +66,7 @@ func getSavedSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) {
 	logger.WithUser(user.GetUserId()).Infof("Playlist has %d total tracks for user", savedTrackPage.Total)
 
 	for page := 1; ; page++ {
-		logger.WithUser(user.GetUserId()).Infof("Page %d has %d tracks for user", page, len(savedTrackPage.Tracks))
+		logger.WithUser(user.GetUserId()).Debugf("Page %d has %d tracks for user", page, len(savedTrackPage.Tracks))
 
 		// Transform all the SavedTrack into FullTrack and add them to the list
 		for _, savedTrack := range savedTrackPage.Tracks {
@@ -115,7 +115,7 @@ func getAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) 
 	logger.WithUser(user.GetUserId()).Infof("User has %d total playlists for user", simplePlaylistPage.Total)
 
 	for page := 1; ; page++ {
-		logger.WithUser(user.GetUserId()).Infof("Page %d has %d playlists for user", page, len(simplePlaylistPage.Playlists))
+		logger.WithUser(user.GetUserId()).Debugf("Page %d has %d playlists for user", page, len(simplePlaylistPage.Playlists))
 
 		// For each playlist, get the associated tracks
 		for _, simplePlaylist := range simplePlaylistPage.Playlists {
@@ -139,7 +139,7 @@ func getAllPlaylistSongs(user *clientcommon.User) ([]*spotify.FullTrack, error) 
 				return nil, err
 			}
 
-			logger.WithUser(user.GetUserId()).Infof("Got %d tracks from playlist %s for user", len(tracks), playlistId)
+			logger.WithUser(user.GetUserId()).Debugf("Got %d tracks from playlist %s for user", len(tracks), playlistId)
 
 			allTracks = append(allTracks, tracks...)
 		}
@@ -183,7 +183,7 @@ func getSongsForPlaylist(user *clientcommon.User, playlistId string) ([]*spotify
 	logger.WithUser(user.GetUserId()).Infof("Playlist %s has %d total tracks for user", playlistId, playlistTrackPage.Total)
 
 	for page := 1; ; page++ {
-		logger.WithUser(user.GetUserId()).Infof("Page %d has %d tracks for playlist %s for user", page,
+		logger.WithUser(user.GetUserId()).Debugf("Page %d has %d tracks for playlist %s for user", page,
 			len(playlistTrackPage.Tracks), playlistId)
 
 		// Transform all the PlaylistTrack into FullTrack and add them to the list
@@ -270,12 +270,12 @@ func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullT
 		clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeSearch, false, err)
 
 		if err != nil {
-			logger.WithUser(user.GetUserId()).Error("Failed to query track by isrc on spotify ", err)
+			logger.WithUser(user.GetUserId()).Warning("Failed to query track by isrc on spotify ", err)
 			continue
 		}
 
 		if len(results.Tracks.Tracks) == 0 {
-			logger.WithUser(user.GetUserId()).Infof("No track found on spotify for isrc: %s, " +
+			logger.WithUser(user.GetUserId()).Debugf("No track found on spotify for isrc: %s, " +
 				"retrying with country code", isrc)
 
 			// we retry the same search query, with country code
@@ -285,7 +285,7 @@ func GetTrackForISRCs(user *clientcommon.User, isrcs []string) ([]*spotify.FullT
 			clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypeSearch, false, err)
 
 			if err != nil {
-				logger.WithUser(user.GetUserId()).Error("Failed to query track by isrc on spotify ", err)
+				logger.WithUser(user.GetUserId()).Warning("Failed to query track by isrc on spotify ", err)
 				continue
 			}
 

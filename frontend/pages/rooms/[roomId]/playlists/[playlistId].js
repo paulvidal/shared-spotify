@@ -401,7 +401,7 @@ export default function Playlist() {
 
       <Form className="mt-3">
         {range(playlist.minSharedCountLimit, playlist.maxSharedCountLimit + 1).reverse().map(count => {
-          if (playlist.tracks_per_shared_count[count].length === 0) {
+          if (!playlist.tracks_per_shared_count[count] || playlist.tracks_per_shared_count[count].length === 0) {
             return null
           }
 
