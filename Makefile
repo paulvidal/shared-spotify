@@ -7,7 +7,13 @@ front:
 	yarn --cwd frontend dev
 
 mongo:
-	mongod --config /usr/local/etc/mongod.conf --replSet rs
+	mongod --config /usr/local/etc/mongod.conf --bind_ip_all
 
 connect:
 	mongo spotify
+
+docker-build:
+	docker build -t sharedspotify .
+
+docker-run:
+	docker run -p 8080:8080 --env-file .docker.env sharedspotify

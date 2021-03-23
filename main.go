@@ -39,6 +39,8 @@ func startServer() {
 	// Create the router
 	r := muxtrace.NewRouter()
 
+	r.HandleFunc("/health", api.Health)
+
 	r.HandleFunc("/login", spotify.Authenticate)
 	r.HandleFunc("/logout", musicclient.Logout)
 
