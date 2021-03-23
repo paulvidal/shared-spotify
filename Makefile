@@ -13,7 +13,7 @@ connect:
 	mongo spotify
 
 docker-build:
-	docker build -t shared-spotify .
+	docker build -t sharedspotify .
 
 docker-run:
-	docker run -p 8080:8080 --env-file .docker.env shared-spotify
+	docker run -p 8080:8080 --env-file .docker.env sharedspotify
