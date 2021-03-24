@@ -1,6 +1,7 @@
 package musicclient
 
 import (
+	"context"
 	"errors"
 	"github.com/shared-spotify/datadog"
 	"github.com/shared-spotify/httputils"
@@ -9,6 +10,7 @@ import (
 	"github.com/shared-spotify/musicclient/clientcommon"
 	spotifyclient "github.com/shared-spotify/musicclient/spotify"
 	"github.com/zmb3/spotify"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"net/http"
 )
 
@@ -69,6 +71,9 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateUserFromRequest(r *http.Request) (*clientcommon.User, error) {
+	span, ctx := tracer.StartSpanFromContext(r.Context(), "create.user.from.request")
+	defer span.Finish()
+
 	loginTypeCookie, err := r.Cookie(clientcommon.LoginTypeCookieName)
 
 	if err != nil {
@@ -85,12 +90,17 @@ func CreateUserFromRequest(r *http.Request) (*clientcommon.User, error) {
 		return nil, errors.New(errMsg)
 	}
 
-	return CreateUserFromToken(tokenCookie.Value, loginTypeCookie.Value)
+	return CreateUserFromToken(tokenCookie.Value, loginTypeCookie.Value, ctx)
 }
 
-func CreateUserFromToken(token string, loginType string) (*clientcommon.User, error) {
+func CreateUserFromToken(token string, loginType string, ctx context.Context) (*clientcommon.User, error) {
+	span, _ := tracer.StartSpanFromContext(ctx, "create.user.from.cache")
+	defer span.Finish()
+
 	if token == "" {
-		return nil, errors.New("no token provided for user")
+		err := errors.New("no token provided for user")
+		span.Finish(tracer.WithError(err))
+		return nil, err
 	}
 
 	// try to use our local user cache
@@ -99,27 +109,33 @@ func CreateUserFromToken(token string, loginType string) (*clientcommon.User, er
 	}
 
 	if loginType == clientcommon.SpotifyLoginType {
+		span.SetOperationName("create.user.from.spotify_token")
 		user, err := createUserFromTokenSpotify(token)
 
 		if user != nil {
 			clientcommon.AddUserToCache(token, user)
 		}
 
+		span.Finish(tracer.WithError(err))
 		return user, err
 
 	} else if loginType == clientcommon.AppleMusicLoginType {
+		span.SetOperationName("create.user.from.apple_token")
 		user, err := createUserFromTokenAppleMusic(token)
 
 		if user != nil {
 			clientcommon.AddUserToCache(token, user)
 		}
 
+		span.Finish(tracer.WithError(err))
 		return user, err
 
 	} else {
-		msg := "Unknown token login type, found " + token
+		msg := "Unknown token login type, found " + loginType
+		err := errors.New(msg)
 		logger.Logger.Warning(msg)
-		return nil, errors.New(msg)
+		span.Finish(tracer.WithError(err))
+		return nil, err
 	}
 }
 

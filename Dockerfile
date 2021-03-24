@@ -1,4 +1,4 @@
-FROM golang:1.15-alpine
+FROM 379869159800.dkr.ecr.eu-west-1.amazonaws.com/golang:1.15-alpine
 
 RUN apk add --no-cache git
 
