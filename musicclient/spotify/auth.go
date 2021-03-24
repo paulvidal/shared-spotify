@@ -246,11 +246,6 @@ func EncryptToken(token *oauth2.Token) (*http.Cookie, error) {
 	return &cookie, nil
 }
 
-// we return the same client as the one used by our app for authentication, not the same as a generic client
-func AuthenticatedGenericClient() (*spotify.Client, error) {
-	return GetSpotifyGenericClient()
-}
-
 func CreateGenericClient(clientId string, clientSecret string) (*spotify.Client, error) {
 	config := &clientcredentials.Config{
 		ClientID:     clientId,

@@ -11,7 +11,6 @@ import (
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/mongoclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
-	spotifyclient "github.com/shared-spotify/musicclient/spotify"
 	"github.com/shared-spotify/utils"
 	"net/http"
 	"net/url"
@@ -149,17 +148,8 @@ func CreateUserFromToken(appleLogin *AppleLogin, tokenStr string) (*clientcommon
 		return nil, err
 	}
 
-	// Create the generic spotify client
-	spotifyClient, err := spotifyclient.AuthenticatedGenericClient()
-
-	if err != nil {
-		logger.Logger.Error("Failed to get a spotify authenticated generic client ", err)
-		return nil, err
-	}
-
 	user := &clientcommon.User{
 		UserInfos:        &userInfos,
-		SpotifyClient:    spotifyClient,
 		AppleMusicClient: appleMusicClient,
 		LoginType:        clientcommon.AppleMusicLoginType,
 		Token:            tokenStr,
