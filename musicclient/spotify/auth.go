@@ -78,7 +78,7 @@ func toUserInfos(user *spotify.PrivateUser) clientcommon.UserInfos {
 		image = user.Images[0].URL
 	}
 
-	return clientcommon.UserInfos{Id: user.ID, Name: displayName, ImageUrl: image, Email: email}
+	return clientcommon.UserInfos{Id: user.ID, Name: displayName, ImageUrl: image, Email: email, JoinDate: time.Now()}
 }
 
 func Authenticate(w http.ResponseWriter, r *http.Request) {

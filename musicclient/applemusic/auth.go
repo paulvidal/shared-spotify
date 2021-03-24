@@ -53,7 +53,7 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Add the user in mongo if it did not exist
 	mongoUser := &clientcommon.User{UserInfos: &clientcommon.UserInfos{Id: user.UserId, Name: user.UserName,
-		Email: user.UserEmail}, LoginType: clientcommon.AppleMusicLoginType}
+		Email: user.UserEmail, JoinDate: time.Now()}, LoginType: clientcommon.AppleMusicLoginType}
 	err = mongoclient.InsertUsers([]*clientcommon.User{mongoUser})
 
 	if err != nil {
@@ -128,7 +128,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 func CreateUserFromToken(appleLogin *AppleLogin, tokenStr string) (*clientcommon.User, error) {
 	userInfos := clientcommon.UserInfos{Id: appleLogin.UserId, Name: appleLogin.UserName, ImageUrl: "",
-		Email: appleLogin.UserEmail}
+		Email: appleLogin.UserEmail, JoinDate: time.Now()}
 
 	// Create the apple music client
 	tp := applemusic.Transport{Token: appleLogin.MusickitToken, MusicUserToken: appleLogin.MusicKitUserToken}

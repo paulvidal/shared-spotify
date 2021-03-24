@@ -16,6 +16,7 @@ type UserInfos struct {
 	Name     string `json:"name"`
 	ImageUrl string `json:"image"`
 	Email    string `json:"-" bson:"email"`
+	JoinDate time.Time `json:"-" bson:"join_date"`
 }
 
 type User struct {
