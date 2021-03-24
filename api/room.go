@@ -240,7 +240,7 @@ func GetRooms(w http.ResponseWriter, r *http.Request) {
 
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to get rooms", user.GetUserId())
 
-	rooms, err := mongoclientapp.GetRoomsForUser(user)
+	rooms, err := mongoclientapp.GetRoomsForUser(user, r.Context())
 
 	if err != nil {
 		handleError(failedToGetRooms, w, r, user)

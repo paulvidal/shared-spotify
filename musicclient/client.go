@@ -9,6 +9,7 @@ import (
 	"github.com/shared-spotify/musicclient/clientcommon"
 	spotifyclient "github.com/shared-spotify/musicclient/spotify"
 	"github.com/zmb3/spotify"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"net/http"
 )
 
@@ -69,6 +70,9 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateUserFromRequest(r *http.Request) (*clientcommon.User, error) {
+	span, _ := tracer.StartSpanFromContext(r.Context(), "create.user.from_requests")
+	defer span.Finish()
+
 	loginTypeCookie, err := r.Cookie(clientcommon.LoginTypeCookieName)
 
 	if err != nil {
