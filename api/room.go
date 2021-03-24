@@ -231,6 +231,7 @@ func RoomsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetRooms(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	user, err := musicclient.CreateUserFromRequest(r)
 
 	if err != nil {
@@ -248,7 +249,7 @@ func GetRooms(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// we add to these rooms the not processed yet rooms
-	unprocessedRooms, err := mongoclientapp.GetUnprocessedRoomsForUser(user)
+	unprocessedRooms, err := mongoclientapp.GetUnprocessedRoomsForUser(user, ctx)
 
 	if err != nil {
 		handleError(failedToGetRooms, w, r, user)

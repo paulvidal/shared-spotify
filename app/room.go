@@ -129,7 +129,7 @@ func recreateUserWithClient(user *clientcommon.User) (*clientcommon.User, error)
 	loginType := user.LoginType
 	token := user.Token
 
-	return musicclient.CreateUserFromToken(token, loginType)
+	return musicclient.CreateUserFromToken(token, loginType, nil)
 }
 
 // checks if a room can still be processed, by checking if every user in the room can have a client created for them
@@ -140,7 +140,7 @@ func (room *Room) IsExpired() bool {
 	}
 
 	for _, user := range room.Users {
-		_, err := musicclient.CreateUserFromToken(user.Token, user.LoginType)
+		_, err := musicclient.CreateUserFromToken(user.Token, user.LoginType, nil)
 
 		if err != nil {
 			return true

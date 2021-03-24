@@ -85,7 +85,7 @@ func DeleteUnprocessedRoom(roomId string) error {
 	return nil
 }
 
-func GetUnprocessedRoomsForUser(user *clientcommon.User) ([]*app.Room, error) {
+func GetUnprocessedRoomsForUser(user *clientcommon.User, ctx context.Context) ([]*app.Room, error) {
 	mongoRooms := make([]*MongoUnprocessedRoom, 0)
 	rooms := make([]*app.Room, 0)
 
@@ -94,14 +94,14 @@ func GetUnprocessedRoomsForUser(user *clientcommon.User) ([]*app.Room, error) {
 		user.GetId(),
 	}}
 
-	cursor, err := mongoclient.GetDatabase().Collection(unprocessedRoomCollection).Find(context.TODO(), filter)
+	cursor, err := mongoclient.GetDatabase().Collection(unprocessedRoomCollection).Find(ctx, filter)
 
 	if err != nil {
 		logger.Logger.Error("Failed to find unprocessed rooms for user in mongo ", err)
 		return nil, err
 	}
 
-	err = cursor.All(context.TODO(), &mongoRooms)
+	err = cursor.All(ctx, &mongoRooms)
 
 	if err != nil {
 		logger.Logger.Error("Failed to find unprocessed rooms for user in mongo ", err)
