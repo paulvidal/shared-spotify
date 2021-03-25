@@ -111,7 +111,7 @@ func RegisterGracefulShutdown() {
 		// Shutdown the server
 		logger.Logger.Warningf("Shutting down server...")
 		if err := srv.Shutdown(context.Background()); err != nil {
-			logger.Logger.Errorf("Got an error when shutting down server: %+v", err)
+			logger.Logger.Errorf("Got an error when shutting down server: %v", err)
 		}
 		close(idleConnsClosed)
 

@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 const trackCollection = "tracks"
@@ -17,7 +18,10 @@ type MongoTrack struct {
 	*spotify.FullTrack `bson:"inline"`
 }
 
-func InsertTracks(tracks []*spotify.FullTrack) error {
+func InsertTracks(tracks []*spotify.FullTrack, ctx context.Context) error {
+	span, ctx := tracer.StartSpanFromContext(ctx, "mongo.tracks.insert")
+	defer span.Finish()
+
 	tracksToInsert := make([]MongoTrack, 0)
 
 	if len(tracks) == 0 {
@@ -30,19 +34,19 @@ func InsertTracks(tracks []*spotify.FullTrack) error {
 	}
 
 	// We do a mongo transaction as we want all the documents to be inserted at once
-	ctx := context.Background()
-
 	mongoSession, err := MongoClient.StartSession()
 
 	if err != nil {
-		logger.Logger.Error("Failed to start mongo session to insert track ", err)
+		span.Finish(tracer.WithError(err))
+		logger.Logger.Errorf("Failed to start mongo session to insert track %v %v", err, span)
 		return err
 	}
 
 	err = mongoSession.StartTransaction()
 
 	if err != nil {
-		logger.Logger.Error("Failed to start mongo transaction to insert tracks ", err)
+		span.Finish(tracer.WithError(err))
+		logger.Logger.Errorf("Failed to start mongo transaction to insert tracks %v %v", err, span)
 		return err
 	}
 
@@ -64,14 +68,16 @@ func InsertTracks(tracks []*spotify.FullTrack) error {
 			ctx, writes, &options.BulkWriteOptions{Ordered: &ordered})
 
 		if err != nil {
-			logger.Logger.Error("Failed to insert tracks in mongo ", err)
+			span.Finish(tracer.WithError(err))
+			logger.Logger.Errorf("Failed to insert tracks in mongo %v %v", err, span)
 			return err
 		}
 
 		err = mongoSession.CommitTransaction(ctx)
 
 		if err != nil {
-			logger.Logger.Error("Failed to commit mongo transaction to insert tracks ", err)
+			span.Finish(tracer.WithError(err))
+			logger.Logger.Error("Failed to commit mongo transaction to insert tracks %v %v", err, span)
 			return err
 		}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/zmb3/spotify"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 const roomCollection = "rooms"
@@ -30,11 +31,14 @@ type MongoPlaylist struct {
 	Users                  map[string]*clientcommon.User `bson:"users"`
 }
 
-func InsertRoom(room *app.Room) error {
+func InsertRoom(room *app.Room, ctx context.Context) error {
+	span, ctx := tracer.StartSpanFromContext(ctx, "mongo.room.insert")
+	defer span.Finish()
+
 	playlists := room.GetPlaylists()
 
 	// we insert the users
-	err := mongoclient.InsertUsers(room.Users)
+	err := mongoclient.InsertUsersWithCtx(room.Users, ctx)
 
 	newUserCount := len(room.Users)
 	datadog.Increment(newUserCount, datadog.RoomUsers,
@@ -43,14 +47,16 @@ func InsertRoom(room *app.Room) error {
 	)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		return err
 	}
 
 	// we insert the tracks
 	tracks := getAllTracksForPlaylists(playlists)
-	err = mongoclient.InsertTracks(tracks)
+	err = mongoclient.InsertTracks(tracks, ctx)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		return err
 	}
 
@@ -62,12 +68,14 @@ func InsertRoom(room *app.Room) error {
 	roomUsers, errUsers := recreateUsersWithoutToken(room.Users)
 
 	if errOwner != nil  {
-		logger.Logger.Error("An error occurred while copying users to remove token ", errOwner)
+		span.Finish(tracer.WithError(err))
+		logger.Logger.Errorf("An error occurred while copying users to remove token %v %v", errOwner, span)
 		return errOwner
 	}
 
 	if errUsers != nil {
-		logger.Logger.Error("An error occurred while copying users to remove token ", errUsers)
+		span.Finish(tracer.WithError(err))
+		logger.Logger.Errorf("An error occurred while copying users to remove token %v %v", errUsers, span)
 		return errUsers
 	}
 
@@ -79,14 +87,15 @@ func InsertRoom(room *app.Room) error {
 		mongoPlaylists,
 	}
 
-	insertResult, err := mongoclient.GetDatabase().Collection(roomCollection).InsertOne(context.TODO(), mongoRoom)
+	insertResult, err := mongoclient.GetDatabase().Collection(roomCollection).InsertOne(ctx, mongoRoom)
 
 	if err != nil {
-		logger.Logger.Error("Failed to insert room in mongo ", err)
+		span.Finish(tracer.WithError(err))
+		logger.Logger.Errorf("Failed to insert room in mongo %v %v", err, span)
 		return err
 	}
 
-	logger.Logger.Info("Room was inserted successfully in mongo ", insertResult.InsertedID)
+	logger.Logger.Infof("Room was inserted successfully in mongo %v %v", insertResult.InsertedID, span)
 
 	return nil
 }
@@ -109,7 +118,7 @@ func recreateUsersWithoutToken(users []*clientcommon.User) ([]*clientcommon.User
 	return newUsers, nil
 }
 
-func GetRoom(roomId string) (*app.Room, error) {
+func GetRoom(roomId string, ctx context.Context) (*app.Room, error) {
 	var mongoRoom MongoRoom
 
 	filter := bson.D{{
@@ -117,7 +126,7 @@ func GetRoom(roomId string) (*app.Room, error) {
 		roomId,
 	}}
 
-	err := mongoclient.GetDatabase().Collection(roomCollection).FindOne(context.TODO(), filter).Decode(&mongoRoom)
+	err := mongoclient.GetDatabase().Collection(roomCollection).FindOne(ctx, filter).Decode(&mongoRoom)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {

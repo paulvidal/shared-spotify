@@ -33,7 +33,7 @@ func (c *GenericClient) GetClient() (*spotify.Client, error) {
 		client, err := CreateGenericClient(c.ClientId, c.ClientSecret)
 
 		if err != nil {
-			logger.Logger.Warning("Failed to create first time generic client %s %+v", c.ClientId, err)
+			logger.Logger.Warning("Failed to create first time generic client %s %v", c.ClientId, err)
 			return nil, err
 		}
 
@@ -46,7 +46,7 @@ func (c *GenericClient) GetClient() (*spotify.Client, error) {
 		client, err := CreateGenericClient(c.ClientId, c.ClientSecret)
 
 		if err != nil {
-			logger.Logger.Warningf("Failed to re-create generic client after expiration %s %+v", c.ClientId, err)
+			logger.Logger.Warningf("Failed to re-create generic client after expiration %s %v", c.ClientId, err)
 			return nil, err
 		}
 
@@ -66,7 +66,7 @@ func init() {
 
 	if err != nil {
 		logger.Logger.Fatalf(
-			"SPOTIFY_GENERIC_CLIENT_CREDENTIALS env var not well formed, found %s, %+v",
+			"SPOTIFY_GENERIC_CLIENT_CREDENTIALS env var not well formed, found %s, %v",
 			genericClientsCredentials,
 			err)
 	}
@@ -104,7 +104,7 @@ func GetSpotifyGenericClient() (*spotify.Client, error) {
 		}
 
 		retry += 1
-		logger.Logger.Warningf("Failed to create generic client, retrying with retry count=%d, %+v", retry, err)
+		logger.Logger.Warningf("Failed to create generic client, retrying with retry count=%d, %v", retry, err)
 	}
 
 	logger.Logger.Errorf("Failed to get a generic client after %d retries", retryCreation)
