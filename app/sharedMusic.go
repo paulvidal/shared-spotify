@@ -7,6 +7,7 @@ import (
 	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"runtime/debug"
 	"time"
 )
@@ -101,16 +102,18 @@ func CreateSharedMusicLibrary(totalUsers int) *SharedMusicLibrary {
 */
 
 // Will process the common library and find all the common songs
-func (musicLibrary *SharedMusicLibrary) Process(room *Room, notifyProcessingOver func(success bool),
-	saveMusicLibrary func() error, ctx context.Context) error {
-	logger.Logger.Infof("Starting processing of room for all users")
+func (musicLibrary *SharedMusicLibrary) Process(room *Room, notifyProcessingOver func(bool, context.Context),
+	saveMusicLibrary func(ctx context.Context) error, ctx context.Context) error {
+	span, _ := tracer.SpanFromContext(ctx)
+
+	logger.Logger.Infof("Starting processing of room for all users %v", span)
 
 	// We mark the processing status as started
 	musicLibrary.ProcessingStatus.Started = true
-	err := saveMusicLibrary()
+	err := saveMusicLibrary(ctx)
 
 	if err != nil {
-		logger.Logger.Error("Failed to save processing started ", err)
+		logger.Logger.Errorf("Failed to save processing started %v %v", err, span)
 		return err
 	}
 
@@ -119,38 +122,49 @@ func (musicLibrary *SharedMusicLibrary) Process(room *Room, notifyProcessingOver
 
 	for _, user := range room.Users {
 		// launch one routine per user to fetch all the songs
-		logger.WithUser(user.GetUserId()).Infof("Launching processing for user %s", user.GetUserId())
+		logger.WithUser(user.GetUserId()).Infof("Launching processing for user %v", span)
 		go musicLibrary.fetchSongsForUser(room, user, ctx)
 	}
 
 	// launch a single routine to wait for the songs from users, add them to the library and the fidn the most commons
-	logger.Logger.Infof("Launching processing gatherer of information")
+	logger.Logger.Infof("Launching processing gatherer of information %v", span)
 	go musicLibrary.addSongsToLibraryAndFindMostCommonSongs(room, notifyProcessingOver, saveMusicLibrary, ctx)
 
 	return nil
 }
 
 func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(room *Room, user *clientcommon.User, ctx context.Context) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "room.process.fetch.songs")
+	defer span.Finish()
+	span.SetTag("user", user.GetUserId())
+	span.SetTag("room_id", room.Id)
+
 	// Recovery for the goroutine
 	defer func() {
 		if err := recover(); err != nil {
-			logger.WithUser(user.GetUserId()).Errorf("An unknown error happened while fetching song for "+
-				"user %s - error: %s \n%s", user.GetUserId(), err, string(debug.Stack()))
-			musicLibrary.MusicFetchingChannel <- MusicFetchingResult{user, nil, errors.New("Unknown error")}
+			err := err.(error)
+			logger.
+				WithUser(user.GetUserId()).
+				WithError(err).
+				Errorf("An unknown error happened while fetching song for user %s \n%s %v",
+					user.GetUserId(), string(debug.Stack()), span)
+			musicLibrary.MusicFetchingChannel <- MusicFetchingResult{user, nil, err}
+			span.Finish(tracer.WithError(err))
 		}
 	}()
 
-	logger.WithUser(user.GetUserId()).Infof("Fetching songs for user %s", user.GetUserId())
+	logger.WithUser(user.GetUserId()).Infof("Fetching songs for user %v", span)
 
 	tracks, err := musicclient.GetAllSongs(user)
 
 	if err != nil {
 		logger.WithUserAndRoom(user.GetUserId(), room.Id).
 			WithError(err).
-			Error("Failed to fetch all songs for user")
+			Error("Failed to fetch all songs for user %v", span)
+		span.Finish(tracer.WithError(err))
 	} else {
 		logger.WithUserAndRoom(user.GetUserId(), room.Id).
-			Infof("Fetching songs for user finished successfully with %d tracks found", len(tracks))
+			Infof("Fetching songs for user finished successfully with %d tracks found %v", len(tracks), span)
 	}
 
 	// We send in the channel the result after processing the music for this user
@@ -158,27 +172,36 @@ func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(room *Room, user *clie
 }
 
 func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(room *Room,
-	notifyProcessingOver func(success bool), saveMusicLibrary func() error, ctx context.Context) {
+	notifyProcessingOver func(bool, context.Context), saveMusicLibrary func(context.Context) error, ctx context.Context) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "room.process.find.common_songs")
+	defer span.Finish()
+	span.SetTag("room_id", room.Id)
+
 	// Recovery for the goroutine
 	defer func() {
 		if err := recover(); err != nil {
-			logger.WithRoom(room.Id).Errorf(
-				"An unknown error happened while adding song and finding common songs - error %s \n%s",
-				err, string(debug.Stack()))
+			err := err.(error)
+			logger.
+				WithRoom(room.Id).
+				WithError(err).
+				Errorf("An unknown error happened while adding song and finding common songs \n%s %v",
+					string(debug.Stack()), span)
 
 			// we notify that the processing is over
-			notifyProcessingOver(false)
+			notifyProcessingOver(false, ctx)
+
+			span.Finish(tracer.WithError(err))
 		}
 	}()
 
-	logger.Logger.Infof("Starting to wait for music processing results")
+	logger.Logger.Infof("Starting to wait for music processing results %v", span)
 
 	success := true
 
 	// Fetch all the music for each user, setting the success result on success/failure
 	musicLibrary.getUserMusic(room, &success, saveMusicLibrary, ctx)
 
-	logger.Logger.Infof("All music fetching results received - success=%t", success)
+	logger.Logger.Infof("All music fetching results received - success=%t %v", success, span)
 
 	if success {
 		musicLibrary.processUserMusic(room, &success, ctx)
@@ -186,13 +209,13 @@ func (musicLibrary *SharedMusicLibrary) addSongsToLibraryAndFindMostCommonSongs(
 
 	// we add the last step done once all the processing is good
 	musicLibrary.ProcessingStatus.AlreadyProcessed += 1
-	_ = saveMusicLibrary()
+	_ = saveMusicLibrary(ctx)
 
 	// we notify that the processing is over
-	notifyProcessingOver(success)
+	notifyProcessingOver(success, ctx)
 }
 
-func (musicLibrary *SharedMusicLibrary) getUserMusic(room *Room, success *bool, saveMusicLibrary func() error,
+func (musicLibrary *SharedMusicLibrary) getUserMusic(room *Room, success *bool, saveMusicLibrary func(ctx context.Context) error,
 	ctx context.Context) {
 
 	for {
@@ -230,7 +253,7 @@ func (musicLibrary *SharedMusicLibrary) getUserMusic(room *Room, success *bool, 
 			musicLibrary.ProcessingStatus.AlreadyProcessed += 1
 
 			// we mark the change in mongo
-			_ = saveMusicLibrary()
+			_ = saveMusicLibrary(ctx)
 
 		// this happens if processing takes too much time
 		case <-ctx.Done():

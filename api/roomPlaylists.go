@@ -12,6 +12,7 @@ import (
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/thoas/go-funk"
 	"github.com/zmb3/spotify"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"net/http"
 	"time"
 )
@@ -81,40 +82,47 @@ func GetPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 
 // Here, we launch the process of finding the musics for the users in the room
 func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
+	span, ctx := tracer.StartSpanFromContext(r.Context(), "find.playlist.for.room")
+	defer span.Finish()
+
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 
-	room, user, err := getRoomAndCheckUser(roomId, r)
+	room, user, err := getRoomAndCheckUserWithCtx(roomId, r, ctx)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		handleError(err, w, r, user)
 		return
 	}
 
-	if room.IsExpired() {
+	if room.IsExpired(ctx) {
 		datadog.Increment(1, datadog.RoomExpired,
 			datadog.UserIdTag.Tag(user.GetId()),
 			datadog.RoomIdTag.Tag(roomId),
 			datadog.RoomNameTag.Tag(room.Name),
 		)
-		logger.WithUser(user.GetUserId()).Errorf("Room %s declared as expired %+v", roomId, err)
+		logger.WithUser(user.GetUserId()).Errorf("Room %s declared as expired %v %v", roomId, err, span)
+		span.Finish(tracer.WithError(roomExpiredError))
 		handleError(roomExpiredError, w, r, user)
 		return
 	}
 
 	// we re-create all the clients for the room
-	err = room.RecreateClients()
+	err = room.RecreateClients(ctx)
 
 	if err != nil {
-		logger.WithUser(user.GetUserId()).Error("Failed to recreate clients when fetching common musics ", err)
+		span.Finish(tracer.WithError(err))
+		logger.WithUser(user.GetUserId()).Errorf("Failed to recreate clients when fetching common musics %v %v", err, span)
 		handleError(roomExpiredError, w, r, user)
 		return
 	}
 
-	logger.WithUser(user.GetUserId()).Infof("User %s requested to find the playlists for room %s",
-		user.GetUserId(), roomId)
+	logger.WithUser(user.GetUserId()).Infof("User %s requested to find the playlists for room %s %v",
+		user.GetUserId(), roomId, span)
 
 	if room.MusicLibrary != nil && !room.MusicLibrary.HasProcessingFailed() {
+		span.Finish(tracer.WithError(processingInProgressError))
 		handleError(processingInProgressError, w, r, user)
 		return
 	}
@@ -125,35 +133,41 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 	// we create the music library
 	room.MusicLibrary = app.CreateSharedMusicLibrary(len(room.Users))
 
-	err = updateRoom(room)
+	err = updateRoomWithCtx(room, ctx)
 
 	if err != nil {
-		logger.WithUser(user.GetUserId()).Errorf("Failed to update room %s %+v", roomId, err)
+		span.Finish(tracer.WithError(err))
+		logger.WithUser(user.GetUserId()).Errorf("Failed to update room %s %v %v", roomId, err, span)
 		handleError(processingLaunchError, w, r, user)
 		return
 	}
 
 	// we now process the library of the users (all this is done async)
-	logger.Logger.Infof("Starting processing of room %s for users %s", roomId, room.GetUserIds())
+	logger.Logger.Infof("Starting processing of room %s for users %s %v", roomId, room.GetUserIds(), span)
 
-	ctx, cancel := context.WithTimeout(context.Background(), app.TimeoutRoomProcessing)
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), app.TimeoutRoomProcessing)
+	processingSpan, ctxWithTimeout := tracer.StartSpanFromContext(ctxWithTimeout, "room.process")
 
-	err = room.MusicLibrary.Process(room, func(success bool) {
+	err = room.MusicLibrary.Process(room, func(success bool, ctx context.Context) {
 		// callback function
-		updateRoomNotProcessed(room, success)
+		updateRoomNotProcessed(room, success, ctx)
 
 		// remove the cancel as room is done processing
 		app.RemoveCancel(roomId)
 
-	}, func() error {
+		// close the span
+		processingSpan.Finish()
+
+	}, func(ctx context.Context) error {
 		// we update the last time checkpoint
 		room.MusicLibrary.ProcessingStatus.CheckpointTime = time.Now()
 
-		return updateRoom(room)
-	}, ctx)
+		return updateRoomWithCtx(room, ctx)
+	}, ctxWithTimeout)
 
 	if err != nil {
-		logger.WithUser(user.GetUserId()).Errorf("Failed to launch processing %s %+v", roomId, err)
+		span.Finish(tracer.WithError(err))
+		logger.WithUser(user.GetUserId()).Errorf("Failed to launch processing %s %v", roomId, err)
 		handleError(processingLaunchError, w, r, user)
 		return
 	}
@@ -270,7 +284,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.WithUser(user.GetUserId()).Infof("User %s requested to create playlist %s for room %s with user " +
-		"count songs %+v",
+		"count songs %v",
 		user.GetUserId(), playlistId, roomId, addPlaylistRequestBody.SharedUserCount)
 
 	musicLibrary := room.MusicLibrary

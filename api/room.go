@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -12,6 +13,7 @@ import (
 	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/shared-spotify/utils"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"net/http"
 )
 
@@ -40,11 +42,14 @@ func addRoomNotProcessed(room *app.Room) error {
 		datadog.RoomNameTag.Tag(room.Name),
 	)
 
-	return mongoclientapp.UpdateUnprocessedRoom(room)
+	return mongoclientapp.UpdateUnprocessedRoom(room, nil)
 }
 
 // this function should run in a go routine only, so it should be fine to make it panic
-func updateRoomNotProcessed(room *app.Room, success bool) {
+func updateRoomNotProcessed(room *app.Room, success bool, ctx context.Context) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "room.unprocessed.update.callback")
+	defer span.Finish()
+
 	// we set processing result
 	room.MusicLibrary.SetProcessingSuccess(&success)
 
@@ -59,18 +64,19 @@ func updateRoomNotProcessed(room *app.Room, success bool) {
 			datadog.RoomIdTag.Tag(room.Id),
 			datadog.RoomNameTag.Tag(room.Name),
 		)
-		err := updateRoom(room)
+		err := updateRoomWithCtx(room, ctx)
 
 		if err != nil {
+			span.Finish(tracer.WithError(err))
 			logger.Logger.Errorf("Could not update mongo for finished processed room! this is bad, " +
-				"we need to make sure we recover properly for the room ", err)
+				"we need to make sure we recover properly for the room %v %v", err, span)
 		}
 
 		return
 	}
 
 	// we insert the room result in mongo
-	err := mongoclientapp.InsertRoom(room)
+	err := mongoclientapp.InsertRoom(room, ctx)
 
 	if err != nil {
 		// if we fail to insert the result in mongo, we declare processing as failed
@@ -80,17 +86,18 @@ func updateRoomNotProcessed(room *app.Room, success bool) {
 			datadog.RoomIdTag.Tag(room.Id),
 			datadog.RoomNameTag.Tag(room.Name),
 		)
-		err := updateRoom(room)
+		err := updateRoomWithCtx(room, ctx)
 
 		if err != nil {
+			span.Finish(tracer.WithError(err))
 			logger.Logger.Errorf("Could not update mongo for finished processed room! this is bad, " +
-				"we need to make sure we recover properly for the room ", err)
+				"we need to make sure we recover properly for the room %v %v", err, span)
 		}
 
 	} else {
-		// otherwise we delete the room from the rooms being processed
 		// TODO: handle the case where we fail to delete the mongo room
-		deleteRoomNotProcessed(room)
+		// otherwise we delete the room from the rooms being processed
+		_ = deleteRoomNotProcessed(room, ctx)
 
 		datadog.Increment(1, datadog.RoomProcessedCount,
 			datadog.RoomIdTag.Tag(room.Id),
@@ -100,42 +107,58 @@ func updateRoomNotProcessed(room *app.Room, success bool) {
 }
 
 func updateRoom(room *app.Room) error {
-	err := mongoclientapp.UpdateUnprocessedRoom(room)
+	return updateRoomWithCtx(room, nil)
+}
+
+func updateRoomWithCtx(room *app.Room, ctx context.Context) error {
+	span, ctx := tracer.StartSpanFromContext(ctx, "room.unprocessed.update")
+	defer span.Finish()
+
+	err := mongoclientapp.UpdateUnprocessedRoom(room, ctx)
 
 	if err != nil {
-		logger.Logger.Errorf("Failed to set processing status for room %s %+v", room.Id, err)
+		span.Finish(tracer.WithError(err))
+		logger.Logger.Errorf("Failed to set processing status for room %s %v %v", room.Id, err, span)
 	}
 
 	return err
 }
 
-func deleteRoomNotProcessed(room *app.Room) error {
-	err := mongoclientapp.DeleteUnprocessedRoom(room.Id)
+func deleteRoomNotProcessed(room *app.Room, ctx context.Context) error {
+	span, ctx := tracer.StartSpanFromContext(ctx, "room.unprocessed.delete.unprocessed")
+	defer span.Finish()
+
+	err := mongoclientapp.DeleteUnprocessedRoom(room.Id, ctx)
 
 	if err != nil {
-		logger.Logger.Errorf("Failed to delete unprocessed room %s %+v", room.Id, err)
+		span.Finish(tracer.WithError(err))
+		logger.Logger.Errorf("Failed to delete unprocessed room %s %v %v", room.Id, err, span)
 	}
 
 	return err
 }
 
-func getRoom(roomId string) (*app.Room, error) {
-	unprocessedRoom, unprocessedRoomErr := mongoclientapp.GetUnprocessedRoom(roomId)
-	room, roomErr := mongoclientapp.GetRoom(roomId)
+func getRoom(roomId string, ctx context.Context) (*app.Room, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "room.get")
+	defer span.Finish()
+
+	unprocessedRoom, unprocessedRoomErr := mongoclientapp.GetUnprocessedRoom(roomId, ctx)
+	room, roomErr := mongoclientapp.GetRoom(roomId, ctx)
 
 	// we make a check to see if do not have the same room unprocessed and processed
 	if unprocessedRoom != nil && room != nil {
-		logger.WithRoom(roomId).Warning("Found unprocessed room with processed room, deleting unprocessed one")
+		logger.WithRoom(roomId).Warningf("Found unprocessed room with processed room, deleting unprocessed one %v", span)
 
 		// remove unprocessed room that was not removed before
-		err := deleteRoomNotProcessed(unprocessedRoom)
+		err := deleteRoomNotProcessed(unprocessedRoom, ctx)
 
 		if err != nil {
-			logger.WithRoom(roomId).Error("Failed to delete duplicate rooms unprocessed and processed ", err)
+			logger.WithRoom(roomId).Errorf("Failed to delete duplicate rooms unprocessed and processed %v %v", err, span)
+			span.Finish(tracer.WithError(err))
 			return nil, failedToGetRoom
 		}
 
-		logger.WithRoom(roomId).Warningf("Successfully deleted unprocessed room that had processed room")
+		logger.WithRoom(roomId).Warningf("Successfully deleted unprocessed room that had processed room %v", span)
 
 		return room, nil
 	}
@@ -153,30 +176,42 @@ func getRoom(roomId string) (*app.Room, error) {
 	}
 
 	if unprocessedRoomErr != nil {
-		logger.WithRoom(roomId).Error("Failed to query unprocessed rooms ", unprocessedRoomErr)
+		span.Finish(tracer.WithError(unprocessedRoomErr))
+		logger.WithRoom(roomId).Errorf("Failed to query unprocessed rooms %v %v", unprocessedRoomErr, span)
 	}
 
 	if roomErr != nil {
-		logger.WithRoom(roomId).Error("Failed to query rooms ", roomErr)
+		span.Finish(tracer.WithError(roomErr))
+		logger.WithRoom(roomId).Errorf("Failed to query rooms %v %v", roomErr, span)
 	}
 
 	return nil, failedToGetRoom
 }
 
 func getRoomAndCheckUser(roomId string, r *http.Request) (*app.Room, *clientcommon.User, error) {
-	room, err := getRoom(roomId)
+	return getRoomAndCheckUserWithCtx(roomId, r, r.Context())
+}
+
+func getRoomAndCheckUserWithCtx(roomId string, r *http.Request, ctx context.Context) (*app.Room, *clientcommon.User, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "room.get.check_user")
+	defer span.Finish()
+
+	room, err := getRoom(roomId, ctx)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		return nil, nil, err
 	}
 
-	user, err := musicclient.CreateUserFromRequest(r)
+	user, err := musicclient.CreateUserFromRequestWithCtx(r, ctx)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		return nil, nil, authenticationError
 	}
 
 	if !room.IsUserInRoom(user) {
+		span.Finish(tracer.WithError(roomIsNotAccessibleError))
 		return nil, user, roomIsNotAccessibleError
 	}
 
@@ -302,7 +337,7 @@ func CreateRoom(w http.ResponseWriter, r *http.Request) {
 	err = addRoomNotProcessed(room)
 
 	if err != nil {
-		logger.Logger.Errorf("Failed to create room %s %+v", roomId, err)
+		logger.Logger.Errorf("Failed to create room %s %v", roomId, err)
 		handleError(failedToCreateRoom, w, r, user)
 		return
 	}
@@ -381,7 +416,7 @@ func DeleteRoom(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 		// TODO: not ideal, if room is not processed and deleted, it is deleted for ALL users
-		err = deleteRoomNotProcessed(room)
+		err = deleteRoomNotProcessed(room, nil)
 	}
 
 	if err != nil {
@@ -407,9 +442,13 @@ func RoomUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddRoomUser(w http.ResponseWriter, r *http.Request) {
-	user, err := musicclient.CreateUserFromRequest(r)
+	span, ctx := tracer.StartSpanFromContext(r.Context(), "room.add.user")
+	defer span.Finish()
+
+	user, err := musicclient.CreateUserFromRequestWithCtx(r, ctx)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		handleError(authenticationError, w, r, user)
 		return
 	}
@@ -417,9 +456,10 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 
-	room, err := getRoom(roomId)
+	room, err := getRoom(roomId, ctx)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		handleError(err, w, r, user)
 		return
 	}
@@ -433,6 +473,7 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if *room.Locked {
+		span.Finish(tracer.WithError(roomLockedError))
 		handleError(roomLockedError, w, r, user)
 		return
 	}
@@ -442,6 +483,7 @@ func AddRoomUser(w http.ResponseWriter, r *http.Request) {
 	err = updateRoom(room)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		handleError(failedToAddUserToRoom, w, r, user)
 		return
 	}

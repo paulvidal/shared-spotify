@@ -78,7 +78,7 @@ func toUserInfos(user *spotify.PrivateUser) clientcommon.UserInfos {
 		image = user.Images[0].URL
 	}
 
-	return clientcommon.UserInfos{Id: user.ID, Name: displayName, ImageUrl: image, Email: email}
+	return clientcommon.UserInfos{Id: user.ID, Name: displayName, ImageUrl: image, Email: email, JoinDate: time.Now()}
 }
 
 func Authenticate(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +117,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	st := r.FormValue("state")
 	var redirectUrl, ok = states.Get(st)
 
-	logger.Logger.Infof("State is state=%s and states are states=%+v", st, states.Keys())
+	logger.Logger.Infof("State is state=%s and states are states=%v", st, states.Keys())
 
 	// check state exists to prevent csrf attacks
 	if !ok {
@@ -137,7 +137,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// we delete the state entry
 	states.Remove(st)
 
-	logger.Logger.Infof("token is: %+v\n", token)
+	logger.Logger.Infof("token is: %v\n", token)
 
 	// Add the token as an encrypted cookie
 	cookie, err := EncryptToken(token)

@@ -5,6 +5,7 @@ import (
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient"
 	"github.com/shared-spotify/musicclient/clientcommon"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"time"
 )
 
@@ -96,11 +97,15 @@ func (room *Room) ResetMusicLibrary() {
 	room.MusicLibrary = nil
 }
 
-func (room *Room) RecreateClients() error {
+func (room *Room) RecreateClients(ctx context.Context) error {
+	span, ctx := tracer.StartSpanFromContext(ctx, "clients.recreate")
+	defer span.Finish()
+
 	owner, err := recreateUserWithClient(room.Owner)
 
 	if err != nil {
-		logger.Logger.Error("Failed to recreate client for owner ", err)
+		span.Finish(tracer.WithError(err))
+		logger.Logger.Errorf("Failed to recreate client for owner %v %v", err, span)
 		return err
 	}
 
@@ -113,7 +118,8 @@ func (room *Room) RecreateClients() error {
 		newUser, err := recreateUserWithClient(user)
 
 		if err != nil {
-			logger.Logger.Error("Failed to recreate client for user ", err)
+			span.Finish(tracer.WithError(err))
+			logger.Logger.Errorf("Failed to recreate client for user %v %v", err, span)
 			return err
 		}
 
@@ -134,8 +140,12 @@ func recreateUserWithClient(user *clientcommon.User) (*clientcommon.User, error)
 
 // checks if a room can still be processed, by checking if every user in the room can have a client created for them
 // if a client cannot be created, it means the user must have revoqued its token
-func (room *Room) IsExpired() bool {
+func (room *Room) IsExpired(ctx context.Context) bool {
+	span, ctx := tracer.StartSpanFromContext(ctx, "room.is_expired")
+	defer span.Finish()
+
 	if room.HasRoomBeenProcessedSuccessfully() {
+		span.SetTag("expired", false)
 		return false
 	}
 
@@ -143,10 +153,13 @@ func (room *Room) IsExpired() bool {
 		_, err := musicclient.CreateUserFromToken(user.Token, user.LoginType, nil)
 
 		if err != nil {
+			span.SetTag("expired", true)
+			span.Finish(tracer.WithError(err))
 			return true
 		}
 	}
 
+	span.SetTag("expired", false)
 	return false
 }
 

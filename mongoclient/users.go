@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 const userCollection = "users"
@@ -17,6 +18,13 @@ type MongoUser struct {
 }
 
 func InsertUsers(users []*clientcommon.User) error {
+	return InsertUsersWithCtx(users, nil)
+}
+
+func InsertUsersWithCtx(users []*clientcommon.User, ctx context.Context) error {
+	span, ctx := tracer.StartSpanFromContext(ctx, "mongo.users.insert")
+	defer span.Finish()
+
 	usersToInsert := make([]interface{}, 0)
 
 	for _, user := range users {
@@ -24,19 +32,19 @@ func InsertUsers(users []*clientcommon.User) error {
 	}
 
 	// We do a mongo transaction as we want all the documents to be inserted at once
-	ctx := context.Background()
-
 	mongoSession, err := MongoClient.StartSession()
 
 	if err != nil {
-		logger.Logger.Error("Failed to start mongo session to insert users ", err)
+		span.Finish(tracer.WithError(err))
+		logger.Logger.Errorf("Failed to start mongo session to insert users %v %v", err, span)
 		return err
 	}
 
 	err = mongoSession.StartTransaction()
 
 	if err != nil {
-		logger.Logger.Error("Failed to start mongo transaction to insert users ", err)
+		span.Finish(tracer.WithError(err))
+		logger.Logger.Errorf("Failed to start mongo transaction to insert users %v %v", err, span)
 		return err
 	}
 
@@ -51,21 +59,23 @@ func InsertUsers(users []*clientcommon.User) error {
 			&options.InsertManyOptions{Ordered: &ordered})
 
 		if err != nil && !IsOnlyDuplicateError(err) {
-			logger.Logger.Error("Failed to insert users in mongo ", err)
+			span.Finish(tracer.WithError(err))
+			logger.Logger.Errorf("Failed to insert users in mongo %v %v", err, span)
 			return err
 		}
 
 		err = mongoSession.CommitTransaction(ctx)
 
 		if err != nil {
-			logger.Logger.Error("Failed to commit mongo transaction to insert users ", err)
+			span.Finish(tracer.WithError(err))
+			logger.Logger.Errorf("Failed to commit mongo transaction to insert users %v %v", err, span)
 			return err
 		}
 
 		newUsersCount := len(result.InsertedIDs)
 		datadog.Increment(newUsersCount, datadog.UsersNewCount)
 
-		logger.Logger.Info("Users were inserted successfully in mongo ", result.InsertedIDs)
+		logger.Logger.Infof("Users were inserted successfully in mongo %v %v", result.InsertedIDs, span)
 
 		return nil
 	})

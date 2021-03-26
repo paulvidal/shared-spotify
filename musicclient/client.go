@@ -71,7 +71,11 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateUserFromRequest(r *http.Request) (*clientcommon.User, error) {
-	span, ctx := tracer.StartSpanFromContext(r.Context(), "create.user.from.request")
+	return CreateUserFromRequestWithCtx(r, r.Context())
+}
+
+func CreateUserFromRequestWithCtx(r *http.Request, ctx context.Context) (*clientcommon.User, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "create.user.from.request")
 	defer span.Finish()
 
 	loginTypeCookie, err := r.Cookie(clientcommon.LoginTypeCookieName)
@@ -160,7 +164,7 @@ func createUserFromTokenSpotify(tokenStr string) (*clientcommon.User, error) {
 		}
 
 		retry += 1
-		logger.Logger.Warningf("Failed to create user from request, retrying with retry count=%d, %+v", retry, err)
+		logger.Logger.Warningf("Failed to create user from request, retrying with retry count=%d, %v", retry, err)
 	}
 
 	if err != nil {

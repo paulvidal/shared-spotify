@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 const unprocessedRoomCollection = "unprocessed_rooms"
@@ -17,13 +18,16 @@ type MongoUnprocessedRoom struct {
 	*app.Room `bson:"inline"`
 }
 
-func UpdateUnprocessedRoom(room *app.Room) error {
+func UpdateUnprocessedRoom(room *app.Room, ctx context.Context) error {
+	span, ctx := tracer.StartSpanFromContext(ctx, "mongo.room.unprocessed.update")
+	defer span.Finish()
+
 	mongoRoom := MongoUnprocessedRoom{Room: room}
 
 	upsert := true
 
 	insertResult, err := mongoclient.GetDatabase().Collection(unprocessedRoomCollection).ReplaceOne(
-		context.TODO(),
+		ctx,
 		bson.D{{
 			"_id",
 			mongoRoom.Room.Id,
@@ -32,17 +36,18 @@ func UpdateUnprocessedRoom(room *app.Room) error {
 		&options.ReplaceOptions{Upsert: &upsert})
 
 	if err != nil {
-		logger.Logger.Error("Failed to update unprocessed room in mongo ", err)
+		span.Finish(tracer.WithError(err))
+		logger.Logger.Errorf("Failed to update unprocessed room in mongo %v %v", err, span)
 		return err
 	}
 
-	logger.Logger.Info("Unprocessed room was updated successfully in mongo ",
-		insertResult.UpsertedCount + insertResult.ModifiedCount)
+	logger.Logger.Infof("Unprocessed room was updated successfully in mongo %d %v",
+		insertResult.UpsertedCount + insertResult.ModifiedCount, span)
 
 	return nil
 }
 
-func GetUnprocessedRoom(roomId string) (*app.Room, error) {
+func GetUnprocessedRoom(roomId string, ctx context.Context) (*app.Room, error) {
 	var mongoRoom MongoUnprocessedRoom
 
 	filter := bson.D{{
@@ -50,7 +55,7 @@ func GetUnprocessedRoom(roomId string) (*app.Room, error) {
 		roomId,
 	}}
 
-	err := mongoclient.GetDatabase().Collection(unprocessedRoomCollection).FindOne(context.TODO(), filter).Decode(&mongoRoom)
+	err := mongoclient.GetDatabase().Collection(unprocessedRoomCollection).FindOne(ctx, filter).Decode(&mongoRoom)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -67,20 +72,24 @@ func GetUnprocessedRoom(roomId string) (*app.Room, error) {
 	return room, err
 }
 
-func DeleteUnprocessedRoom(roomId string) error {
+func DeleteUnprocessedRoom(roomId string, ctx context.Context) error {
+	span, ctx := tracer.StartSpanFromContext(ctx, "mongo.room.unprocessed.delete")
+	defer span.Finish()
+
 	deleteResult, err := mongoclient.GetDatabase().Collection(unprocessedRoomCollection).DeleteOne(
-		context.TODO(),
+		ctx,
 		bson.D{{
 			"_id",
 			roomId,
 		}})
 
 	if err != nil {
-		logger.Logger.Errorf("Failed to delete unprocessed ropm with id %s %+v", roomId, err)
+		span.Finish(tracer.WithError(err))
+		logger.Logger.Errorf("Failed to delete unprocessed ropm with id %s %v %v", roomId, err, span)
 		return err
 	}
 
-	logger.Logger.Infof("Successfully deleted %d unprocessed room %s", deleteResult.DeletedCount, roomId)
+	logger.Logger.Infof("Successfully deleted %d unprocessed room %s %v", deleteResult.DeletedCount, roomId, span)
 
 	return nil
 }

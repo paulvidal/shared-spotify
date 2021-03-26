@@ -170,7 +170,7 @@ func (playlists *CommonPlaylists) addTracks(user *clientcommon.User, tracks []*s
 			users[0] = user
 		} else {
 			users = append(users, user)
-			logger.Logger.Debugf("Song %s present multiple times %d, id is %s, user is %s, track=%+v",
+			logger.Logger.Debugf("Song %s present multiple times %d, id is %s, user is %s, track=%v",
 				track.Name, len(users), track.ID, user.GetUserId(), track)
 		}
 
