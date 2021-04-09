@@ -225,7 +225,10 @@ func handleError(err error, w http.ResponseWriter, r *http.Request, user *client
 		userId = user.GetUserId()
 	}
 
-	logger.WithUser(userId).Error("Handling error: ", err)
+	logger.
+		WithUser(userId).
+		WithError(err).
+		Errorf("Handling error")
 
 	if err == roomDoesNotExistError {
 		http.Error(w, err.Error(), http.StatusBadRequest)

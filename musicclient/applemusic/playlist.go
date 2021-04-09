@@ -7,18 +7,23 @@ import (
 	"github.com/shared-spotify/logger"
 	"github.com/shared-spotify/musicclient/clientcommon"
 	"github.com/zmb3/spotify"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 const maxISRCPerApiCall = 15
 const maxTrackPerPlaylistAddCall = 100
 
-func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spotify.FullTrack) (*string, error) {
+func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spotify.FullTrack, ctx context.Context) (*string, error) {
+	rootSpan, rootCtx := tracer.StartSpanFromContext(ctx, "playlist.create.applemusic")
+	defer rootSpan.Finish()
+
 	client := user.AppleMusicClient
 
 	// we get the storefront
 	storefront, err := GetStorefront(user)
 
 	if err != nil {
+		rootSpan.Finish(tracer.WithError(err))
 		return nil, err
 	}
 
@@ -37,6 +42,7 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 	}
 
 	// we fetch the songs
+	span, ctx := tracer.StartSpanFromContext(rootCtx, "playlist.create.applemusic.convert")
 	allSongs := make(map[string]*applemusic.Song, 0)
 
 	for i := 0; i < len(tracks); i += maxISRCPerApiCall {
@@ -64,7 +70,11 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			trackIsrcs[i:upperBound])
 
 		if err != nil {
-			logger.WithUser(user.GetUserId()).Error("Failed to get apple songs by id to add to playlist ", err)
+			span.Finish(tracer.WithError(err))
+			logger.
+				WithUser(user.GetUserId()).
+				WithError(err).
+				Errorf("Failed to get apple songs by id to add to playlist %v", span)
 			return nil, err
 		}
 
@@ -90,29 +100,37 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			}
 		}
 
-		logger.Logger.Infof("Fetched %d apple songs successfully to add to playlist", upperBound-i)
+		logger.Logger.Infof("Fetched %d apple songs successfully to add to playlist %v", upperBound-i, span)
 	}
+	span.Finish()
+
+	span, ctx = tracer.StartSpanFromContext(rootCtx, "playlist.create.applemusic.empty")
 
 	playlists, _, err := client.Me.CreateLibraryPlaylist(
-		context.Background(),
+		ctx,
 		applemusic.CreateLibraryPlaylist{
-			applemusic.CreateLibraryPlaylistAttributes{playlistName, clientcommon.PlaylistDescription},
-			nil},
+			Attributes: applemusic.CreateLibraryPlaylistAttributes{Name: playlistName, Description: clientcommon.PlaylistDescription}},
 		nil,
 	)
 
 	clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypePlaylistCreated, true, err)
 
 	if err != nil {
-		logger.WithUser(user.GetUserId()).Error("Failed to created apple music playlist ", err)
+		logger.
+			WithUser(user.GetUserId()).
+			WithError(err).
+			Error("Failed to created apple music playlist %v", span)
+		span.Finish(tracer.WithError(err))
 		return nil, err
 	}
 
 	playlist := playlists.Data[0]
 
-	logger.WithUser(user.GetUserId()).Infof("Playlist '%s' successfully created for user %s", playlistName, user.GetUserId())
+	logger.WithUser(user.GetUserId()).Infof("Playlist '%s' successfully created for user %v", playlistName, span)
+	span.Finish()
 
 	// we add the tracks
+	span, ctx = tracer.StartSpanFromContext(rootCtx, "playlist.create.applemusic.add.tracks")
 	tracksToAdd := make([]applemusic.CreateLibraryPlaylistTrack, 0)
 
 	for _, song := range allSongs {
@@ -129,25 +147,31 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 		}
 
 		_, err := client.Me.AddLibraryTracksToPlaylist(
-			context.Background(),
+			ctx,
 			playlist.Id,
 			applemusic.CreateLibraryPlaylistTrackData{Data: tracksToAdd[i:upperBound]})
 
 		clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypePlaylistSongsAdded, true, err)
 
 		if err != nil {
-			logger.WithUser(user.GetUserId()).Errorf("Failed to add songs to playlist %s - %v", playlistName, err)
+			logger.
+				WithUser(user.GetUserId()).
+				WithError(err).
+				Errorf("Failed to add songs to playlist %s %v", playlistName, span)
+			span.Finish(tracer.WithError(err))
 			return nil, err
 		}
 
 		logger.
 			WithUser(user.GetUserId()).
-			Debugf("Add %d tracks to Playlist '%s' successfully created for user %s", upperBound-i, playlistName, user.GetUserId())
+			Debugf("Add %d tracks to Playlist '%s' successfully created for user %v",
+				upperBound-i, playlistName, span)
 	}
 
 	logger.
 		WithUser(user.GetUserId()).
-		Infof("Added %d tracks to playlist %s for user", len(tracksToAdd), playlistName)
+		Infof("Added %d tracks to playlist %s for user %v", len(tracksToAdd), playlistName, span)
+	span.Finish()
 
 	// FIXME: we cannot get straight way the public link to the playlist as apple indexes it later
 	//   for this reason, we can only redirect the user at best to is apple music library where he will find the playlist

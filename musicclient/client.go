@@ -257,22 +257,27 @@ func GetAudioFeatures(tracks []*spotify.FullTrack) (map[string]*spotify.AudioFea
   Create playlists
 */
 
-func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spotify.FullTrack) (*string, error) {
+func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spotify.FullTrack, ctx context.Context) (*string, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "playlist.create")
+	defer span.Finish()
+
 	var link *string
 
 	if user.IsSpotify() {
-		externalLink, err := spotifyclient.CreatePlaylist(user, playlistName, tracks)
+		externalLink, err := spotifyclient.CreatePlaylist(user, playlistName, tracks, ctx)
 
 		if err != nil {
+			span.Finish(tracer.WithError(err))
 			return nil, err
 		}
 
 		link = externalLink
 
 	} else if user.IsAppleMusic() {
-		externalLink, err := applemusic.CreatePlaylist(user, playlistName, tracks)
+		externalLink, err := applemusic.CreatePlaylist(user, playlistName, tracks, ctx)
 
 		if err != nil {
+			span.Finish(tracer.WithError(err))
 			return nil, err
 		}
 
