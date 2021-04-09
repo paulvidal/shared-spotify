@@ -12,6 +12,7 @@ import (
 const playlistPublic = false
 const maxTrackPerPlaylistAddCall = 100
 const spotifyExternalLinkName = "spotify"
+const maxRetryAddSongs = 3
 
 func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spotify.FullTrack, ctx context.Context) (*string, error) {
 	rootSpan, rootCtx := tracer.StartSpanFromContext(ctx, "playlist.create.spotify")
@@ -51,9 +52,25 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			upperBound = len(trackIds)
 		}
 
-		_, err := user.SpotifyClient.AddTracksToPlaylist(fullPlaylist.ID, trackIds[i:upperBound]...)
+		var err error
+		retryCount := 0
 
-		clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypePlaylistSongsAdded, true, err)
+		// Add retry in case we get 5xx from spotify
+		for retryCount <= maxRetryAddSongs {
+			_, err = user.SpotifyClient.AddTracksToPlaylist(fullPlaylist.ID, trackIds[i:upperBound]...)
+
+			clientcommon.SendRequestMetric(datadog.SpotifyProvider, datadog.RequestTypePlaylistSongsAdded, true, err)
+
+			if err == nil {
+				break
+			}
+
+			retryCount += 1
+			logger.
+				WithUser(user.GetUserId()).
+				WithError(err).
+				Warningf("Failed to add songs to playlist %s - retryCount=%d %v", playlistName, retryCount, span)
+		}
 
 		if err != nil {
 			logger.

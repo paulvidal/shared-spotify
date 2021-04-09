@@ -12,6 +12,7 @@ import (
 
 const maxISRCPerApiCall = 15
 const maxTrackPerPlaylistAddCall = 100
+const maxRetryAddSongs = 3
 
 func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spotify.FullTrack, ctx context.Context) (*string, error) {
 	rootSpan, rootCtx := tracer.StartSpanFromContext(ctx, "playlist.create.applemusic")
@@ -146,12 +147,28 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 			upperBound = len(tracksToAdd)
 		}
 
-		_, err := client.Me.AddLibraryTracksToPlaylist(
-			ctx,
-			playlist.Id,
-			applemusic.CreateLibraryPlaylistTrackData{Data: tracksToAdd[i:upperBound]})
+		var err error
+		retryCount := 0
 
-		clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypePlaylistSongsAdded, true, err)
+		// Add retry as apple endpoint to add songs is not super resilient and often sends back 5xx
+		for retryCount <= maxRetryAddSongs {
+			_, err = client.Me.AddLibraryTracksToPlaylist(
+				ctx,
+				playlist.Id,
+				applemusic.CreateLibraryPlaylistTrackData{Data: tracksToAdd[i:upperBound]})
+
+			clientcommon.SendRequestMetric(datadog.AppleMusicProvider, datadog.RequestTypePlaylistSongsAdded, true, err)
+
+			if err == nil {
+				break
+			}
+
+			retryCount += 1
+			logger.
+				WithUser(user.GetUserId()).
+				WithError(err).
+				Warningf("Failed to add songs to playlist %s - retryCount=%d %v", playlistName, retryCount, span)
+		}
 
 		if err != nil {
 			logger.
