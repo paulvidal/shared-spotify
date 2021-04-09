@@ -184,6 +184,25 @@ export default function Room() {
           </OverlayTrigger>
         )
       }
+
+    } else {
+      button = (
+        <OverlayTrigger
+          key="overlay"
+          placement="top"
+          overlay={
+            <Tooltip id="overlay-tooltip">
+              Share the room link with friends. You need to be at least 2 in the room to find common musics.
+            </Tooltip>
+          }
+        >
+          <div>
+            <Button variant="success" size="lg" className="mt-2 mb-2 disabled">
+              Find common music 🎵
+            </Button>
+          </div>
+        </OverlayTrigger>
+      )
     }
 
   } else if (room.shared_music_library.processing_status.success == null) {
@@ -211,6 +230,7 @@ export default function Room() {
         ⚰️ An error occurred, try again !
       </Button>
     )
+
   }
 
   let shareButton;
