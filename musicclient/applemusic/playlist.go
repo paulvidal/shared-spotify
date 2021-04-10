@@ -91,7 +91,6 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 				if !ok || track == nil {
 					logger.
 						WithUser(user.GetUserId()).
-						WithError(err).
 						Warningf("Failed to get track by isrc while creating playlist %v", span)
 					continue
 				}
