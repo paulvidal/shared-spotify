@@ -15,11 +15,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/shared-spotify/logger"
 	"github.com/zmb3/spotify"
 )
+
+const redirectParam = "redirect_uri"
+var loginUrl = clientcommon.FrontendUrl + "/login"
 
 // Cache 1000 states max
 var states, _ = lru.New(1000)
@@ -85,8 +89,8 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 	logger.Logger.Info("Headers for request to authenticate are ", r.Header)
 	datadog.Increment(1, datadog.UserLoginStarted, datadog.Provider.Tag(datadog.SpotifyProvider))
 
-	// We extract the redirect_uri if it exists, to redirect to it once th auth is finished
-	redirectUri := r.URL.Query().Get("redirect_uri")
+	// We extract the redirect_uri if it exists, to redirect to it once the auth is finished
+	redirectUri := r.URL.Query().Get(redirectParam)
 	redirect := clientcommon.FrontendUrl
 
 	if redirect != "" {
@@ -116,34 +120,40 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	st := r.FormValue("state")
 	var redirectUrl, ok = states.Get(st)
-
 	logger.Logger.Infof("State is state=%s and states are states=%v", st, states.Keys())
 
 	// check state exists to prevent csrf attacks
 	if !ok {
-		logger.Logger.Errorf("State not found found=%s actual=%v", st, states)
+		logger.Logger.Errorf("State not found found=%s actual=%v - redirecting user back to login page",
+			st, states)
 		http.NotFound(w, r)
 		return
 	}
 
+	// form the url in case we fail to auth and need to redirect the user again to the login page
+	loginRedirectUrl := FormRedirectLoginUrl(redirectUrl.(string))
+
 	// use the same state string here that you used to generate the URL
 	token, err := auth.Token(st, r)
+
 	if err != nil {
-		logger.Logger.Error("Couldn't get token ", err)
-		http.Error(w, "Couldn't get token", http.StatusNotFound)
+		logger.Logger.
+			WithError(err).
+			Error("Couldn't get token - redirecting user back to login page")
+		http.Redirect(w, r, loginRedirectUrl, http.StatusFound)
 		return
 	}
 
 	// we delete the state entry
 	states.Remove(st)
 
-	logger.Logger.Infof("token is: %v\n", token)
-
 	// Add the token as an encrypted cookie
 	cookie, err := EncryptToken(token)
 	if err != nil {
-		logger.Logger.Errorf("Failed to set token", err)
-		http.Error(w, "Failed to set token", http.StatusBadRequest)
+		logger.Logger.
+			WithError(err).
+			Errorf("Failed to set token - redirecting user back to login page")
+		http.Redirect(w, r, loginRedirectUrl, http.StatusFound)
 		return
 	}
 	http.SetCookie(w, cookie)
@@ -151,8 +161,10 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// Add the login type cookie name
 	loginTypeCookie, err := clientcommon.GetLoginTypeCookie(clientcommon.SpotifyLoginType)
 	if err != nil {
-		logger.Logger.Errorf("Failed to set loginType", err)
-		http.Error(w, "Failed to set loginType", http.StatusBadRequest)
+		logger.Logger.
+			WithError(err).
+			Errorf("Failed to set loginType - redirecting user back to login page")
+		http.Redirect(w, r, loginRedirectUrl, http.StatusFound)
 		return
 	}
 	http.SetCookie(w, loginTypeCookie)
@@ -263,4 +275,15 @@ func CreateGenericClient(clientId string, clientSecret string) (*spotify.Client,
 	client.AutoRetry = true // enable auto retries when rate limited
 
 	return &client, nil
+}
+
+// we form here the login url with the redirect uri
+func FormRedirectLoginUrl(redirectUrl string) string {
+	return fmt.Sprintf(
+		"%s?%s=%s",
+		loginUrl,
+		redirectParam,
+		// create the uri by removing the frontend url
+		strings.ReplaceAll(redirectUrl, clientcommon.FrontendUrl, ""),
+	)
 }

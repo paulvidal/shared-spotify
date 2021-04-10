@@ -79,7 +79,7 @@ func startServer() {
 		Addr: ":" + Port,
 		Handler: handler,
 		ReadTimeout:  60 * time.Second,
-		WriteTimeout: 100 * time.Second,
+		WriteTimeout: 300 * time.Second,
 		IdleTimeout:  1200 * time.Second,
 	}
 	err := srv.ListenAndServe()

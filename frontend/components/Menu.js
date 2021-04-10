@@ -9,8 +9,10 @@ import ListItemIcon from "@material-ui/core/ListItemIcon";
 import HomeIcon from '@material-ui/icons/Home';
 import {MeetingRoom} from "@material-ui/icons";
 import Drawer from "@material-ui/core/Drawer";
+import GitHubIcon from '@material-ui/icons/GitHub';
+import LocalCafeIcon from '@material-ui/icons/LocalCafe';
 import {useRouter} from "next/router";
-import {encodeParams, getUrl} from "../utils/urlUtils";
+import {getUrl} from "../utils/urlUtils";
 
 const useStyles = makeStyles({
   list: {
@@ -46,6 +48,17 @@ export default function Menu(props) {
         <ListItem button key={"logout"} onClick={() => window.location.assign(getUrl('/logout'))}>
           <ListItemIcon><MeetingRoom/></ListItemIcon>
           <ListItemText primary={"Logout"}/>
+        </ListItem>
+      </List>
+      <List style={{position: "absolute", bottom: 0, width: "100%"}}>
+        <Divider/>
+        <ListItem button key={"coffee"} onClick={() => window.location.assign("https://www.buymeacoffee.com/paulvidal")}>
+          <ListItemIcon><LocalCafeIcon/></ListItemIcon>
+          <ListItemText primary={"Buy me a coffee"}/>
+        </ListItem>
+        <ListItem button key={"github"} onClick={() => window.location.assign("https://github.com/paulvidal/shared-spotify")}>
+          <ListItemIcon><GitHubIcon/></ListItemIcon>
+          <ListItemText primary={"Github project"}/>
         </ListItem>
       </List>
     </div>

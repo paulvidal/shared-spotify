@@ -82,7 +82,7 @@ func GetPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 
 // Here, we launch the process of finding the musics for the users in the room
 func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
-	span, ctx := tracer.StartSpanFromContext(r.Context(), "find.playlist.for.room")
+	span, ctx := tracer.StartSpanFromContext(r.Context(), "playlist.find.for.room")
 	defer span.Finish()
 
 	vars := mux.Vars(r)
@@ -263,6 +263,9 @@ type AddPlaylistRequestBody struct {
 }
 
 func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
+	span, ctx := tracer.StartSpanFromContext(r.Context(), "playlist.add.for.user")
+	defer span.Finish()
+
 	vars := mux.Vars(r)
 	roomId := vars["roomId"]
 	playlistId := vars["playlistId"]
@@ -270,6 +273,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 	room, user, err := getRoomAndCheckUser(roomId, r)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		handleError(err, w, r, user)
 		return
 	}
@@ -278,29 +282,37 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 	err = httputils.DeserialiseBody(r, &addPlaylistRequestBody)
 
 	if err != nil {
-		logger.WithUser(user.GetUserId()).Error("Failed to decode json body for add playlist for user")
+		span.Finish(tracer.WithError(err))
+		logger.
+			WithUserAndRoom(user.GetUserId(), roomId).
+			WithError(err).
+			Errorf("Failed to decode json body for add playlist for user %v", span)
 		handleError(err, w, r, user)
 		return
 	}
 
-	logger.WithUser(user.GetUserId()).Infof("User %s requested to create playlist %s for room %s with user " +
-		"count songs %v",
-		user.GetUserId(), playlistId, roomId, addPlaylistRequestBody.SharedUserCount)
+	logger.
+		WithUserAndRoom(user.GetUserId(), roomId).
+		Infof("User requested to create playlist %s for room with user count songs %v %v",
+			playlistId, addPlaylistRequestBody.SharedUserCount, span)
 
 	musicLibrary := room.MusicLibrary
 
 	if musicLibrary == nil {
+		span.Finish(tracer.WithError(processingNotStartedError))
 		handleError(processingNotStartedError, w, r, user)
 		return
 	}
 
 	// check the processing is over and it did not fail
 	if !musicLibrary.HasProcessingFinished() {
+		span.Finish(tracer.WithError(processingInProgressError))
 		handleError(processingInProgressError, w, r, user)
 		return
 	}
 
 	if musicLibrary.HasProcessingFailed() {
+		span.Finish(tracer.WithError(processingFailedError))
 		handleError(processingFailedError, w, r, user)
 		return
 	}
@@ -308,8 +320,11 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 	playlist, err := room.MusicLibrary.GetPlaylist(playlistId)
 
 	if err != nil {
-		logger.WithUser(user.GetUserId()).Error("Playlist %s was not found for room %s, user is %s",
-			playlistId, roomId, user.GetUserId())
+		span.Finish(tracer.WithError(err))
+		logger.
+			WithUserAndRoom(user.GetUserId(), roomId).
+			WithError(err).
+			Errorf("Playlist %s was not found for room %v", playlistId, span)
 		handleError(app.ErrorPlaylistTypeNotFound, w, r, user)
 		return
 	}
@@ -326,13 +341,15 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	spotifyUrl, err := musicclient.CreatePlaylist(user, newPlaylist.Name, tracks)
+	playlistUrl, err := musicclient.CreatePlaylist(user, newPlaylist.Name, tracks, ctx)
 
-	if spotifyUrl != nil {
-		newPlaylist.SpotifyUrl = *spotifyUrl
+	if playlistUrl != nil {
+		// TODO: change field name
+		newPlaylist.SpotifyUrl = *playlistUrl
 	}
 
 	if err != nil {
+		span.Finish(tracer.WithError(failedToCreatePlaylistError))
 		handleError(failedToCreatePlaylistError, w, r, user)
 		return
 	}
@@ -344,8 +361,9 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 		datadog.PlaylistTypeTag.Tag(playlist.Type),
 	)
 
-	logger.WithUser(user.GetUserId()).Infof("User %s created successfully his playlist %s for room %s",
-		user.GetUserId(), playlistId, roomId)
+	logger.
+		WithUserAndRoom(user.GetUserId(), roomId).
+		Infof("User created successfully his playlist %s for room", playlistId)
 
 	httputils.SendJson(w, newPlaylist)
 }

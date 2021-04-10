@@ -12,29 +12,30 @@ const maxLikedFaceToShow = 2
 export default function PlaylistListElem(props) {
   const [item, setItem] = useState({
     showModal: false,
-    likedFaceToShow: maxLikedFaceToShow
+    likedFaceToShow: maxLikedFaceToShow,
+    likedFaceComputed: false
   })
 
-  // we compute here how many faces for the element we can show
-  const face = useRef(null)
-  const faceOtherCount = useRef(null)
-  const faceContainer = useRef(null)
+  let face = null
+  let faceOtherCount = null
+  let faceContainer = null
 
-  useEffect(() => {
-    if (!face.current || !faceContainer.current) {
+  // we compute here how many faces for the element we can show
+  const compute = () => {
+    if (!face || !faceContainer|| !faceOtherCount || item.likedFaceComputed) {
       return
     }
 
-    let faceWidth = face.current.offsetWidth + 1;
-    let faceCountWidth = faceOtherCount.current ? faceOtherCount.current.offsetWidth + 1 : 0;
-    let faceContainerWidth = faceContainer.current.offsetWidth + 1;
+    let faceWidth = face.offsetWidth + 1;
+    let faceCountWidth = faceOtherCount ? faceOtherCount.offsetWidth + 1 : 0;
+    let faceContainerWidth = faceContainer.offsetWidth + 1;
 
-    let style = getComputedStyle(faceContainer.current);
+    let style = getComputedStyle(faceContainer);
     let faceContainerPadding = parseInt(style.paddingRight) + parseInt(style.paddingLeft) + 1
     let faceCount = Math.floor((faceContainerWidth - faceContainerPadding - faceCountWidth) / faceWidth)
 
-    setState(setItem, {likedFaceToShow: faceCount})
-  }, [item.likedFaceToShow])
+    setState(setItem, {likedFaceToShow: faceCount, likedFaceComputed: true})
+  }
 
   let artist = getArtistsFromTrack(props.track)
   let albumCover = getAlbumCoverUrlFromTrack(props.track)
@@ -43,7 +44,10 @@ export default function PlaylistListElem(props) {
 
   let showUsersForSong = usersForTrack.slice(0, item.likedFaceToShow).map(user => {
     return (
-      <div key={user.id} className="float-right pr-1" ref={face}>
+      <div key={user.id} className="float-right pr-1" ref={(ref) => {
+        face = ref
+        compute()
+      }}>
         <Image className={styles.user_pic} src={getPictureUrl(user)} roundedCircle onError={setDefaultPictureOnError}/>
       </div>
     )
@@ -83,10 +87,13 @@ export default function PlaylistListElem(props) {
 
   let otherPeopleForSong;
 
-  if (usersForTrack.length > maxLikedFaceToShow) {
+  if (usersForTrack.length > item.likedFaceToShow) {
     otherPeopleForSong = (
-      <div className="float-right pr-1" ref={faceOtherCount}>
-        +{usersForTrack.length - maxLikedFaceToShow}
+      <div className="float-right pr-1" ref={(ref) => {
+        faceOtherCount = ref
+        compute()
+      }}>
+        +{usersForTrack.length - item.likedFaceToShow}
       </div>
     )
   }
@@ -138,7 +145,10 @@ export default function PlaylistListElem(props) {
                 <p className={styles.artist_name}>{artist}</p>
               </Col>
               <Col xs={3} md={2} className="p-0 pr-2">
-                <div className="w-100 btn p-0 pt-1 pb-1" ref={faceContainer}>
+                <div className="w-100 btn p-0 pt-1 pb-1" ref={(ref) => {
+                  faceContainer = ref
+                  compute()
+                }}>
                   {otherPeopleForSong}
                   {showUsersForSong}
                 </div>
