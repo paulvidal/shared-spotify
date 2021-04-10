@@ -86,7 +86,15 @@ func CreatePlaylist(user *clientcommon.User, playlistName string, tracks []*spot
 				allSongs[song.Attributes.ISRC] = &song
 
 			} else {
-				track := trackToISRC[song.Attributes.ISRC]
+				track, ok := trackToISRC[song.Attributes.ISRC]
+
+				if !ok || track == nil {
+					logger.
+						WithUser(user.GetUserId()).
+						WithError(err).
+						Warningf("Failed to get track by isrc while creating playlist %v", span)
+					continue
+				}
 
 				// make sure it has the play params
 				if song.Attributes.PlayParams != nil {
