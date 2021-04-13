@@ -160,7 +160,7 @@ func (musicLibrary *SharedMusicLibrary) fetchSongsForUser(room *Room, user *clie
 	if err != nil {
 		logger.WithUserAndRoom(user.GetUserId(), room.Id).
 			WithError(err).
-			Error("Failed to fetch all songs for user %v", span)
+			Errorf("Failed to fetch all songs for user %v", span)
 		span.Finish(tracer.WithError(err))
 	} else {
 		logger.WithUserAndRoom(user.GetUserId(), room.Id).

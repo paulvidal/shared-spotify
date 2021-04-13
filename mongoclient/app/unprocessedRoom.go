@@ -36,8 +36,8 @@ func UpdateUnprocessedRoom(room *app.Room, ctx context.Context) error {
 		&options.ReplaceOptions{Upsert: &upsert})
 
 	if err != nil {
-		span.Finish(tracer.WithError(err))
 		logger.Logger.Errorf("Failed to update unprocessed room in mongo %v %v", err, span)
+		span.Finish(tracer.WithError(err))
 		return err
 	}
 

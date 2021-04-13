@@ -348,18 +348,23 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 		newPlaylist.SpotifyUrl = *playlistUrl
 	}
 
-	if err != nil {
-		span.Finish(tracer.WithError(failedToCreatePlaylistError))
-		handleError(failedToCreatePlaylistError, w, r, user)
-		return
-	}
-
-	datadog.Increment(1, datadog.RoomPlaylistAdd,
+	tags := []string{
 		datadog.UserIdTag.Tag(user.GetId()),
 		datadog.RoomIdTag.Tag(roomId),
 		datadog.RoomNameTag.Tag(room.Name),
 		datadog.PlaylistTypeTag.Tag(playlist.Type),
-	)
+	}
+
+	if err != nil {
+		span.Finish(tracer.WithError(failedToCreatePlaylistError))
+		tags = append(tags, datadog.Success.TagBool(false))
+		datadog.Increment(1, datadog.RoomPlaylistAdd, tags...)
+		handleError(failedToCreatePlaylistError, w, r, user)
+		return
+	}
+
+	tags = append(tags, datadog.Success.TagBool(true))
+	datadog.Increment(1, datadog.RoomPlaylistAdd, tags...)
 
 	logger.
 		WithUserAndRoom(user.GetUserId(), roomId).
