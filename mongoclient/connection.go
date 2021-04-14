@@ -43,7 +43,7 @@ func Initialise() {
 		// Add timeouts
 		SetServerSelectionTimeout(10 * time.Second).
 		SetConnectTimeout(10 * time.Second).
-		SetSocketTimeout(10 * time.Second).
+		SetSocketTimeout(60 * time.Second).
 		SetMonitor(mongotrace.NewMonitor(mongotrace.WithAnalytics(true))) // enable tracing of mongo calls
 
 	// Connect to MongoDB
