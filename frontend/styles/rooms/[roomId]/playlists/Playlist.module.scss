@@ -80,6 +80,24 @@
   cursor: pointer;
 }
 
+.user_pic_filters {
+  width: 50px;
+  height: 50px;
+  cursor: pointer;
+}
+
+.user_pic_filters_selected {
+  border-color: #28a745;
+  border-width: 5px;
+  border-style: solid;
+}
+
+.filter_container {
+  width: 100%;
+  padding-right: 2rem;
+  padding-left: 2rem;
+}
+
 @media (min-width: 768px) {
   .album_pic {
     height: 4.5rem;
@@ -110,5 +128,9 @@
   .user_pic {
     width: 28px;
     height: 28px;
+  }
+
+  .filter_container {
+    width: 500px;
   }
 }

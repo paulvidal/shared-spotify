@@ -4,10 +4,11 @@ import {showErrorToastWithError, Toast} from "../../../../components/toast";
 import axios from "axios";
 import {useEffect, useState} from "react";
 import PlaylistListElem from "../../../../components/playlistListElem";
+import { forceCheck } from 'react-lazyload';
 import ReactAudioPlayer from "react-audio-player";
-import {Button, Form, Spinner} from "react-bootstrap";
+import {Button, Form, Image, Spinner} from "react-bootstrap";
 import {getArtistsFromTrack} from "../../../../utils/trackUtils";
-import {isEmpty, max, min, range, sum} from "lodash"
+import {isEmpty, max, min, range, sum, intersection} from "lodash"
 import {getUrl} from "../../../../utils/urlUtils";
 import CustomHead from "../../../../components/Head";
 import Header from "../../../../components/Header";
@@ -16,9 +17,13 @@ import LoaderScreen from "../../../../components/LoaderScreen";
 import CustomModal from "../../../../components/CustomModal";
 import setState from "../../../../utils/stateUtils";
 import Footer from "../../../../components/Footer";
+import {getPictureUrl, setDefaultPictureOnError} from "../../../../utils/pictureUtils";
+import UserImage from "../../../../components/UserImage";
 
 const TIMEOUT_BEFORE_BUTTON_AVAILABLE = 2000  // 2s
 const IDEAL_DEFAULT_COUNT = 40
+
+const MIN_USER_COUNT_FILTERS = 3
 
 function findBestDefaultSharedCount(playlists) {
   let playlistSharedCount = Object.keys(playlists)
@@ -53,6 +58,7 @@ export default function Playlist() {
   const [playlist, setPlaylist] = useState({
     type: '',
     tracks_per_shared_count: {},
+    filters: [],
     song_playing: '',
     creating_playlist: false,
     new_playlist: {},
@@ -202,9 +208,20 @@ export default function Playlist() {
           <div key={sharedCount} className={styles.common_songs_group}>
             {title}
 
-            {tracks.sort((track1, track2) => {
-              return getArtistsFromTrack(track1).localeCompare(getArtistsFromTrack(track2))
-            })
+            {tracks
+              .filter(track => {
+                if (playlist.filters.length === 0) {
+                  return true;
+                }
+
+                let trackISRC = track.external_ids["isrc"]
+                let userIds = playlist.user_ids_per_shared_tracks[trackISRC]
+
+                return intersection(userIds, playlist.filters).length === playlist.filters.length
+              })
+              .sort((track1, track2) => {
+                return getArtistsFromTrack(track1).localeCompare(getArtistsFromTrack(track2))
+              })
               .map(track => {
                 let trackISRC = track.external_ids["isrc"]
                 let userIds = playlist.user_ids_per_shared_tracks[trackISRC]
@@ -272,109 +289,6 @@ export default function Playlist() {
     }
   }
 
-  // let slider;
-  // let sliderHelp;
-  //
-  // // Ugly slider but it does the job
-  // if (roomId && playlist.minSharedCountLimit < playlist.maxSharedCountLimit) {
-  //   sliderHelp = (
-  //     <p className={styles.slider_help + " mb-5 mt-3 ml-3 mr-3 text-center"}>
-  //       Select the minimum number of friends that <br/>
-  //       must have the song in their spotify library among the group for it to appear
-  //     </p>
-  //   )
-  //
-  //   let current = playlist.minSharedCount
-  //   let min = playlist.minSharedCountLimit
-  //   let max = playlist.maxSharedCountLimit
-  //
-  //   slider = (
-  //     <Range
-  //       step={1}
-  //       min={min}
-  //       max={max}
-  //       values={[current]}
-  //       onChange={(values) => {
-  //         setPlaylist(prevState => {
-  //           return {
-  //             ...prevState,
-  //             minSharedCount: values[0]
-  //           }
-  //         })
-  //       }}
-  //       renderTrack={({ props, children }) => (
-  //         <div
-  //           onMouseDown={props.onMouseDown}
-  //           onTouchStart={props.onTouchStart}
-  //           className={styles.tracker}
-  //           style={{
-  //             ...props.style,
-  //           }}
-  //         >
-  //           <div
-  //             ref={props.ref}
-  //             style={{
-  //               height: '5px',
-  //               width: '100%',
-  //               borderRadius: '4px',
-  //               background: getTrackBackground({
-  //                 values: [current],
-  //                 colors: ['#28a745', '#cccccc'],
-  //                 min: min,
-  //                 max: max
-  //               }),
-  //               alignSelf: 'center'
-  //             }}
-  //           >
-  //             {children}
-  //           </div>
-  //         </div>
-  //       )}
-  //       renderThumb={({ props, isDragged }) => (
-  //         <div
-  //           {...props}
-  //           style={{
-  //             ...props.style,
-  //             height: '42px',
-  //             width: '42px',
-  //             borderRadius: '4px',
-  //             backgroundColor: '#ffffff',
-  //             display: 'flex',
-  //             justifyContent: 'center',
-  //             alignItems: 'center',
-  //             boxShadow: '0px 2px 6px #AAA'
-  //           }}
-  //         >
-  //           <div
-  //             style={{
-  //               position: 'absolute',
-  //               top: '-35px',
-  //               color: '#fff',
-  //               fontWeight: 'bold',
-  //               fontSize: '14px',
-  //               fontFamily: 'Arial,Helvetica Neue,Helvetica,sans-serif',
-  //               padding: '4px',
-  //               paddingLeft: '7px',
-  //               paddingRight: '7px',
-  //               borderRadius: '4px',
-  //               backgroundColor: '#28a745'
-  //             }}
-  //           >
-  //             {current}
-  //           </div>
-  //           <div
-  //             style={{
-  //               height: '16px',
-  //               width: '5px',
-  //               backgroundColor: isDragged ? '#28a745' : '#CCC'
-  //             }}
-  //           />
-  //         </div>
-  //       )}
-  //     />
-  //   )
-  // }
-
   // Modal body when adding a playlist
   let musicTimeInSeconds = Math.floor(
     sum(playlist.sharedCountsToAdd.map(count =>
@@ -433,6 +347,47 @@ export default function Playlist() {
     </div>
   )
 
+  let filters = null
+
+  if (Object.keys(playlist.users).length >= MIN_USER_COUNT_FILTERS) {
+    filters = (
+      <div className={"mb-3 " + styles.filter_container}>
+        <h5 className="mt-3 mb-3 text-center">Filter by friend</h5>
+        <div className="text-center">
+        {Object.values(playlist.users).map(user => {
+          let classNames = ["ml-2", "mt-2", "text-center", styles.user_pic_filters]
+
+          if (playlist.filters.includes(user.id)) {
+            classNames.push(styles.user_pic_filters_selected)
+          }
+
+          // Everytime we redraw filters, force check for the recycler view
+          setTimeout(forceCheck, 200)
+
+          return [
+            <UserImage
+              id={user.id}
+              name={user.name}
+              pictureUrl={user.image}
+              onClick={() => {
+                let newFilter = playlist.filters
+                if (newFilter.includes(user.id)) {
+                  newFilter = newFilter.filter(id => id !== user.id)
+                } else {
+                  newFilter.push(user.id)
+                }
+                setState(setPlaylist, {filters: newFilter})
+              }}
+              classes={classNames.join(" ")}
+              size={"50px"}
+            />
+          ]
+        })}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.container}>
       <CustomHead/>
@@ -445,6 +400,7 @@ export default function Playlist() {
         {/*{sliderHelp}*/}
         {info}
         {addButton}
+        {filters}
         {music}
         {player}
       </main>
