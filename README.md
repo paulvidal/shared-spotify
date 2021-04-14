@@ -6,7 +6,7 @@ A cool way to find common songs among friends and create playlists out of those 
 
 Currently, **Spotify** and **Apple Music** are supported.
 
-Website is available here at [sharedspotify.com](sharedspotify.com).
+Website is available here at [sharedspotify.com](https://sharedspotify.com).
 
 ## Support
 
