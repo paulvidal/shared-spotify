@@ -1,4 +1,4 @@
-import {Button, Card} from 'react-bootstrap';
+import {Button, Card, Spinner} from 'react-bootstrap';
 import axios from "axios";
 import {showErrorToastWithError} from "./toast";
 import {useRouter} from "next/router";
@@ -7,21 +7,30 @@ import styles from "../styles/rooms/Rooms.module.scss";
 import moment from "moment";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faTrash} from "@fortawesome/free-solid-svg-icons";
+import {useState} from "react";
+import setState from "../utils/stateUtils";
 
 export default function RoomListElem(props) {
   const router = useRouter()
+  const [room, setRoom] = useState({
+    loading: false,
+  });
 
   const axiosClient = axios.create({
     withCredentials: true
   })
 
   const addUserToRoom = () => {
+    setState(setRoom, {loading: true})
+
     axiosClient.post(getUrl('/rooms/' + props.room.id + '/users'))
       .then(resp => {
         router.push('/rooms/' + props.room.id)
       })
       .catch(error => {
         showErrorToastWithError("Failed to join the room", error, router)
+      }).finally(() => {
+        setState(setRoom, {loading: false})
       })
   }
 
@@ -38,6 +47,20 @@ export default function RoomListElem(props) {
     )
   }
 
+  let button = (
+    <Button variant="success" className="float-left" onClick={addUserToRoom}>
+      Enter room  ➡️
+    </Button>
+  )
+
+  if (room.loading) {
+    button = (
+      <Button variant="success" className="float-left" onClick={addUserToRoom}>
+        Entering room <Spinner variant="light" animation="border" className="ml-2" size={"sm"}/>
+      </Button>
+    )
+  }
+
   return (
     <Card className={"mt-2 col-11 col-md-5 " + styles.room_card}>
       <Card.Body>
@@ -50,9 +73,7 @@ export default function RoomListElem(props) {
         <p className={styles.creation_date}>Created on {moment(props.room.creation_time).format("MMMM Do YYYY")}</p>
 
         <div className="mt-3">
-          <Button variant="success" className="float-left" onClick={addUserToRoom}>
-            Enter room  ➡️
-          </Button>
+          {button}
 
           <div className={"float-right " + styles.trash_icon} onClick={() => props.showDeleteModal(props.room.id)}>
             <FontAwesomeIcon icon={faTrash} className={styles.trash_icon_size}/>
