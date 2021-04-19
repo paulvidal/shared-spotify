@@ -270,6 +270,7 @@ func RoomsHandler(w http.ResponseWriter, r *http.Request) {
 
 func GetRooms(w http.ResponseWriter, r *http.Request) {
 	span, ctx := tracer.StartSpanFromContext(r.Context(), "rooms.get")
+	defer span.Finish()
 	user, err := musicclient.CreateUserFromRequestWithCtx(r, ctx)
 
 	if err != nil {
