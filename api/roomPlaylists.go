@@ -113,7 +113,7 @@ func FindPlaylistsForRoom(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		span.Finish(tracer.WithError(err))
-		logger.WithUser(user.GetUserId()).Errorf("Failed to recreate clients when fetching common musics %v %v", err, span)
+		logger.WithUser(user.GetUserId()).Errorf("Failed to recreate clients when fetching common music %v %v", err, span)
 		handleError(roomExpiredError, w, r, user)
 		return
 	}
