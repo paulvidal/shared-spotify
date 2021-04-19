@@ -12,6 +12,7 @@ import (
 	"github.com/zmb3/spotify"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -151,7 +152,7 @@ func GetRoom(roomId string, ctx context.Context) (*app.Room, error) {
 }
 
 func GetRoomsForUser(user *clientcommon.User, ctx context.Context) ([]*app.Room, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "mongo.rooms.get.for.user")
+	span, rootCtx := tracer.StartSpanFromContext(ctx, "mongo.rooms.get.for.user")
 	span.SetTag("user", user.GetUserId())
 	defer span.Finish()
 
@@ -163,8 +164,11 @@ func GetRoomsForUser(user *clientcommon.User, ctx context.Context) ([]*app.Room,
 		user.GetId(),
 	}}
 
-	otherSpan, ctx := tracer.StartSpanFromContext(ctx, "mongo.cursor.find")
-	cursor, err := mongoclient.GetDatabase().Collection(roomCollection).Find(ctx, filter)
+	projection := bson.M{"playlists": 0}  // exclude the playlist fields, which are huge and unnecessary
+
+	otherSpan, ctx := tracer.StartSpanFromContext(rootCtx, "mongo.cursor.find")
+	cursor, err := mongoclient.GetDatabase().Collection(roomCollection).Find(ctx, filter,
+		&options.FindOptions{Projection: projection})
 
 	if err != nil {
 		logger.Logger.
@@ -175,7 +179,7 @@ func GetRoomsForUser(user *clientcommon.User, ctx context.Context) ([]*app.Room,
 	}
 	otherSpan.Finish()
 
-	otherSpan, ctx = tracer.StartSpanFromContext(ctx, "mongo.cursor.all")
+	otherSpan, ctx = tracer.StartSpanFromContext(rootCtx, "mongo.cursor.all")
 	err = cursor.All(ctx, &mongoRooms)
 
 	if err != nil {
