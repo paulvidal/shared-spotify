@@ -151,6 +151,10 @@ func GetRoom(roomId string, ctx context.Context) (*app.Room, error) {
 }
 
 func GetRoomsForUser(user *clientcommon.User, ctx context.Context) ([]*app.Room, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "mongo.rooms.get.for.user")
+	span.SetTag("user", user.GetUserId())
+	defer span.Finish()
+
 	mongoRooms := make([]*MongoRoom, 0)
 	rooms := make([]*app.Room, 0)
 
@@ -162,14 +166,20 @@ func GetRoomsForUser(user *clientcommon.User, ctx context.Context) ([]*app.Room,
 	cursor, err := mongoclient.GetDatabase().Collection(roomCollection).Find(ctx, filter)
 
 	if err != nil {
-		logger.Logger.Error("Failed to find rooms for user in mongo ", err)
+		logger.Logger.
+			WithError(err).
+			Errorf("Failed to find rooms for user in mongo %v", span)
+		span.Finish(tracer.WithError(err))
 		return nil, err
 	}
 
 	err = cursor.All(ctx, &mongoRooms)
 
 	if err != nil {
-		logger.Logger.Error("Failed to find rooms for user in mongo ", err)
+		logger.Logger.
+			WithError(err).
+			Errorf("Failed to find rooms for user in mongo %v", span)
+		span.Finish(tracer.WithError(err))
 		return nil, err
 	}
 

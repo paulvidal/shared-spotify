@@ -370,7 +370,7 @@ func AddPlaylistForUser(w http.ResponseWriter, r *http.Request) {
 		WithUserAndRoom(user.GetUserId(), roomId).
 		Infof("User created successfully his playlist %s for room", playlistId)
 
-	httputils.SendJson(w, newPlaylist)
+	httputils.SendJsonWithCtx(w, newPlaylist, ctx)
 }
 
 type NewPlaylist struct {
