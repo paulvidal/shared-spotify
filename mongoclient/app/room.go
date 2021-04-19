@@ -163,25 +163,29 @@ func GetRoomsForUser(user *clientcommon.User, ctx context.Context) ([]*app.Room,
 		user.GetId(),
 	}}
 
+	otherSpan, ctx := tracer.StartSpanFromContext(ctx, "mongo.cursor.find")
 	cursor, err := mongoclient.GetDatabase().Collection(roomCollection).Find(ctx, filter)
 
 	if err != nil {
 		logger.Logger.
 			WithError(err).
 			Errorf("Failed to find rooms for user in mongo %v", span)
-		span.Finish(tracer.WithError(err))
+		otherSpan.Finish(tracer.WithError(err))
 		return nil, err
 	}
+	otherSpan.Finish()
 
+	otherSpan, ctx = tracer.StartSpanFromContext(ctx, "mongo.cursor.all")
 	err = cursor.All(ctx, &mongoRooms)
 
 	if err != nil {
 		logger.Logger.
 			WithError(err).
 			Errorf("Failed to find rooms for user in mongo %v", span)
-		span.Finish(tracer.WithError(err))
+		otherSpan.Finish(tracer.WithError(err))
 		return nil, err
 	}
+	otherSpan.Finish()
 
 	for _, mongoRoom := range mongoRooms {
 		rooms = append(rooms, mongoRoom.Room)
