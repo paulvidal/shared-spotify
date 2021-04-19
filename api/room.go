@@ -269,10 +269,12 @@ func RoomsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetRooms(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	user, err := musicclient.CreateUserFromRequest(r)
+	span, ctx := tracer.StartSpanFromContext(r.Context(), "rooms.get")
+	defer span.Finish()
+	user, err := musicclient.CreateUserFromRequestWithCtx(r, ctx)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		handleError(authenticationError, w, r, user)
 		return
 	}
@@ -282,6 +284,7 @@ func GetRooms(w http.ResponseWriter, r *http.Request) {
 	rooms, err := mongoclientapp.GetRoomsForUser(user, ctx)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		handleError(failedToGetRooms, w, r, user)
 		return
 	}
@@ -290,13 +293,14 @@ func GetRooms(w http.ResponseWriter, r *http.Request) {
 	unprocessedRooms, err := mongoclientapp.GetUnprocessedRoomsForUser(user, ctx)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		handleError(failedToGetRooms, w, r, user)
 		return
 	}
 
 	rooms = append(rooms, unprocessedRooms...)
 
-	httputils.SendJson(w, &rooms)
+	httputils.SendJsonWithCtx(w, &rooms, ctx)
 }
 
 type CreatedRoom struct {

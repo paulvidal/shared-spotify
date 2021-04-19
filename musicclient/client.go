@@ -67,7 +67,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputils.SendJson(w, user)
+	httputils.SendJsonWithCtx(w, user, r.Context())
 }
 
 func CreateUserFromRequest(r *http.Request) (*clientcommon.User, error) {

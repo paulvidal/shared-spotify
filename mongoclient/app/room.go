@@ -12,6 +12,7 @@ import (
 	"github.com/zmb3/spotify"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -151,6 +152,10 @@ func GetRoom(roomId string, ctx context.Context) (*app.Room, error) {
 }
 
 func GetRoomsForUser(user *clientcommon.User, ctx context.Context) ([]*app.Room, error) {
+	span, rootCtx := tracer.StartSpanFromContext(ctx, "mongo.rooms.get.for.user")
+	span.SetTag("user", user.GetUserId())
+	defer span.Finish()
+
 	mongoRooms := make([]*MongoRoom, 0)
 	rooms := make([]*app.Room, 0)
 
@@ -159,19 +164,32 @@ func GetRoomsForUser(user *clientcommon.User, ctx context.Context) ([]*app.Room,
 		user.GetId(),
 	}}
 
-	cursor, err := mongoclient.GetDatabase().Collection(roomCollection).Find(ctx, filter)
+	projection := bson.M{"playlists": 0}  // exclude the playlist fields, which are huge and unnecessary
+
+	otherSpan, ctx := tracer.StartSpanFromContext(rootCtx, "mongo.cursor.find")
+	cursor, err := mongoclient.GetDatabase().Collection(roomCollection).Find(ctx, filter,
+		&options.FindOptions{Projection: projection})
 
 	if err != nil {
-		logger.Logger.Error("Failed to find rooms for user in mongo ", err)
+		logger.Logger.
+			WithError(err).
+			Errorf("Failed to find rooms for user in mongo %v", span)
+		otherSpan.Finish(tracer.WithError(err))
 		return nil, err
 	}
+	otherSpan.Finish()
 
+	otherSpan, ctx = tracer.StartSpanFromContext(rootCtx, "mongo.cursor.all")
 	err = cursor.All(ctx, &mongoRooms)
 
 	if err != nil {
-		logger.Logger.Error("Failed to find rooms for user in mongo ", err)
+		logger.Logger.
+			WithError(err).
+			Errorf("Failed to find rooms for user in mongo %v", span)
+		otherSpan.Finish(tracer.WithError(err))
 		return nil, err
 	}
+	otherSpan.Finish()
 
 	for _, mongoRoom := range mongoRooms {
 		rooms = append(rooms, mongoRoom.Room)

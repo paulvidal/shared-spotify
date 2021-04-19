@@ -1,8 +1,10 @@
 package httputils
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/shared-spotify/logger"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"net/http"
 )
 
@@ -20,9 +22,17 @@ func DeserialiseBody(r *http.Request, v interface{}) error {
 }
 
 func SendJson(w http.ResponseWriter, v interface{}) {
+	SendJsonWithCtx(w, v, nil)
+}
+
+func SendJsonWithCtx(w http.ResponseWriter, v interface{}, ctx context.Context) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "json.serialise")
+	defer span.Finish()
+
 	jsonValue, err := json.Marshal(v)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		http.Error(w, "Failed to serialise struct", http.StatusInternalServerError)
 		return
 	}
@@ -31,6 +41,7 @@ func SendJson(w http.ResponseWriter, v interface{}) {
 	_, err = w.Write(jsonValue)
 
 	if err != nil {
+		span.Finish(tracer.WithError(err))
 		http.Error(w, "Failed to write json response", http.StatusInternalServerError)
 		return
 	}
