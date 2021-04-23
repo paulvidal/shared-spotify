@@ -87,7 +87,7 @@ export default function Room() {
         refresh()
       })
       .catch(error => {
-        showErrorToastWithError("Failed to find common musics", error, router)
+        showErrorToastWithError("Failed to find common music", error, router)
       }).finally(() => {
         setState(setRoom, {launchingProcessing: false})
       })
@@ -112,7 +112,7 @@ export default function Room() {
     timeout = GENERAL_REFRESH_TIMEOUT
 
   } else if (room.shared_music_library.processing_status.success == null) {
-    // Force a refresh of the page while we are processing the musics more often to get the progress
+    // Force a refresh of the page while we are processing the music more often to get the progress
     timeout = REFRESH_TIMEOUT_PLAYLIST_CREATION
   }
 
@@ -192,7 +192,7 @@ export default function Room() {
           placement="top"
           overlay={
             <Tooltip id="overlay-tooltip">
-              Share the room link with friends. You need to be at least 2 in the room to find common musics.
+              Share the room link with friends. You need to be at least 2 in the room to find common music.
             </Tooltip>
           }
         >
@@ -211,7 +211,7 @@ export default function Room() {
 
     button = (
       <Button variant="warning" size="lg" className="mt-2 mb-2" disabled>
-        <Spinner variant="dark" animation="border" className="mr-2"/> Searching common musics ({Math.floor(current/total*100)}%)
+        <Spinner variant="dark" animation="border" className="mr-2"/> Searching common music ({Math.floor(current/total*100)}%)
       </Button>
     )
 
@@ -268,12 +268,12 @@ export default function Room() {
 
       <CustomModal
         show={room.showConfirmationModal}
-        body={"Finding the common musics will close the room, so no more people will be able to join. " +
+        body={"Finding the common music will close the room, so no more people will be able to join. " +
         "Are you sure you want to do this now?"}
         secondaryActionName={"Cancel"}
         secondaryAction={hideModal}
         onHideAction={hideModal}
-        primaryActionName={"Find musics"}
+        primaryActionName={"Find music"}
         primaryAction={fetchMusics}
       />
     </div>

@@ -1056,6 +1056,17 @@
   dependencies:
     "@babel/runtime" "^7.4.4"
 
+"@material-ui/lab@^4.0.0-alpha.57":
+  version "4.0.0-alpha.57"
+  resolved "https://registry.yarnpkg.com/@material-ui/lab/-/lab-4.0.0-alpha.57.tgz#e8961bcf6449e8a8dabe84f2700daacfcafbf83a"
+  integrity sha512-qo/IuIQOmEKtzmRD2E4Aa6DB4A87kmY6h0uYhjUmrrgmEAgbbw9etXpWPVXuRK6AGIQCjFzV6WO2i21m1R4FCw==
+  dependencies:
+    "@babel/runtime" "^7.4.4"
+    "@material-ui/utils" "^4.11.2"
+    clsx "^1.0.4"
+    prop-types "^15.7.2"
+    react-is "^16.8.0 || ^17.0.0"
+
 "@material-ui/styles@^4.11.3":
   version "4.11.3"
   resolved "https://registry.yarnpkg.com/@material-ui/styles/-/styles-4.11.3.tgz#1b8d97775a4a643b53478c895e3f2a464e8916f2"
@@ -4936,11 +4947,6 @@ react-overlays@^4.1.0:
     prop-types "^15.7.2"
     uncontrollable "^7.0.0"
     warning "^4.0.3"
-
-react-range@^1.8.2:
-  version "1.8.2"
-  resolved "https://registry.yarnpkg.com/react-range/-/react-range-1.8.2.tgz#0d22961d65917777ef7f66228147d6752aeccef9"
-  integrity sha512-zegXW7xgWn/4HQ9EqFsxrFamx1rN/CDcG0a7v0dDYb975IG1l7yycQE02CXfWtclM0pUzSZa0iop3zHLPWyyMw==
 
 react-refresh@0.8.3:
   version "0.8.3"
