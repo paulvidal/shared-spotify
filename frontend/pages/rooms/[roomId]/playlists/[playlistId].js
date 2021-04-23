@@ -6,18 +6,16 @@ import {useEffect, useState} from "react";
 import PlaylistListElem from "../../../../components/playlistListElem";
 import { forceCheck } from 'react-lazyload';
 import ReactAudioPlayer from "react-audio-player";
-import {Button, Form, Image, Spinner} from "react-bootstrap";
+import {Button, Form, Spinner} from "react-bootstrap";
 import {getArtistsFromTrack} from "../../../../utils/trackUtils";
 import {isEmpty, max, min, range, sum, intersection} from "lodash"
 import {getUrl} from "../../../../utils/urlUtils";
 import CustomHead from "../../../../components/Head";
 import Header from "../../../../components/Header";
-// import {getTrackBackground, Range} from "react-range";
 import LoaderScreen from "../../../../components/LoaderScreen";
 import CustomModal from "../../../../components/CustomModal";
 import setState from "../../../../utils/stateUtils";
 import Footer from "../../../../components/Footer";
-import {getPictureUrl, setDefaultPictureOnError} from "../../../../utils/pictureUtils";
 import UserImage from "../../../../components/UserImage";
 
 const TIMEOUT_BEFORE_BUTTON_AVAILABLE = 2000  // 2s
@@ -352,8 +350,8 @@ export default function Playlist() {
   if (Object.keys(playlist.users).length >= MIN_USER_COUNT_FILTERS) {
     filters = (
       <div className={"mb-3 " + styles.filter_container}>
-        <h5 className="mt-3 mb-3 text-center">Filter by friend</h5>
-        <div className="text-center">
+        <h5 className="mt-3 mb-3 text-center">Filter by friends</h5>
+        <div className="text-center d-flex justify-content-center flex-wrap">
         {Object.values(playlist.users).map(user => {
           let classNames = ["ml-2", "mt-2", "text-center", styles.user_pic_filters]
 
@@ -366,7 +364,7 @@ export default function Playlist() {
 
           return [
             <UserImage
-              id={user.id}
+              key={user.id}
               name={user.name}
               pictureUrl={user.image}
               onClick={() => {
@@ -379,7 +377,6 @@ export default function Playlist() {
                 setState(setPlaylist, {filters: newFilter})
               }}
               classes={classNames.join(" ")}
-              size={"50px"}
             />
           ]
         })}
@@ -396,8 +393,6 @@ export default function Playlist() {
 
       <main className={styles.main}>
         <h1 className="text-center mt-3 mb-3">{playlist.name}</h1>
-        {/*{slider}*/}
-        {/*{sliderHelp}*/}
         {info}
         {addButton}
         {filters}

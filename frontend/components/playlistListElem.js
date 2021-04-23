@@ -6,6 +6,8 @@ import CustomModal from "./CustomModal";
 import {getPictureUrl, setDefaultPictureOnError} from "../utils/pictureUtils";
 import setState from "../utils/stateUtils";
 import LazyLoad from 'react-lazyload';
+import UserImageGrouped from "./UserImageGrouped";
+import UserImage from "./UserImage";
 
 const maxLikedFaceToShow = 2
 
@@ -74,8 +76,7 @@ export default function PlaylistListElem(props) {
           return (
             <Row key={user.id} className="ml-1 mr-1">
               <Col xs={12}>
-                <Image className={styles.user_pic} src={getPictureUrl(user)} roundedCircle
-                       onError={setDefaultPictureOnError}/>
+                <UserImage pictureUrl={user.image} classes={styles.user_pic} name={user.name} />
                 <p className={styles.user_name}>{user.name}</p>
               </Col>
             </Row>
@@ -144,14 +145,15 @@ export default function PlaylistListElem(props) {
                 <p className={styles.track_name}>{props.track.name}</p>
                 <p className={styles.artist_name}>{artist}</p>
               </Col>
-              <Col xs={3} md={2} className="p-0 pr-2">
-                <div className="w-100 btn p-0 pt-1 pb-1" ref={(ref) => {
-                  faceContainer = ref
-                  compute()
-                }}>
-                  {otherPeopleForSong}
-                  {showUsersForSong}
-                </div>
+              <Col xs={3} md={2} className="p-0 pr-2 overflow-hidden d-flex justify-content-end">
+                <UserImageGrouped users={usersForTrack} />
+                {/*<div className="w-100 btn p-0 pt-1 pb-1" ref={(ref) => {*/}
+                {/*  faceContainer = ref*/}
+                {/*  compute()*/}
+                {/*}}>*/}
+                {/*  {otherPeopleForSong}*/}
+                {/*  {showUsersForSong}*/}
+                {/*</div>*/}
               </Col>
             </Row>
           </Container>
