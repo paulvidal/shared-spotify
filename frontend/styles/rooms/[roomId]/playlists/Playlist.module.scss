@@ -48,8 +48,9 @@
 
 .user_pic {
   float: left;
-  width: 22px;
-  height: 22px;
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 0.8rem !important;
 }
 
 .user_name {
@@ -80,6 +81,24 @@
   cursor: pointer;
 }
 
+.user_pic_filters {
+  width: 50px !important;
+  height: 50px !important;;
+  cursor: pointer;
+}
+
+.user_pic_filters_selected {
+  border-color: #28a745;
+  border-width: 5px;
+  border-style: solid;
+}
+
+.filter_container {
+  width: 100%;
+  padding-right: 2rem;
+  padding-left: 2rem;
+}
+
 @media (min-width: 768px) {
   .album_pic {
     height: 4.5rem;
@@ -108,7 +127,11 @@
   }
 
   .user_pic {
-    width: 28px;
-    height: 28px;
+    width: 33px !important;
+    height: 33px !important;
+  }
+
+  .filter_container {
+    width: 500px;
   }
 }

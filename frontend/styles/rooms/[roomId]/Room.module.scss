@@ -1,8 +1,8 @@
 @import "../../common";
 
 .profile_pic {
-  height: 50px;
-  width: 50px;
+  height: 50px !important;
+  width: 50px !important;
 }
 
 .profile_name {
@@ -11,12 +11,14 @@
 
 .profile_pic_container {
   text-align: center;
+  display: flex;
+  justify-content: center;
 }
 
 @media (min-width: 768px) {
   .profile_pic {
-    height: 70px;
-    width: 70px;
+    height: 70px !important;
+    width: 70px !important;
   }
 
   .profile_name {
