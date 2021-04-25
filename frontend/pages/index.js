@@ -19,6 +19,7 @@ export default function Home() {
   })
 
   const [home, setHome] = useState({
+    login: false,
     loading: true,
   });
 
@@ -33,10 +34,16 @@ export default function Home() {
   const refresh = () => {
     axiosClient.get(getUrl('/user'))
       .then(resp => {
-        router.push('/rooms')
+        setState(setHome, {
+          login: true,
+          loading: false
+        })
       })
       .catch(error => {
-        setState(setHome, {loading: false})
+        setState(setHome, {
+          login: false,
+          loading: false
+        })
       })
   }
 
@@ -46,6 +53,22 @@ export default function Home() {
   if (home.loading) {
     return (
       <LoaderScreen/>
+    )
+  }
+
+  const nextPage = home.login ? '/rooms' : '/login'
+
+  let button = (
+    <Button variant="success" size="lg" className="mt-2" onClick={() => router.push(nextPage)}>
+      Connect music account
+    </Button>
+  )
+
+  if (home.login) {
+    button = (
+      <Button variant="success" size="lg" className="mt-2" onClick={() => router.push(nextPage)}>
+        Share music now
+      </Button>
     )
   }
 
@@ -64,9 +87,7 @@ export default function Home() {
           The best place to find and share common songs between friends
         </p>
 
-        <Button variant="success" size="lg" className="mt-2" onClick={() => router.push('/login')}>
-          Connect music account
-        </Button>
+        {button}
 
         <FontAwesomeIcon icon={faAngleDown} className={styles.angle} onClick={scrollBottom} />
       </main>
@@ -99,7 +120,7 @@ export default function Home() {
           </div>
         </div>
 
-        <Button variant="success" size="lg" className={styles.presentation_button + " text-center mt-5"} onClick={() => router.push('/login')}>
+        <Button variant="success" size="lg" className={styles.presentation_button + " text-center mt-5"} onClick={() => router.push(nextPage)}>
           Join the fun
         </Button>
       </main>
